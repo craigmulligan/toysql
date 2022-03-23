@@ -20,13 +20,14 @@ def repl(callback: Callable):
     db.
     """
     text = input("Enter your query:\n")
+
     try:
         logging.info(parse(text))
     except Exception as e:
         logging.error(f"Oops something went wrong: {e}")
     finally:
-        callback()
+        callback(callback)
 
 
-if __name__ == "__repl__":
+if __name__ == "__main__":
     repl(repl)
