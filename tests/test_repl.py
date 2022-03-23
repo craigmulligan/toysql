@@ -1,5 +1,5 @@
 import logging
-from toysql.cli import repl
+from toysql.repl import repl
 from unittest import mock
 
 
