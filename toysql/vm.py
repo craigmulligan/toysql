@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 from toysql.statement import SelectStatement, InsertStatement
 
 
@@ -6,7 +7,7 @@ class VM:
     def __init__(self):
         self.table = {}
 
-    def execute(self, statement: SelectStatement | InsertStatement):
+    def execute(self, statement: Union[SelectStatement, InsertStatement]):
         if isinstance(statement, SelectStatement):
             logging.info("this is where we do a select")
             results = []
@@ -17,7 +18,7 @@ class VM:
             return results
 
         if isinstance(statement, InsertStatement):
-            logging.info("this is where we do a select")
+            logging.info("this is where we do a insert")
             if statement.row:
                 id, name, email = statement.row
                 self.table[id] = (id, name, email)
