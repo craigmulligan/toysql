@@ -46,7 +46,7 @@ class Table:
         page, byte_offset = self.get_position(self.total_rows)
         if len(self.pager) == page:
             # initialise new page
-            self.pager.append(None)
+            self.pager.append(bytearray(b"".ljust(ROW_SIZE, b"\0")))
 
         self.pager[page][byte_offset:ROW_SIZE] = self.serialize_row(row)
         self.total_rows += 1
@@ -54,20 +54,21 @@ class Table:
     def select(self):
         rows = []
         for row_number in range(self.total_rows):
-            page, byte_offset = self.get_position(row_number)
-            row_as_bytes = self.pager[page][byte_offset:ROW_SIZE]
-            if row_as_bytes == b"":
+            page_num, byte_offset = self.get_position(row_number)
+            row_as_bytes = self.pager[page_num][byte_offset : byte_offset + ROW_SIZE]
+            if len(row_as_bytes) == 0:
                 # If the row is empty.
                 continue
+
             rows.append(self.deserialize_row(row_as_bytes))
 
         return rows
 
     def serialize_row(self, row):
         id, username, email = row
-        id_bytes = id.to_bytes(4, "big")
-        username_bytes = username.encode("utf-8").ljust(USERNAME_SIZE, b"\0")
-        email_bytes = email.encode("utf-8").ljust(EMAIL_SIZE, b"\0")
+        id_bytes = bytearray(id.to_bytes(4, "big"))
+        username_bytes = bytearray(username.encode("utf-8").ljust(USERNAME_SIZE, b"\0"))
+        email_bytes = bytearray(email.encode("utf-8").ljust(EMAIL_SIZE, b"\0"))
 
         return id_bytes + username_bytes + email_bytes
 
@@ -80,7 +81,7 @@ class Table:
 
     def get_position(self, row_num):
         page_num = int(row_num / ROWS_PER_PAGE)
-        row_offset = row_num % ROWS_PER_PAGE
+        row_offset = int(row_num % ROWS_PER_PAGE)
         byte_offset = int(row_offset * ROW_SIZE)
 
         return (page_num, byte_offset)
