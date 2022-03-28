@@ -31,6 +31,7 @@ PAGE_SIZE = 4096
 TABLE_MAX_PAGES = 100
 ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE
 TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
+BYTE_ORDER = "little"
 
 
 class Table:
@@ -66,14 +67,14 @@ class Table:
 
     def serialize_row(self, row):
         id, username, email = row
-        id_bytes = bytearray(id.to_bytes(4, "big"))
+        id_bytes = bytearray(id.to_bytes(4, BYTE_ORDER))
         username_bytes = bytearray(username.encode("utf-8").ljust(USERNAME_SIZE, b"\0"))
         email_bytes = bytearray(email.encode("utf-8").ljust(EMAIL_SIZE, b"\0"))
 
         return id_bytes + username_bytes + email_bytes
 
     def deserialize_row(self, page):
-        id = int.from_bytes(page[ID_OFFSET:ID_SIZE], "big")
+        id = int.from_bytes(page[ID_OFFSET:ID_SIZE], BYTE_ORDER)
         username = page[USERNAME_OFFSET:USERNAME_SIZE].decode("utf-8").rstrip("\x00")
         email = page[EMAIL_OFFSET:EMAIL_SIZE].decode("utf-8").rstrip("\x00")
 
