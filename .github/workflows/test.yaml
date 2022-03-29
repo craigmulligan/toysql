@@ -15,4 +15,5 @@ jobs:
         with:
           poetry-version: 1.1.7
       - run: poetry install
+      - run: poetry run mypy .
       - run: poetry run pytest
