@@ -6,7 +6,7 @@ This is a dependency free minimalistic clone of sqllite written in python. You s
 
 ## Questions:
 
-* What format is datastored on disk?
+* What format is data stored on disk?
 * Joins implementation?
 * Indexes implementation?
 
