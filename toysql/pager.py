@@ -1,20 +1,21 @@
+from typing import Protocol
 from pathlib import Path
 import os
 
 
 class Pager:
-    def __init__(self, file_path, page_size=4096):
+    def __init__(self, file_path: str, page_size=4096):
         file_name = Path(file_path)
         file_name.touch(exist_ok=True)
         self.f = open(file_name, "rb+")
         self.page_size = page_size
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int):
         self.f.seek(i * self.page_size)
         page = bytearray(self.f.read(self.page_size))
         return page
 
-    def __setitem__(self, page_number: int, page):
+    def __setitem__(self, page_number: int, page: bytearray):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)
         self.f.flush()
@@ -28,9 +29,13 @@ class Pager:
         return self.f.tell()
 
 
+class TableLike(Protocol):
+    row_count: int
+
+
 class Cursor:
     ## TODO switch this to an iterator.
-    def __init__(self, table):
+    def __init__(self, table: TableLike):
         self.table = table
         self.row_num = 0
 
