@@ -1,5 +1,4 @@
-import os
-from pathlib import Path
+from toysql.pager import Pager, Cursor
 
 ID_SIZE = 4
 USERNAME_SIZE = 32
@@ -16,43 +15,18 @@ TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
 BYTE_ORDER = "little"
 
 
-class Pager:
-    def __init__(self, file_path):
-        file_name = Path(file_path)
-        file_name.touch(exist_ok=True)
-        self.f = open(file_name, "rb+")
-        self.page_size = PAGE_SIZE
-
-    def __getitem__(self, i):
-        self.f.seek(i * self.page_size)
-        page = bytearray(self.f.read(self.page_size))
-        return page
-
-    def __setitem__(self, page_number: int, page):
-        self.f.seek(page_number * self.page_size)
-        self.f.write(page)
-        self.f.flush()
-        return page
-
-    def __len__(self):
-        return int(self.__sizeof__() / self.page_size) + 1
-
-    def __sizeof__(self):
-        self.f.seek(0, os.SEEK_END)
-        return self.f.tell()
-
-
 class Table:
     # support two operations: inserting a row and printing all rows
     # reside only in memory (no persistence to disk)
     # support a single, hard-coded table
 
     def __init__(self, file_path):
-        self.pager = Pager(file_path)
+        self.pager = Pager(file_path, page_size=PAGE_SIZE)
         self.row_count = int(self.pager.__sizeof__() / ROW_SIZE)
 
     def insert(self, row):
-        page_num, byte_offset = self.get_position(self.row_count)
+        cursor = Cursor(self).table_end()
+        page_num, byte_offset = self.get_position(cursor)
         page = self.pager[page_num]
         v = self.serialize_row(row)
         page[byte_offset : byte_offset + ROW_SIZE] = v
@@ -60,12 +34,14 @@ class Table:
         self.row_count += 1
 
     def select(self):
+        cursor = Cursor(self)
         rows = []
-        for row_number in range(self.row_count):
-            page_num, byte_offset = self.get_position(row_number)
+        while not cursor.end_of_table:
+            page_num, byte_offset = self.get_position(cursor)
             page = self.pager[page_num]
             row_as_bytes = page[byte_offset : byte_offset + ROW_SIZE]
             rows.append(self.deserialize_row(row_as_bytes))
+            cursor.advance()
 
         return rows
 
@@ -84,9 +60,9 @@ class Table:
 
         return (id, username, email)
 
-    def get_position(self, row_num):
-        page_num = row_num // ROWS_PER_PAGE
-        row_offset = row_num % ROWS_PER_PAGE
+    def get_position(self, cursor: Cursor):
+        page_num = cursor.row_num // ROWS_PER_PAGE
+        row_offset = cursor.row_num % ROWS_PER_PAGE
         byte_offset = row_offset * ROW_SIZE
 
         return (int(page_num), int(byte_offset))
