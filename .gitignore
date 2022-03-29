@@ -1,3 +1,4 @@
 __pycache__
 .testmondata
 venv
+__testdb__.db

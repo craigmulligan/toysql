@@ -7,10 +7,11 @@ This is a dependency free minimalistic clone of sqllite written in python. You s
 ## Questions:
 
 * What format is datastored on disk?
-* Joins implementation in relation to btrees?
+* Joins implementation?
 * Indexes implementation?
 
 ## Inspiration:
 
 - https://github.com/erikgrinaker/toydb
 - https://cstack.github.io/db_tutorial/
+- https://stackoverflow.com/questions/1108/how-does-database-indexing-work

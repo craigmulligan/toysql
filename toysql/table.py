@@ -1,23 +1,5 @@
-# class Pager:
-#     def __init__(self, file_path: str):
-#         # TODO use mmap?
-#         self.f = open(file_path, "wb+")
-#         self.page_size = 4 * 1000  # 4kb
-
-#     def get_page(self, page_number: int):
-#         self.f.seek(page_number)
-#         self.f.read(self.page_size)
-
-#     def set_page(self, page_number: int, page):
-#         self.f.seek(page_number)
-#         self.f.write(page)
-
-#     def flush(self):
-#         self.f.close()
-
-#     def file_length(self):
-#         return self.f.tell()
-
+import os
+from pathlib import Path
 
 ID_SIZE = 4
 USERNAME_SIZE = 32
@@ -29,9 +11,35 @@ ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE
 
 PAGE_SIZE = 4096
 TABLE_MAX_PAGES = 100
-ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE
+ROWS_PER_PAGE = int(PAGE_SIZE / ROW_SIZE)
 TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
 BYTE_ORDER = "little"
+
+
+class Pager:
+    def __init__(self, file_path):
+        file_name = Path(file_path)
+        file_name.touch(exist_ok=True)
+        self.f = open(file_name, "rb+")
+        self.page_size = PAGE_SIZE
+
+    def __getitem__(self, i):
+        self.f.seek(i * self.page_size)
+        page = bytearray(self.f.read(self.page_size))
+        return page
+
+    def __setitem__(self, page_number: int, page):
+        self.f.seek(page_number * self.page_size)
+        self.f.write(page)
+        self.f.flush()
+        return page
+
+    def __len__(self):
+        return int(self.__sizeof__() / self.page_size) + 1
+
+    def __sizeof__(self):
+        self.f.seek(0, os.SEEK_END)
+        return self.f.tell()
 
 
 class Table:
@@ -39,28 +47,24 @@ class Table:
     # reside only in memory (no persistence to disk)
     # support a single, hard-coded table
 
-    def __init__(self):
-        self.pager = []
-        self.total_rows = 0
+    def __init__(self, file_path):
+        self.pager = Pager(file_path)
+        self.row_count = int(self.pager.__sizeof__() / ROW_SIZE)
 
     def insert(self, row):
-        page, byte_offset = self.get_position(self.total_rows)
-        if len(self.pager) == page:
-            # initialise new page
-            self.pager.append(bytearray(b"".ljust(ROW_SIZE, b"\0")))
-
-        self.pager[page][byte_offset:ROW_SIZE] = self.serialize_row(row)
-        self.total_rows += 1
+        page_num, byte_offset = self.get_position(self.row_count)
+        page = self.pager[page_num]
+        v = self.serialize_row(row)
+        page[byte_offset : byte_offset + ROW_SIZE] = v
+        self.pager[page_num] = page
+        self.row_count += 1
 
     def select(self):
         rows = []
-        for row_number in range(self.total_rows):
+        for row_number in range(self.row_count):
             page_num, byte_offset = self.get_position(row_number)
-            row_as_bytes = self.pager[page_num][byte_offset : byte_offset + ROW_SIZE]
-            if len(row_as_bytes) == 0:
-                # If the row is empty.
-                continue
-
+            page = self.pager[page_num]
+            row_as_bytes = page[byte_offset : byte_offset + ROW_SIZE]
             rows.append(self.deserialize_row(row_as_bytes))
 
         return rows
@@ -81,8 +85,8 @@ class Table:
         return (id, username, email)
 
     def get_position(self, row_num):
-        page_num = int(row_num / ROWS_PER_PAGE)
-        row_offset = int(row_num % ROWS_PER_PAGE)
-        byte_offset = int(row_offset * ROW_SIZE)
+        page_num = row_num // ROWS_PER_PAGE
+        row_offset = row_num % ROWS_PER_PAGE
+        byte_offset = row_offset * ROW_SIZE
 
-        return (page_num, byte_offset)
+        return (int(page_num), int(byte_offset))
