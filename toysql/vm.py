@@ -4,8 +4,8 @@ from toysql.table import Table
 
 
 class VM:
-    def __init__(self):
-        self.table = Table()
+    def __init__(self, file_path):
+        self.table = Table(file_path)
 
     def execute(self, statement: Union[SelectStatement, InsertStatement]):
         if isinstance(statement, SelectStatement):

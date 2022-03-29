@@ -1,5 +1,7 @@
 from toysql.statement import InsertStatement, SelectStatement
 from toysql.vm import VM
+from toysql.table import ROW_SIZE
+import os
 
 
 def test_vm_one_page(vm: VM):
@@ -23,5 +25,20 @@ def test_vm_multiple_pages(vm: VM):
 
     result = vm.execute(SelectStatement())
     assert result == expected_rows
-    # Ensure only 1 page is used.
+    # Ensure 4 pages are used.
     assert len(vm.table.pager) == 4
+
+
+def test_retains_state_on_disk(vm: VM, db_file_path):
+    expected_rows = []
+    for n in range(50):
+        row = (n, f"fred-{n}", f"fred-{n}@flintstone.com")
+        expected_rows.append(row)
+        vm.execute(InsertStatement(row))
+    assert len(vm.table.pager) == 4
+
+    vm2 = VM(db_file_path)
+    # Should read from same db.
+    result = vm2.execute(SelectStatement())
+    assert result == expected_rows
+    assert len(vm2.table.pager) == 4
