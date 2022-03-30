@@ -1,7 +1,5 @@
 from toysql.statement import InsertStatement, SelectStatement
 from toysql.vm import VM
-from toysql.constants import ROW_SIZE
-import os
 
 
 def test_vm_one_page(vm: VM):
