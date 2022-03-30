@@ -12,6 +12,6 @@ This is a dependency free minimalistic clone of sqllite written in python. You s
 
 ## Inspiration:
 
-- https://github.com/erikgrinaker/toydb
 - https://cstack.github.io/db_tutorial/
+- https://github.com/erikgrinaker/toydb
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
