@@ -1,6 +1,6 @@
 from toysql.statement import InsertStatement, SelectStatement
 from toysql.vm import VM
-from toysql.table import ROW_SIZE
+from toysql.constants import ROW_SIZE
 import os
 
 
