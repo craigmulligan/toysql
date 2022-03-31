@@ -13,29 +13,37 @@ class Table(TableLike):
 
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
-        self.row_count = int(self.pager.__sizeof__() / ROW_SIZE)
+        self.root_page_num = 0
 
     def insert(self, row: Row) -> Row:
         cursor = Cursor(self).table_end()
-        page_num, byte_offset = self.get_position(cursor)
-        page = self.pager[page_num]
-        v = self.serialize_row(row)
-        page[byte_offset : byte_offset + ROW_SIZE] = v
-        self.pager[page_num] = page
-        self.row_count += 1
+        node = cursor.get_node(cursor.page_num)
+        num_cells = node.leaf_node_num_cells()
+
+        if num_cells >= LEAF_NODE_MAX_CELLS:
+            raise Exception("Need to implement splitting a leaf node")
+
+        if cursor.cell_num < num_cells:
+            pass
+
+        node.insert_cell(cursor, row[0], self.serialize_row(row))
         return row
 
     def select(self) -> List[Row]:
         cursor = Cursor(self)
         rows = []
         while not cursor.end_of_table:
-            page_num, byte_offset = self.get_position(cursor)
-            page = self.pager[page_num]
-            row_as_bytes = page[byte_offset : byte_offset + ROW_SIZE]
-            rows.append(self.deserialize_row(row_as_bytes))
+            node = cursor.get_node(cursor.page_num)
+            for i in range(node.leaf_node_num_cells()):
+                row_as_bytes = node.cell(i)
+                rows.append(self.deserialize_row(row_as_bytes))
+
             cursor.advance()
 
         return rows
+
+    def serialize_key(self, key: int) -> bytearray:
+        return bytearray(id.to_bytes(1, BYTE_ORDER))
 
     def serialize_row(self, row: Row) -> bytearray:
         id, username, email = row
@@ -51,10 +59,3 @@ class Table(TableLike):
         email = page[EMAIL_OFFSET:EMAIL_SIZE].decode("utf-8").rstrip("\x00")
 
         return (id, username, email)
-
-    def get_position(self, cursor: Cursor) -> Tuple[int, int]:
-        page_num = cursor.row_num // ROWS_PER_PAGE
-        row_offset = cursor.row_num % ROWS_PER_PAGE
-        byte_offset = row_offset * ROW_SIZE
-
-        return (int(page_num), int(byte_offset))
