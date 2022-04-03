@@ -1,5 +1,7 @@
+import pytest
 from toysql.statement import InsertStatement, SelectStatement
 from toysql.vm import VM
+from toysql.exceptions import DuplicateKeyException
 
 
 def test_vm_one_page(vm: VM):
@@ -12,6 +14,16 @@ def test_vm_one_page(vm: VM):
     assert result == [row, row_2]
     # Ensure only 1 page is used.
     assert len(vm.table.pager) == 1
+
+
+def test_vm_duplicate_key(vm: VM):
+    row = (1, "fred", "fred@flintstone.com")
+    row_2 = (1, "pebbles", "pebbles@flintstone.com")
+
+    vm.execute(InsertStatement(row))
+
+    with pytest.raises(DuplicateKeyException):
+        vm.execute(InsertStatement(row_2))
 
 
 def test_vm_multiple_pages(vm: VM):
