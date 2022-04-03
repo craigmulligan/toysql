@@ -68,6 +68,5 @@ class Node:
         self.write_content(
             cell_offset, LEAF_NODE_CELL_SIZE, key_as_bytes + row_as_bytes
         )
-        # print(b"fred@flintstone.com" in self.page[10:305])
         self.set_num_cells(num_cells + 1)
         return self.page

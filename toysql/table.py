@@ -29,7 +29,6 @@ class Table(TableLike):
         page = node.insert_cell(
             cursor, self.serialize_key(row[0]), self.serialize_row(row)
         )
-        # print(b"fred@flintstone.com" in page[10:305])
         self.pager[cursor.page_num] = page
         return row
 
