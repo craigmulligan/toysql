@@ -26,7 +26,11 @@ class Table(TableLike):
         if cursor.cell_num < num_cells:
             pass
 
-        node.insert_cell(cursor, row[0], self.serialize_row(row))
+        page = node.insert_cell(
+            cursor, self.serialize_key(row[0]), self.serialize_row(row)
+        )
+        # print(b"fred@flintstone.com" in page[10:305])
+        self.pager[cursor.page_num] = page
         return row
 
     def select(self) -> List[Row]:
@@ -35,7 +39,7 @@ class Table(TableLike):
         while not cursor.end_of_table:
             node = cursor.get_node(cursor.page_num)
             for i in range(node.leaf_node_num_cells()):
-                row_as_bytes = node.cell(i)
+                row_as_bytes = node.cell_value(i)
                 rows.append(self.deserialize_row(row_as_bytes))
 
             cursor.advance()
@@ -43,7 +47,7 @@ class Table(TableLike):
         return rows
 
     def serialize_key(self, key: int) -> bytearray:
-        return bytearray(id.to_bytes(1, BYTE_ORDER))
+        return bytearray(key.to_bytes(LEAF_NODE_KEY_SIZE, BYTE_ORDER))
 
     def serialize_row(self, row: Row) -> bytearray:
         id, username, email = row
