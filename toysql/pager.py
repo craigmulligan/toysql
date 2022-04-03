@@ -16,12 +16,12 @@ class Pager:
         file_name.touch(exist_ok=True)
         self.f = open(file_name, "rb+")
         self.page_size = page_size
-        self.num_pages = int(self.__sizeof__() / page_size)
+        self.num_pages = len(self)
 
         # TODO check for corrupt file.
         # file_length % PAGE_SIZE != 0
 
-    def __getitem__(self, i: int):
+    def __getitem__(self, i: int) -> bytes:
         if i >= self.num_pages:
             self.num_pages += 1
         self.f.seek(i * self.page_size)
@@ -35,7 +35,7 @@ class Pager:
         return page
 
     def __len__(self):
-        return int(self.__sizeof__() / self.page_size) + 1
+        return int(self.__sizeof__() / self.page_size)
 
     def __sizeof__(self):
         self.f.seek(0, os.SEEK_END)
@@ -72,7 +72,7 @@ class Cursor:
         return node.leaf_node_value(self.cell_num)
 
     def get_node(self, page_num):
-        page = self.table.pager(page_num)
+        page = self.table.pager[page_num]
         return Node(page)
 
     def advance(self):
