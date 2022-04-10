@@ -15,6 +15,13 @@ class Integer:
     def deserialize(self, value) -> int:
         return int.from_bytes(value, self.byteorder)
 
+    def read(self, content: bytearray, offset: int) -> int:
+        return self.deserialize(content[offset : offset + self.length])
+
+    def write(self, content: bytearray, offset: int, value: int) -> bytearray:
+        content[offset : offset + self.length] = self.serialize(value)
+        return content
+
 
 @dataclass
 class String:
@@ -26,3 +33,11 @@ class String:
 
     def deserialize(_self, value) -> str:
         return value.decode("utf-8").rstrip("\x00")
+
+    def read(self, content: bytearray, offset: int) -> str:
+        return self.deserialize(content[offset : offset + self.length])
+
+    def write(self, content: bytearray, offset: int, value: str) -> bytearray:
+        new_content = content[offset : offset + self.length]
+        new_content[offset : offset + self.length] = self.serialize(value)
+        return new_content

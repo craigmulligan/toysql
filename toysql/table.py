@@ -1,11 +1,12 @@
-from typing import Tuple, List
+from typing import Tuple, List, Any
 from toysql.pager import Pager
 from toysql.constants import *
 from toysql.btree import Cursor, TableLike, Node
 from toysql.exceptions import DuplicateKeyException
+import toysql.datatypes as datatypes
 
 
-Row = Tuple[int, str, str]
+Row = Any
 
 
 class Table(TableLike):
@@ -16,6 +17,12 @@ class Table(TableLike):
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
         self.root_page_num = 0
+        self.schema = [
+            datatypes.Integer(),
+            datatypes.String(USERNAME_SIZE),
+            datatypes.String(EMAIL_SIZE),
+        ]
+        self.primary_key = self.schema[0]
 
     def insert(self, row: Row) -> Row:
         root_node = self.get_root_node()
@@ -57,19 +64,21 @@ class Table(TableLike):
         return rows
 
     def serialize_key(self, key: int) -> bytearray:
-        return bytearray(key.to_bytes(LEAF_NODE_KEY_SIZE, BYTE_ORDER))
+        return self.primary_key.serialize(key)
 
     def serialize_row(self, row: Row) -> bytearray:
-        id, username, email = row
-        id_bytes = bytearray(id.to_bytes(4, BYTE_ORDER))
-        username_bytes = bytearray(username.encode("utf-8").ljust(USERNAME_SIZE, b"\0"))
-        email_bytes = bytearray(email.encode("utf-8").ljust(EMAIL_SIZE, b"\0"))
+        cell = bytearray()
+        for i, datatype in enumerate(self.schema):
+            cell += datatype.serialize(row[i])
 
-        return id_bytes + username_bytes + email_bytes
+        return cell
 
-    def deserialize_row(self, page: bytearray) -> Row:
-        id = int.from_bytes(page[ID_OFFSET:ID_SIZE], BYTE_ORDER)
-        username = page[USERNAME_OFFSET:USERNAME_SIZE].decode("utf-8").rstrip("\x00")
-        email = page[EMAIL_OFFSET:EMAIL_SIZE].decode("utf-8").rstrip("\x00")
+    def deserialize_row(self, cell: bytearray) -> Row:
+        row = []
+        index = 0
+        for datatype in self.schema:
+            value = datatype.deserialize(cell[index : datatype.length])
+            row.append(value)
+            index += datatype.length
 
-        return (id, username, email)
+        return tuple(row)
