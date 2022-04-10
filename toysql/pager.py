@@ -1,6 +1,4 @@
-from typing import Protocol, Any
 from pathlib import Path
-from toysql.btree import Node
 import os
 
 
@@ -40,44 +38,3 @@ class Pager:
     def __sizeof__(self):
         self.f.seek(0, os.SEEK_END)
         return self.f.tell()
-
-
-class TableLike(Protocol):
-    root_page_num: int
-    pager: Any
-
-
-class Cursor:
-    def __init__(self, table: TableLike):
-        self.table = table
-        self.page_num = self.table.root_page_num
-        self.cell_num = 0
-        self.end_of_table = False
-        self.table_start()
-
-    def table_start(self):
-        node = self.get_node(self.table.root_page_num)
-        self.cell_num = node.leaf_node_num_cells()
-        self.end_of_table = self.cell_num == 0
-        return self
-
-    def table_end(self):
-        node = self.get_node(self.table.root_page_num)
-        self.cell_num = node.leaf_node_num_cells()
-        self.end_of_table = True
-        return self
-
-    def value(self):
-        node = self.get_node(self.page_num)
-        return node.leaf_node_value(self.cell_num)
-
-    def get_node(self, page_num):
-        page = self.table.pager[page_num]
-        return Node(page)
-
-    def advance(self):
-        node = self.get_node(self.page_num)
-        self.cell_num += 1
-
-        if self.cell_num >= node.leaf_node_num_cells():
-            self.end_of_table = True

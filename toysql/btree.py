@@ -1,3 +1,4 @@
+from typing import Protocol, Any
 from enum import Enum
 from toysql.constants import *
 
@@ -22,7 +23,6 @@ class Node:
 
     def write_content(self, start: int, length: int, content: bytes):
         page = self.page
-
         page[start : start + length] = content
         self.page = page
 
@@ -50,6 +50,11 @@ class Node:
     def cell_offset(self, cell_num):
         return LEAF_NODE_HEADER_SIZE + (cell_num * LEAF_NODE_CELL_SIZE)
 
+    def get_cell_key(self, cell_num):
+        cell_offset = self.leaf_node_cell(cell_num)
+        key_value = self.read_content(cell_offset, LEAF_NODE_KEY_SIZE)
+        return int.from_bytes(key_value, BYTE_ORDER)
+
     def cell_value(self, cell_num):
         """returns a row"""
         cell_offset = self.leaf_node_cell(cell_num)
@@ -61,8 +66,10 @@ class Node:
         if num_cells >= LEAF_NODE_MAX_CELLS:
             raise Exception("Need to implement splitting a leaf node")
 
-        if cursor.cell_num < num_cells:
-            raise Exception("dont know")
+        # if cursor.cell_num < num_cells:
+        #     raise Exception(
+        #         f"cursor.cell_num: {cursor.cell_num} < num_cells: {num_cells}"
+        #     )
 
         cell_offset = self.cell_offset(cursor.cell_num)
         self.write_content(
@@ -70,3 +77,65 @@ class Node:
         )
         self.set_num_cells(num_cells + 1)
         return self.page
+
+    def find_cell(self, table, key: int):
+        num_cells = self.leaf_node_num_cells()
+        cursor = Cursor(table)
+        min_index = 0
+        one_past_max_index = num_cells
+
+        while one_past_max_index != min_index:
+            index = int((min_index + one_past_max_index) / 2)
+            key_at_index = self.get_cell_key(index)
+
+            if key == key_at_index:
+                cursor.cell_num = index
+                return cursor
+            if key < key_at_index:
+                one_past_max_index = index
+            else:
+                min_index = index + 1
+
+        cursor.cell_num = min_index
+        return cursor
+
+
+class TableLike(Protocol):
+    root_page_num: int
+    pager: Any
+
+
+class Cursor:
+    def __init__(self, table: TableLike):
+        self.table = table
+        self.page_num = self.table.root_page_num
+        self.cell_num = 0
+        self.end_of_table = False
+        self.table_start()
+
+    def table_start(self):
+        node = self.get_node(self.table.root_page_num)
+        self.cell_num = node.leaf_node_num_cells()
+        self.end_of_table = self.cell_num == 0
+        return self
+
+    def table_end(self):
+        node = self.get_node(self.table.root_page_num)
+        self.cell_num = node.leaf_node_num_cells()
+        self.end_of_table = True
+        return self
+
+    def value(self):
+        node = self.get_node(self.page_num)
+        return node.leaf_node_value(self.cell_num)
+
+    def get_node(self, page_num):
+        page = self.table.pager[page_num]
+        return Node(page)
+
+    def advance(self):
+        node = self.get_node(self.page_num)
+        self.cell_num += 1
+
+        if self.cell_num >= node.leaf_node_num_cells():
+            self.end_of_table = True
