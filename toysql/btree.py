@@ -1,6 +1,7 @@
 from typing import Protocol, Any
 from enum import Enum
 from toysql.constants import *
+from toysql.datatypes import Integer
 
 
 class BTree:
@@ -17,6 +18,8 @@ class Node:
         if page is None or len(page) == 0:
             page = bytearray(b"".ljust(PAGE_SIZE, b"\0"))
         self.page = page
+        self.cell_key = Integer()
+        self.num_cells_header = Integer()
 
     def read_content(self, start, length):
         return self.page[start : start + length]
@@ -27,16 +30,12 @@ class Node:
         self.page = page
 
     def leaf_node_num_cells(self):
-        num_cells_header = self.read_content(
-            LEAF_NODE_NUM_CELLS_OFFSET, LEAF_NODE_NUM_CELLS_SIZE
-        )
-        return int.from_bytes(num_cells_header, BYTE_ORDER)
+        return self.num_cells_header.read(self.page, LEAF_NODE_NUM_CELLS_OFFSET)
 
     def set_num_cells(self, num):
-        num_cells_header = num.to_bytes(LEAF_NODE_NUM_CELLS_SIZE, BYTE_ORDER)
-        self.write_content(
-            LEAF_NODE_NUM_CELLS_OFFSET, LEAF_NODE_NUM_CELLS_SIZE, num_cells_header
-        )
+        page = self.num_cells_header.write(self.page, LEAF_NODE_NUM_CELLS_OFFSET, num)
+        self.page = page
+        return page
 
     def leaf_node_cell(self, cell_num):
         return LEAF_NODE_HEADER_SIZE + (cell_num * LEAF_NODE_CELL_SIZE)
@@ -52,8 +51,7 @@ class Node:
 
     def get_cell_key(self, cell_num):
         cell_offset = self.leaf_node_cell(cell_num)
-        key_value = self.read_content(cell_offset, LEAF_NODE_KEY_SIZE)
-        return int.from_bytes(key_value, BYTE_ORDER)
+        return self.cell_key.read(self.page, cell_offset)
 
     def cell_value(self, cell_num):
         """returns a row"""
