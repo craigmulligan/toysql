@@ -5,15 +5,6 @@ ByteOrder = Literal["little", "big"]
 
 
 @dataclass
-class DataTypeInstance:
-    value: Any  # TODO generic
-    datatype: Any  # TODO generic
-
-    def serialize(self):
-        return self.datatype.serialize(self.value)
-
-
-@dataclass
 class Integer:
     length: int = 4
     byteorder: ByteOrder = "little"
