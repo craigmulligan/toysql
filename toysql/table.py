@@ -40,9 +40,7 @@ class Table(TableLike):
                     f"{key_to_insert} key already exists in {self}"
                 )
 
-        page = root_node.insert_cell(
-            cursor, self.serialize_key(row[0]), self.serialize_row(row)
-        )
+        page = root_node.insert_cell(cursor, row[0], self.serialize_row(row))
         self.pager[cursor.page_num] = page
         return row
 
@@ -62,9 +60,6 @@ class Table(TableLike):
             cursor.advance()
 
         return rows
-
-    def serialize_key(self, key: int) -> bytearray:
-        return self.primary_key.serialize(key)
 
     def serialize_row(self, row: Row) -> bytearray:
         cell = bytearray()

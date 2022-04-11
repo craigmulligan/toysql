@@ -59,7 +59,10 @@ class Node:
         # Just return the value
         return self.read_content(cell_offset + LEAF_NODE_KEY_SIZE, LEAF_NODE_VALUE_SIZE)
 
-    def insert_cell(self, cursor, key_as_bytes, row_as_bytes):
+    def leaf_node_split_and_insert(self, cursor, key: int, row_as_bytes):
+        pass
+
+    def insert_cell(self, cursor, key, cell_value):
         num_cells = self.leaf_node_num_cells()
         if num_cells >= LEAF_NODE_MAX_CELLS:
             raise Exception("Need to implement splitting a leaf node")
@@ -72,7 +75,9 @@ class Node:
 
         cell_offset = self.cell_offset(cursor.cell_num)
         self.write_content(
-            cell_offset, LEAF_NODE_CELL_SIZE, key_as_bytes + row_as_bytes
+            cell_offset,
+            LEAF_NODE_CELL_SIZE,
+            cursor.table.primary_key.serialize(key) + cell_value,
         )
         self.set_num_cells(num_cells + 1)
         return self.page
