@@ -9,19 +9,25 @@ class BTree:
 
 
 class NodeType:
-    internal = 0
-    leaf = 1
+    internal = True
+    leaf = False
 
 
 class Tree:
     def __init__(self, table, pager) -> None:
         self.table = table
         self.pager = pager
+        root_page = self.pager.get_page(self.table.root_page_num)
+        self.root_node = Node(root_page)
 
 
-class RootNode:
-    def __init__(self, page: bytearray):
-        self.page = page
+# class LeafNode():
+#      def __init__(self, page: bytearray):
+#         self.page = page
+
+# class RootNode:
+#     def __init__(self, page: bytearray):
+#         self.page = page
 
 
 class Node:
@@ -31,23 +37,27 @@ class Node:
         self.page = page
         self.cell_key = datatypes.Integer()
         self.num_cells_header = datatypes.Integer()
-        self.is_leaf = datatypes.Boolean()
+        self.is_leaf_header = datatypes.Boolean()
 
     def read_content(self, start, length):
         return self.page[start : start + length]
 
     def write_content(self, start: int, length: int, content: bytes):
-        page = self.page
-        page[start : start + length] = content
-        self.page = page
+        self.page[start : start + length] = content
 
     def leaf_node_num_cells(self):
         return self.num_cells_header.read(self.page, LEAF_NODE_NUM_CELLS_OFFSET)
 
     def set_num_cells(self, num):
         page = self.num_cells_header.write(self.page, LEAF_NODE_NUM_CELLS_OFFSET, num)
-        self.page = page
         return page
+
+    def set_node_type(self, is_leaf):
+        page = self.is_leaf_header.write(self.page, NODE_TYPE_OFFSET, is_leaf)
+        return page
+
+    def get_node_type(self):
+        return self.is_leaf_header.read(self.page, NODE_TYPE_OFFSET)
 
     def leaf_node_cell(self, cell_num):
         return LEAF_NODE_HEADER_SIZE + (cell_num * LEAF_NODE_CELL_SIZE)
@@ -71,41 +81,41 @@ class Node:
         # Just return the value
         return self.read_content(cell_offset + LEAF_NODE_KEY_SIZE, LEAF_NODE_VALUE_SIZE)
 
-    def leaf_node_split_and_insert(self, cursor, key, cell_value):
-        """
-        Create a new node and move half the cells over.
-        Insert the new value in one of the two nodes.
-        Update parent or create a new parent.
-        """
-        old_node = cursor.get_node(cursor.page_num)
-        new_page_num = len(cursor.table.pager)
-        new_node = cursor.get_node(new_page_num)
+    # def leaf_node_split_and_insert(self, cursor, key, cell_value):
+    #     """
+    #     Create a new node and move half the cells over.
+    #     Insert the new value in one of the two nodes.
+    #     Update parent or create a new parent.
+    #     """
+    #     old_node = cursor.get_node(cursor.page_num)
+    #     new_page_num = len(cursor.table.pager)
+    #     new_node = cursor.get_node(new_page_num)
 
-        # /*
-        # All existing keys plus new key should be divided
-        # evenly between old (left) and new (right) nodes.
-        # Starting from the right, move each key to correct position.
-        # */
-        for i in range(LEAF_NODE_MAX_CELLS):
-            if i >= LEAF_NODE_LEFT_SPLIT_COUNT:
-                destination_node = new_node
-            else:
-                destination_node = old_node
+    #     # /*
+    #     # All existing keys plus new key should be divided
+    #     # evenly between old (left) and new (right) nodes.
+    #     # Starting from the right, move each key to correct position.
+    #     # */
+    #     for i in range(LEAF_NODE_MAX_CELLS):
+    #         if i >= LEAF_NODE_LEFT_SPLIT_COUNT:
+    #             destination_node = new_node
+    #         else:
+    #             destination_node = old_node
 
-            index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT
-            destination = destination_node.leaf_node_cell(
-                destination_node, index_within_node
-            )
+    #         index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT
+    #         destination = destination_node.leaf_node_cell(
+    #             destination_node, index_within_node
+    #         )
 
-            if i == cursor.cell_num:
-                pass
-                # serialize_row(value, destination)
-            elif i > cursor.cell_num:
-                pass
-                # memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE)
-            else:
-                pass
-                # memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE)
+    #         if i == cursor.cell_num:
+    #             pass
+    #             # serialize_row(value, destination)
+    #         elif i > cursor.cell_num:
+    #             pass
+    #             # memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE)
+    #         else:
+    #             pass
+    #             # memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE)
 
     def insert_cell(self, cursor, key, cell_value):
         num_cells = self.leaf_node_num_cells()
