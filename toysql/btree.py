@@ -3,6 +3,7 @@ from enum import Enum
 from toysql.constants import *
 from dataclasses import dataclass
 import toysql.datatypes as datatypes
+from toysql.exceptions import DuplicateKeyException
 
 
 class NodeType:
@@ -16,8 +17,47 @@ class Tree:
     def __init__(self, table, pager) -> None:
         self.table = table
         self.pager = pager
-        root_page = self.pager.get_page(self.table.root_page_num)
-        self.root_node = Node(root_page)
+        self.root_node = Node(self.pager[self.table.root_page_num])
+
+    def insert(self, key, row: bytearray):
+        root_node = self.root_node
+        num_cells = root_node.leaf_node_num_cells()
+
+        # if num_cells >= LEAF_NODE_MAX_CELLS:
+        #     raise Exception("Need to implement splitting a leaf node")
+
+        key_to_insert = row[0]
+        cursor = self.get_cursor(key_to_insert)
+        if cursor.cell_num < num_cells:
+            key_at_index = root_node.get_cell(cursor.cell_num).key
+            if key_at_index == key_to_insert:
+                raise DuplicateKeyException(
+                    f"{key_to_insert} key already exists in {self}"
+                )
+
+        page = root_node.insert_cell(cursor, key, row)
+        self.pager[cursor.page_num] = page
+
+    def get_cursor(self, key):
+        num_cells = self.root_node.leaf_node_num_cells()
+        cursor = Cursor(self.table)
+        min_index = 0
+        one_past_max_index = num_cells
+
+        while one_past_max_index != min_index:
+            index = int((min_index + one_past_max_index) / 2)
+            key_at_index = self.root_node.get_cell(index).key
+
+            if key == key_at_index:
+                cursor.cell_num = index
+                return cursor
+            if key < key_at_index:
+                one_past_max_index = index
+            else:
+                min_index = index + 1
+
+        cursor.cell_num = min_index
+        return cursor
 
 
 # class LeafNode():
@@ -134,27 +174,6 @@ class Node:
         self.set_num_cells(num_cells + 1)
         return self.page
 
-    def find_cell(self, table, key: int):
-        num_cells = self.leaf_node_num_cells()
-        cursor = Cursor(table)
-        min_index = 0
-        one_past_max_index = num_cells
-
-        while one_past_max_index != min_index:
-            index = int((min_index + one_past_max_index) / 2)
-            key_at_index = self.get_cell(index).key
-
-            if key == key_at_index:
-                cursor.cell_num = index
-                return cursor
-            if key < key_at_index:
-                one_past_max_index = index
-            else:
-                min_index = index + 1
-
-        cursor.cell_num = min_index
-        return cursor
-
     # def leaf_node_split_and_insert(self, cursor, key, cell_value):
     #     """
     #     Create a new node and move half the cells over.
@@ -216,10 +235,6 @@ class Cursor:
         self.cell_num = node.leaf_node_num_cells()
         self.end_of_table = True
         return self
-
-    def value(self):
-        node = self.get_node(self.page_num)
-        return node.leaf_node_value(self.cell_num)
 
     def get_node(self, page_num):
         page = self.table.pager[page_num]

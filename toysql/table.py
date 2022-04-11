@@ -1,8 +1,8 @@
 from typing import Tuple, List, Any
 from toysql.pager import Pager
 from toysql.constants import *
-from toysql.btree import Cursor, TableLike, Node
-from toysql.exceptions import DuplicateKeyException
+from toysql.btree import Cursor, TableLike
+from toysql.btree import Tree
 import toysql.datatypes as datatypes
 
 
@@ -17,6 +17,7 @@ class Table(TableLike):
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
         self.root_page_num = 0
+        self.tree = Tree(self, self.pager)
         self.schema = [
             datatypes.Integer(),
             datatypes.String(USERNAME_SIZE),
@@ -25,28 +26,8 @@ class Table(TableLike):
         self.primary_key = self.schema[0]
 
     def insert(self, row: Row) -> Row:
-        root_node = self.get_root_node()
-        num_cells = root_node.leaf_node_num_cells()
-
-        # if num_cells >= LEAF_NODE_MAX_CELLS:
-        #     raise Exception("Need to implement splitting a leaf node")
-
-        key_to_insert = row[0]
-        cursor = root_node.find_cell(self, key_to_insert)
-        if cursor.cell_num < num_cells:
-            key_at_index = root_node.get_cell(cursor.cell_num).key
-            if key_at_index == key_to_insert:
-                raise DuplicateKeyException(
-                    f"{key_to_insert} key already exists in {self}"
-                )
-
-        page = root_node.insert_cell(cursor, row[0], self.serialize_row(row))
-        self.pager[cursor.page_num] = page
+        self.tree.insert(row[0], self.serialize_row(row))
         return row
-
-    def get_root_node(self):
-        page = self.pager[self.root_page_num]
-        return Node(page)
 
     def select(self) -> List[Row]:
         cursor = Cursor(self)
