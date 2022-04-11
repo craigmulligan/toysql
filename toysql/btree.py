@@ -1,6 +1,7 @@
 from typing import Protocol, Any
 from enum import Enum
 from toysql.constants import *
+from dataclasses import dataclass
 import toysql.datatypes as datatypes
 
 
@@ -30,14 +31,71 @@ class Tree:
 #         self.page = page
 
 
+@dataclass
+class Header:
+    offset: int
+    datatype: Any
+    page: bytearray
+
+    def write(self, content: Any) -> None:
+        self.page[
+            self.offset : self.offset + self.datatype.length
+        ] = self.datatype.serialize(content)
+
+    def read(self):
+        return self.datatype.deserialize(
+            self.page[self.offset : self.offset + self.datatype.length]
+        )
+
+
+@dataclass
+class Cell:
+    cell_index: int
+    page: bytearray
+    key_datatype: Any = datatypes.Integer()
+
+    @property
+    def offset(self):
+        return LEAF_NODE_HEADER_SIZE + (self.cell_index * LEAF_NODE_CELL_SIZE)
+
+    def write(self, key, content: Any) -> None:
+        self.page[self.offset : self.offset + LEAF_NODE_CELL_SIZE] = (
+            self.key_datatype.serialize(key) + content
+        )
+
+    def read(self):
+        return self.page[self.offset : self.offset + LEAF_NODE_CELL_SIZE]
+
+    @property
+    def value(self) -> bytearray:
+        cell = self.read()
+        return cell[self.key_datatype.length : -1]
+
+    @property
+    def key(self) -> int:
+        cell = self.read()
+        return self.key_datatype.deserialize(cell[0 : self.key_datatype.length])
+
+
 class Node:
+    """
+    page = bytearray of PAGE_SIZE.
+    page is split into headers + cells
+    each cell is pk + row_values
+    """
+
     def __init__(self, page: bytearray):
         if page is None or len(page) == 0:
             page = bytearray(b"".ljust(PAGE_SIZE, b"\0"))
         self.page = page
         self.cell_key = datatypes.Integer()
-        self.num_cells_header = datatypes.Integer()
-        self.is_leaf_header = datatypes.Boolean()
+        self.num_cells_header = Header(
+            LEAF_NODE_NUM_CELLS_OFFSET, datatypes.Integer(), self.page
+        )
+        self.is_leaf_header = Header(NODE_TYPE_OFFSET, datatypes.Boolean(), self.page)
+        self.parent_point = Header(
+            PARENT_POINTER_OFFSET, datatypes.Integer(), self.page
+        )
 
     def read_content(self, start, length):
         return self.page[start : start + length]
@@ -46,40 +104,58 @@ class Node:
         self.page[start : start + length] = content
 
     def leaf_node_num_cells(self):
-        return self.num_cells_header.read(self.page, LEAF_NODE_NUM_CELLS_OFFSET)
+        return self.num_cells_header.read()
 
     def set_num_cells(self, num):
-        page = self.num_cells_header.write(self.page, LEAF_NODE_NUM_CELLS_OFFSET, num)
+        page = self.num_cells_header.write(num)
         return page
 
     def set_node_type(self, is_leaf):
-        page = self.is_leaf_header.write(self.page, NODE_TYPE_OFFSET, is_leaf)
+        page = self.is_leaf_header.write(is_leaf)
         return page
 
     def get_node_type(self):
-        return self.is_leaf_header.read(self.page, NODE_TYPE_OFFSET)
+        return self.is_leaf_header.read()
 
-    def leaf_node_cell(self, cell_num):
-        return LEAF_NODE_HEADER_SIZE + (cell_num * LEAF_NODE_CELL_SIZE)
+    def get_cell(self, cell_num):
+        return Cell(cell_num, self.page)
 
-    def leaf_node_key(self, cell_num):
-        return self.leaf_node_cell(cell_num)
+    def insert_cell(self, cursor, key, cell_value):
+        num_cells = self.leaf_node_num_cells()
+        if num_cells >= LEAF_NODE_MAX_CELLS:
+            raise Exception("Need to implement splitting a leaf node")
 
-    def leaf_node_value(self, cell_num):
-        return self.leaf_node_cell(cell_num) + LEAF_NODE_KEY_SIZE
+        if cursor.cell_num < num_cells:
+            # Node full
+            raise Exception(
+                f"cursor.cell_num: {cursor.cell_num} < num_cells: {num_cells}"
+            )
 
-    def cell_offset(self, cell_num):
-        return LEAF_NODE_HEADER_SIZE + (cell_num * LEAF_NODE_CELL_SIZE)
+        cell = self.get_cell(cursor.cell_num)
+        cell.write(key, cell_value)
+        self.set_num_cells(num_cells + 1)
+        return self.page
 
-    def get_cell_key(self, cell_num):
-        cell_offset = self.leaf_node_cell(cell_num)
-        return self.cell_key.read(self.page, cell_offset)
+    def find_cell(self, table, key: int):
+        num_cells = self.leaf_node_num_cells()
+        cursor = Cursor(table)
+        min_index = 0
+        one_past_max_index = num_cells
 
-    def cell_value(self, cell_num):
-        """returns a row"""
-        cell_offset = self.leaf_node_cell(cell_num)
-        # Just return the value
-        return self.read_content(cell_offset + LEAF_NODE_KEY_SIZE, LEAF_NODE_VALUE_SIZE)
+        while one_past_max_index != min_index:
+            index = int((min_index + one_past_max_index) / 2)
+            key_at_index = self.get_cell(index).key
+
+            if key == key_at_index:
+                cursor.cell_num = index
+                return cursor
+            if key < key_at_index:
+                one_past_max_index = index
+            else:
+                min_index = index + 1
+
+        cursor.cell_num = min_index
+        return cursor
 
     # def leaf_node_split_and_insert(self, cursor, key, cell_value):
     #     """
@@ -116,47 +192,6 @@ class Node:
     #         else:
     #             pass
     #             # memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE)
-
-    def insert_cell(self, cursor, key, cell_value):
-        num_cells = self.leaf_node_num_cells()
-        if num_cells >= LEAF_NODE_MAX_CELLS:
-            raise Exception("Need to implement splitting a leaf node")
-
-        if cursor.cell_num < num_cells:
-            # Node full
-            raise Exception(
-                f"cursor.cell_num: {cursor.cell_num} < num_cells: {num_cells}"
-            )
-
-        cell_offset = self.cell_offset(cursor.cell_num)
-        self.write_content(
-            cell_offset,
-            LEAF_NODE_CELL_SIZE,
-            cursor.table.primary_key.serialize(key) + cell_value,
-        )
-        self.set_num_cells(num_cells + 1)
-        return self.page
-
-    def find_cell(self, table, key: int):
-        num_cells = self.leaf_node_num_cells()
-        cursor = Cursor(table)
-        min_index = 0
-        one_past_max_index = num_cells
-
-        while one_past_max_index != min_index:
-            index = int((min_index + one_past_max_index) / 2)
-            key_at_index = self.get_cell_key(index)
-
-            if key == key_at_index:
-                cursor.cell_num = index
-                return cursor
-            if key < key_at_index:
-                one_past_max_index = index
-            else:
-                min_index = index + 1
-
-        cursor.cell_num = min_index
-        return cursor
 
 
 class TableLike(Protocol):

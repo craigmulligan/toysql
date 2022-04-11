@@ -34,7 +34,7 @@ class Table(TableLike):
         key_to_insert = row[0]
         cursor = root_node.find_cell(self, key_to_insert)
         if cursor.cell_num < num_cells:
-            key_at_index = root_node.get_cell_key(cursor.cell_num)
+            key_at_index = root_node.get_cell(cursor.cell_num).key
             if key_at_index == key_to_insert:
                 raise DuplicateKeyException(
                     f"{key_to_insert} key already exists in {self}"
@@ -54,7 +54,7 @@ class Table(TableLike):
         while not cursor.end_of_table:
             node = cursor.get_node(cursor.page_num)
             for i in range(node.leaf_node_num_cells()):
-                row_as_bytes = node.cell_value(i)
+                row_as_bytes = node.get_cell(i).value
                 rows.append(self.deserialize_row(row_as_bytes))
 
             cursor.advance()
