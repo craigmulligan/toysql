@@ -7,3 +7,5 @@ https://www.geeksforgeeks.org/difference-between-b-tree-and-b-tree/
 
 SQLite resources:
 https://play.google.com/books/reader?id=9Z6IQQnX1JEC&pg=GBS.PA13&hl=zh_CN
+
+https://stackoverflow.com/questions/25004505/b-tree-or-b-tree

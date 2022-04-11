@@ -5,14 +5,33 @@ ByteOrder = Literal["little", "big"]
 
 
 @dataclass
+class Boolean:
+    length: int = 1
+    byteorder: ByteOrder = "little"
+
+    def serialize(self, value: bool) -> bytearray:
+        return bytearray(value.to_bytes(self.length, self.byteorder))
+
+    def deserialize(self, value) -> bool:
+        return bool(int.from_bytes(value, self.byteorder))
+
+    def read(self, content: bytearray, offset: int) -> bool:
+        return bool(self.deserialize(content[offset : offset + self.length]))
+
+    def write(self, content: bytearray, offset: int, value: bool) -> bytearray:
+        content[offset : offset + self.length] = self.serialize(value)
+        return content
+
+
+@dataclass
 class Integer:
     length: int = 4
     byteorder: ByteOrder = "little"
 
-    def serialize(self, value) -> bytearray:
+    def serialize(self, value: int) -> bytearray:
         return bytearray(value.to_bytes(self.length, self.byteorder))
 
-    def deserialize(self, value) -> int:
+    def deserialize(self, value: bytearray) -> int:
         return int.from_bytes(value, self.byteorder)
 
     def read(self, content: bytearray, offset: int) -> int:

@@ -30,4 +30,5 @@ def repl(callback: Callable):
 
 
 if __name__ == "__main__":
+    print("Welcome to toysql.")
     repl(repl)
