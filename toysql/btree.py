@@ -1,7 +1,7 @@
 from typing import Protocol, Any
 from enum import Enum
 from toysql.constants import *
-from toysql.datatypes import Integer
+import toysql.datatypes as datatypes
 
 
 class BTree:
@@ -13,13 +13,25 @@ class NodeType:
     leaf = 1
 
 
+class Tree:
+    def __init__(self, table, pager) -> None:
+        self.table = table
+        self.pager = pager
+
+
+class RootNode:
+    def __init__(self, page: bytearray):
+        self.page = page
+
+
 class Node:
     def __init__(self, page: bytearray):
         if page is None or len(page) == 0:
             page = bytearray(b"".ljust(PAGE_SIZE, b"\0"))
         self.page = page
-        self.cell_key = Integer()
-        self.num_cells_header = Integer()
+        self.cell_key = datatypes.Integer()
+        self.num_cells_header = datatypes.Integer()
+        self.is_leaf = datatypes.Boolean()
 
     def read_content(self, start, length):
         return self.page[start : start + length]
