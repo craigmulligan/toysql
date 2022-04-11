@@ -5,13 +5,11 @@ from dataclasses import dataclass
 import toysql.datatypes as datatypes
 
 
-class BTree:
-    pass
-
-
 class NodeType:
-    internal = True
-    leaf = False
+    internal = False
+    leaf = True
+    # https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png
+    # https://cstack.github.io/db_tutorial/assets/images/internal-node-format.png
 
 
 class Tree:
