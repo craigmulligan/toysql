@@ -6,7 +6,7 @@ import toysql.datatypes as datatypes
 from toysql.exceptions import DuplicateKeyException
 
 
-class NodeType:
+class NodeType(Enum):
     internal = False
     leaf = True
     # https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png

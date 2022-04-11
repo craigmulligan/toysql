@@ -11,8 +11,7 @@ Row = Any
 
 class Table(TableLike):
     # support two operations: inserting a row and printing all rows
-    # reside only in memory (no persistence to disk)
-    # support a single, hard-coded table
+    # currently supports a single, hard-coded table
 
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
