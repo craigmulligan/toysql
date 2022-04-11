@@ -19,14 +19,12 @@ class Tree:
         self.pager = pager
         self.root_node = Node(self.pager[self.table.root_page_num])
 
-    def insert(self, key, row: bytearray):
+    def insert(self, key_to_insert, row: bytearray):
         root_node = self.root_node
         num_cells = root_node.leaf_node_num_cells()
 
         # if num_cells >= LEAF_NODE_MAX_CELLS:
         #     raise Exception("Need to implement splitting a leaf node")
-
-        key_to_insert = row[0]
         cursor = self.get_cursor(key_to_insert)
         if cursor.cell_num < num_cells:
             key_at_index = root_node.get_cell(cursor.cell_num).key
@@ -35,7 +33,7 @@ class Tree:
                     f"{key_to_insert} key already exists in {self}"
                 )
 
-        page = root_node.insert_cell(cursor, key, row)
+        page = root_node.insert_cell(cursor, key_to_insert, row)
         self.pager[cursor.page_num] = page
 
     def get_cursor(self, key):
