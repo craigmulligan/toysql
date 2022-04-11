@@ -1,7 +1,16 @@
-from typing import Literal
+from typing import Literal, Any
 from dataclasses import dataclass
 
 ByteOrder = Literal["little", "big"]
+
+
+@dataclass
+class DataTypeInstance:
+    value: Any  # TODO generic
+    datatype: Any  # TODO generic
+
+    def serialize(self):
+        return self.datatype.serialize(self.value)
 
 
 @dataclass

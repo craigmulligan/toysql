@@ -16,6 +16,18 @@ def test_vm_one_page(vm: VM):
     assert len(vm.table.pager) == 1
 
 
+# def test_vm_one_page_out_of_order(vm: VM):
+#     row = (1, "fred", "fred@flintstone.com")
+#     row_2 = (2, "pebbles", "pebbles@flintstone.com")
+
+#     vm.execute(InsertStatement(row_2))
+#     vm.execute(InsertStatement(row))
+#     result = vm.execute(SelectStatement())
+#     assert result == [row, row_2]
+#     # Ensure only 1 page is used.
+#     assert len(vm.table.pager) == 1
+
+
 def test_vm_one_page_duplicate_key(vm: VM):
     row = (1, "fred", "fred@flintstone.com")
     row_2 = (1, "pebbles", "pebbles@flintstone.com")
