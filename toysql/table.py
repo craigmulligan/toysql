@@ -28,8 +28,8 @@ class Table(TableLike):
         root_node = self.get_root_node()
         num_cells = root_node.leaf_node_num_cells()
 
-        if num_cells >= LEAF_NODE_MAX_CELLS:
-            raise Exception("Need to implement splitting a leaf node")
+        # if num_cells >= LEAF_NODE_MAX_CELLS:
+        #     raise Exception("Need to implement splitting a leaf node")
 
         key_to_insert = row[0]
         cursor = root_node.find_cell(self, key_to_insert)

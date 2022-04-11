@@ -64,10 +64,11 @@ class Node:
         if num_cells >= LEAF_NODE_MAX_CELLS:
             raise Exception("Need to implement splitting a leaf node")
 
-        # if cursor.cell_num < num_cells:
-        #     raise Exception(
-        #         f"cursor.cell_num: {cursor.cell_num} < num_cells: {num_cells}"
-        #     )
+        if cursor.cell_num < num_cells:
+            # Node full
+            raise Exception(
+                f"cursor.cell_num: {cursor.cell_num} < num_cells: {num_cells}"
+            )
 
         cell_offset = self.cell_offset(cursor.cell_num)
         self.write_content(
