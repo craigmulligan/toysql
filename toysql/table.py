@@ -2,7 +2,9 @@ from typing import Tuple, List, Any
 from toysql.pager import Pager
 from toysql.constants import *
 from toysql.btree import Cursor, TableLike
-from toysql.btree import Tree
+from toysql.tree import BPlusTree
+
+# from toysql.btree import Tree
 import toysql.datatypes as datatypes
 
 
@@ -16,7 +18,7 @@ class Table(TableLike):
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
         self.root_page_num = 0
-        self.tree = Tree(self, self.pager)
+        self.tree = BPlusTree()
         self.schema = [
             datatypes.Integer(),
             datatypes.String(USERNAME_SIZE),
@@ -29,17 +31,12 @@ class Table(TableLike):
         return row
 
     def select(self) -> List[Row]:
-        cursor = Cursor(self)
-        rows = []
-        while not cursor.end_of_table:
-            node = cursor.get_node(cursor.page_num)
-            for i in range(node.leaf_node_num_cells()):
-                row_as_bytes = node.get_cell(i).value
-                rows.append(self.deserialize_row(row_as_bytes))
+        result = []
+        for r in self.tree.traverse():
+            [key, value] = r
+            result.append(self.deserialize_row(value))
 
-            cursor.advance()
-
-        return rows
+        return result
 
     def serialize_row(self, row: Row) -> bytearray:
         cell = bytearray()
