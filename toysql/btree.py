@@ -1,31 +1,83 @@
 from typing import Protocol, Any
-from enum import Enum
 from toysql.constants import *
 from dataclasses import dataclass
 import toysql.datatypes as datatypes
 from toysql.exceptions import DuplicateKeyException
 
 
-class NodeType(Enum):
-    internal = False
-    leaf = True
-    # https://cstack.github.io/db_tutorial/assets/images/leaf-node-format.png
-    # https://cstack.github.io/db_tutorial/assets/images/internal-node-format.png
-
-
 class Tree:
     def __init__(self, table, pager) -> None:
         self.table = table
         self.pager = pager
-        self.root_node = Node(self.pager[self.table.root_page_num])
+        self.root_node = self.get_node(self.table.root_page_num)
+
+    def get_node(self, page_num):
+        return Node(self.pager[page_num])
+
+    def create_new_root(self, right_child_page_num):
+        """
+        Handle splitting the root.
+        Old root copied to new page, becomes left child.
+        Address of right child passed in.
+        Re-initialize root page to contain the new root node.
+        New root node points to two children.
+        """
+
+        root = self.get_node(self.table.root_page_num)
+        right_child = self.get_node(right_child_page_num)
+        # left_child_page_num = get_unused_page_num(table->pager);
+        # left_child = get_page(table->pager, left_child_page_num);
+
+    def split_and_insert(self, cursor, key, cell_value):
+        """
+        Create a new node and move half the cells over.
+        Insert the new value in one of the two nodes.
+        Update parent or create a new parent.
+        """
+        old_node = self.get_node(cursor.page_num)
+        new_page_num = len(self.pager)
+        new_node = self.get_node(new_page_num)
+
+        # /*
+        # All existing keys plus new key should be divided
+        # evenly between old (left) and new (right) nodes.
+        # Starting from the right, move each key to correct position.
+        # */
+        for i in range(LEAF_NODE_MAX_CELLS):
+            if i >= LEAF_NODE_LEFT_SPLIT_COUNT:
+                destination_node = new_node
+            else:
+                destination_node = old_node
+
+            index_within_node = int(i % LEAF_NODE_LEFT_SPLIT_COUNT)
+            cell = Cell(index_within_node, destination_node.page)
+
+            cell.write(key, cell_value)
+            old_node.set_num_cells(LEAF_NODE_LEFT_SPLIT_COUNT)
+            new_node.set_num_cells(LEAF_NODE_RIGHT_SPLIT_COUNT)
+
+            if old_node.is_root():
+                self.root_node = self.get_node(self.table.root_page_num)
+
+            # if i == cursor.cell_num:
+            #     pass
+            #     # serialize_row(value, destination)
+            # elif i > cursor.cell_num:
+            #     pass
+            #     # memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE)
+            # else:
+            #     pass
+            #     # memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE)
 
     def insert(self, key_to_insert, row: bytearray):
         root_node = self.root_node
         num_cells = root_node.leaf_node_num_cells()
-
-        # if num_cells >= LEAF_NODE_MAX_CELLS:
-        #     raise Exception("Need to implement splitting a leaf node")
         cursor = self.get_cursor(key_to_insert)
+
+        if num_cells >= LEAF_NODE_MAX_CELLS:
+            self.split_and_insert(cursor, key_to_insert, row)
+            raise Exception("Need to implement splitting a leaf node")
+
         if cursor.cell_num < num_cells:
             key_at_index = root_node.get_cell(cursor.cell_num).key
             if key_at_index == key_to_insert:
@@ -86,6 +138,10 @@ class Header:
 
 @dataclass
 class Cell:
+    """
+    Cell is pk + row block of bytes
+    """
+
     cell_index: int
     page: bytearray
     key_datatype: Any = datatypes.Integer()
@@ -115,9 +171,10 @@ class Cell:
 
 class Node:
     """
-    page = bytearray of PAGE_SIZE.
-    page is split into headers + cells
-    each cell is pk + row_values
+    A Node is backed by a page (4kb) of bytes
+    it can be either a leaf or internal node.
+    Internal nodes store keys
+    And leaf nodes store keys + values.
     """
 
     def __init__(self, page: bytearray):
@@ -132,6 +189,12 @@ class Node:
         self.parent_point = Header(
             PARENT_POINTER_OFFSET, datatypes.Integer(), self.page
         )
+
+    def is_root(self):
+        """
+        TODO should return true if there are no parent pointers.
+        """
+        return True
 
     def read_content(self, start, length):
         return self.page[start : start + length]
@@ -171,42 +234,6 @@ class Node:
         cell.write(key, cell_value)
         self.set_num_cells(num_cells + 1)
         return self.page
-
-    # def leaf_node_split_and_insert(self, cursor, key, cell_value):
-    #     """
-    #     Create a new node and move half the cells over.
-    #     Insert the new value in one of the two nodes.
-    #     Update parent or create a new parent.
-    #     """
-    #     old_node = cursor.get_node(cursor.page_num)
-    #     new_page_num = len(cursor.table.pager)
-    #     new_node = cursor.get_node(new_page_num)
-
-    #     # /*
-    #     # All existing keys plus new key should be divided
-    #     # evenly between old (left) and new (right) nodes.
-    #     # Starting from the right, move each key to correct position.
-    #     # */
-    #     for i in range(LEAF_NODE_MAX_CELLS):
-    #         if i >= LEAF_NODE_LEFT_SPLIT_COUNT:
-    #             destination_node = new_node
-    #         else:
-    #             destination_node = old_node
-
-    #         index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT
-    #         destination = destination_node.leaf_node_cell(
-    #             destination_node, index_within_node
-    #         )
-
-    #         if i == cursor.cell_num:
-    #             pass
-    #             # serialize_row(value, destination)
-    #         elif i > cursor.cell_num:
-    #             pass
-    #             # memcpy(destination, leaf_node_cell(old_node, i - 1), LEAF_NODE_CELL_SIZE)
-    #         else:
-    #             pass
-    #             # memcpy(destination, leaf_node_cell(old_node, i), LEAF_NODE_CELL_SIZE)
 
 
 class TableLike(Protocol):
