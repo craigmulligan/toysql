@@ -1,20 +1,147 @@
 from toysql.exceptions import DuplicateKeyException
+import toysql.datatypes as datatypes
+from dataclasses import dataclass
+from toysql.constants import PAGE_SIZE
 
 
-class Node(object):
-    """Base node object.
+Page: bytearray
+
+
+class Node:
+    """
+    Base node object.
     Each node stores keys and values.
+
+    Internal nodes will store pointers to child nodes as there values
+    Leaf nodes will store real values as there values.
+
+    Internal nodes keys will be the value of keys in it's child node pointer
+    for that same index.
+
+    Leaf nodes will store the primary key for each leaf node value at the same index.
+
+    for instance:
+        -> InternalNode:
+            keys: [4, 8, 12]
+            values: [Node0, Node1, Node2]
+
+        -> Node0:
+            keys: 0, 1, 2, 3
+            values: ['value-0', 'value-1', 'value-2', 'value-3']
+
+        -> Node1
+        ...
+
     Attributes:
         order (int): The maximum number of keys each node can hold.
     """
 
-    def __init__(self, order):
+    header_length = 9
+
+    def __init__(self, order, table):
         """Child nodes can be converted into parent nodes by setting self.leaf = False. Parent nodes
         simply act as a medium to traverse the tree."""
+
         self.order = order
         self.keys = []
         self.values = []
         self.leaf = True
+        self.key_datatype = datatypes.Integer()
+        self.table = table
+        self.page_number = 34
+
+    def ensure_full_page(self, page):
+        """TODO move to Pager"""
+        return bytearray(page.ljust(PAGE_SIZE, b"\0"))
+
+    def ensure_header_size(self, page):
+        """TODO move to Pager"""
+        header_size = 9
+        return bytearray(page.ljust(header_size, b"\0"))
+
+    def to_bytes(self):
+        """
+        return the bytes representation
+        """
+        page = self.ensure_header_size(bytearray())
+
+        # Write the header
+        datatypes.Boolean().write(page, 0, self.leaf)
+        datatypes.Integer().write(page, 1, len(self.keys))
+
+        # Write the body based on node_type
+        if self.leaf:
+            for i, key in enumerate(self.keys):
+                page += self.key_datatype.serialize(key)
+                page += self.table.serialize_row(self.values[i])
+        else:
+            for i, key in enumerate(self.keys):
+                page += self.key_datatype.serialize(key)
+                page += self.key_datatype.serialize(self.values[i].page_number)
+
+        return self.ensure_full_page(page)
+
+    def from_bytes(self, page: bytearray) -> "Node":
+        """
+        Given a page of bytes
+        initialize a Node with keys + values.
+
+        Node header:
+        byte 0: is_leaf
+        byte 1: is_root
+        byte 2-5: parent_pointer
+        byte 6-9: num_cells
+
+        leaf node:
+        byte 10-13: key0
+        byte 14-306: value 0
+        ...
+
+        internal node:
+        byte 10-13: key0
+        byte 14-18: child pointer
+        ...
+        """
+        self.leaf = datatypes.Boolean().read(page, 0)
+        num_keys = datatypes.Integer().read(page, 1)
+
+        if self.leaf:
+            row_length = self.table.row_length()
+            cell_length = datatypes.Integer().length + row_length
+
+            for i in range(num_keys):
+                key_offset = (cell_length * i) + Node.header_length
+                value_offset = key_offset + datatypes.Integer.length
+                self.keys.append(datatypes.Integer().read(page, key_offset))
+                self.values.append(
+                    self.table.deserialize_row(
+                        page[value_offset : value_offset + row_length]
+                    )
+                )
+        else:
+            cell_length = datatypes.Integer().length * 2
+            for i in range(num_keys):
+                key_offset = (cell_length * i) + Node.header_length
+                self.keys.append(datatypes.Integer().read(page, key_offset))
+                # page_number_offset = (
+                #     (cell_length * i) + datatypes.Integer.length + Node.header_length
+                # )
+                # self.values.append(datatypes.Integer().read(page, page_number_offset))
+
+        return self
+
+    def find(self, key):
+        """
+        For a given key, returns the index where
+        the key should be inserted and the
+        list of values at that index.
+        """
+        i = 0
+        for i, item in enumerate(self.keys):
+            if key < item:
+                return self.values[i], i
+
+        return self.values[i + 1], i + 1
 
     def add(self, key, value):
         """Adds a key-value pair to the node."""
@@ -43,8 +170,8 @@ class Node(object):
 
     def split(self):
         """Splits the node into two and stores them as child nodes."""
-        left = Node(self.order)
-        right = Node(self.order)
+        left = Node(self.order, self.table)
+        right = Node(self.order, self.table)
         # // is floor division.
         mid = self.order // 2
 
@@ -74,6 +201,7 @@ class Node(object):
 
     def traverse(self, rows):
         if not self.leaf:
+
             for item in self.values:
                 item.traverse(rows)
 
@@ -84,25 +212,17 @@ class Node(object):
         return rows
 
 
-class BPlusTree(object):
-    """B+ tree object, consisting of nodes.
+class BPlusTree:
+    """B+ tree, consisting of nodes.
     Nodes will automatically be split into two once it is full. When a split occurs, a key will
     'float' upwards and be inserted into the parent node to act as a pivot.
     Attributes:
         order (int): The maximum number of keys each node can hold.
     """
 
-    def __init__(self, order=8):
-        self.root = Node(order)
-
-    def _find(self, node, key):
-        """For a given node and key, returns the index where the key should be inserted and the
-        list of values at that index."""
-        for i, item in enumerate(node.keys):
-            if key < item:
-                return node.values[i], i
-
-        return node.values[i + 1], i + 1
+    def __init__(self, table, order=8):
+        self.table = table
+        self.root = Node(order, self.table)
 
     def _merge(self, parent, child, index):
         """For a parent and child node, extract a pivot from the child to be inserted into the keys
@@ -133,7 +253,7 @@ class BPlusTree(object):
         # Traverse tree until leaf node is reached.
         while not child.leaf:
             parent = child
-            child, index = self._find(child, key)
+            child, index = child.find(key)
 
         child.add(key, value)
 
@@ -151,7 +271,7 @@ class BPlusTree(object):
         child = self.root
 
         while not child.leaf:
-            child, index = self._find(child, key)
+            child, _ = child.find(key)
 
         for i, item in enumerate(child.keys):
             if key == item:
@@ -160,8 +280,8 @@ class BPlusTree(object):
         return None
 
     def traverse(self):
-        rows = self.root.traverse([])
-        return rows
+        values = self.root.traverse([])
+        return values
 
     def show(self):
         """Prints the keys at each level."""

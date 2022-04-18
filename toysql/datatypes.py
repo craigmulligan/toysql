@@ -44,6 +44,7 @@ class Integer:
 
 @dataclass
 class String:
+    # TODO implement __len__ feature.
     length: int
     byteorder: ByteOrder = "little"
 

@@ -18,13 +18,13 @@ class Table(TableLike):
     def __init__(self, file_path: str):
         self.pager = Pager(file_path, page_size=PAGE_SIZE)
         self.root_page_num = 0
-        self.tree = BPlusTree()
         self.schema = [
             datatypes.Integer(),
             datatypes.String(USERNAME_SIZE),
             datatypes.String(EMAIL_SIZE),
         ]
         self.primary_key = self.schema[0]
+        self.tree = BPlusTree(self)
 
     def insert(self, row: Row) -> Row:
         self.tree.insert(row[0], self.serialize_row(row))
@@ -33,10 +33,20 @@ class Table(TableLike):
     def select(self) -> List[Row]:
         result = []
         for r in self.tree.traverse():
-            [key, value] = r
+            [_, value] = r
             result.append(self.deserialize_row(value))
 
         return result
+
+    def row_length(self):
+        """
+        Returns the length of the row as stored bytes
+        """
+        l = 0
+        for s in self.schema:
+            l += s.length
+
+        return l
 
     def serialize_row(self, row: Row) -> bytearray:
         cell = bytearray()
