@@ -123,10 +123,10 @@ class Node:
             for i in range(num_keys):
                 key_offset = (cell_length * i) + Node.header_length
                 self.keys.append(datatypes.Integer().read(page, key_offset))
-                # page_number_offset = (
-                #     (cell_length * i) + datatypes.Integer.length + Node.header_length
-                # )
-                # self.values.append(datatypes.Integer().read(page, page_number_offset))
+                page_number_offset = (
+                    (cell_length * i) + datatypes.Integer.length + Node.header_length
+                )
+                self.values.append(datatypes.Integer().read(page, page_number_offset))
 
         return self
 
