@@ -280,7 +280,6 @@ class BPlusTree:
             page_num, index = child.find(key)
             child = Node.read(self.table, page_num)
 
-        print(value)
         child.add(key, value)
 
         nodes_updated = [child]
