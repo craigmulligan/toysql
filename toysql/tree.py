@@ -1,6 +1,8 @@
+from typing import List, Tuple
 from toysql.exceptions import DuplicateKeyException
 import toysql.datatypes as datatypes
-from dataclasses import dataclass
+
+from toysql.exceptions import PageNotFoundException
 from toysql.constants import PAGE_SIZE
 
 
@@ -23,7 +25,7 @@ class Node:
     for instance:
         -> InternalNode:
             keys: [4, 8, 12]
-            values: [Node0, Node1, Node2]
+            values: [Node0.page_number, Node1.page_number, Node2.page_number]
 
         -> Node0:
             keys: 0, 1, 2, 3
@@ -38,17 +40,17 @@ class Node:
 
     header_length = 9
 
-    def __init__(self, order, table):
+    def __init__(self, table, page_number):
         """Child nodes can be converted into parent nodes by setting self.leaf = False. Parent nodes
         simply act as a medium to traverse the tree."""
 
-        self.order = order
+        self.order = 10
         self.keys = []
         self.values = []
         self.leaf = True
         self.key_datatype = datatypes.Integer()
         self.table = table
-        self.page_number = 34
+        self.page_number = page_number
 
     def ensure_full_page(self, page):
         """TODO move to Pager"""
@@ -58,6 +60,27 @@ class Node:
         """TODO move to Pager"""
         header_size = 9
         return bytearray(page.ljust(header_size, b"\0"))
+
+    @staticmethod
+    def read(table, page_number) -> "Node":
+        try:
+            page = table.pager.read(page_number)
+            node = Node(table, page_number)
+            node.from_bytes(page)
+        except PageNotFoundException:
+            page_number = table.pager.new()
+            node = Node(table, page_number)
+            # Write the initialized values to the page.
+            node.write()
+
+        return node
+
+    def write(self):
+        """
+        Flush self to pager
+        """
+        data = self.to_bytes()
+        self.table.pager.write(self.page_number, data)
 
     def to_bytes(self):
         """
@@ -77,7 +100,7 @@ class Node:
         else:
             for i, key in enumerate(self.keys):
                 page += self.key_datatype.serialize(key)
-                page += self.key_datatype.serialize(self.values[i].page_number)
+                page += self.key_datatype.serialize(self.values[i])
 
         return self.ensure_full_page(page)
 
@@ -113,11 +136,10 @@ class Node:
                 key_offset = (cell_length * i) + Node.header_length
                 value_offset = key_offset + datatypes.Integer.length
                 self.keys.append(datatypes.Integer().read(page, key_offset))
-                self.values.append(
-                    self.table.deserialize_row(
-                        page[value_offset : value_offset + row_length]
-                    )
+                value = self.table.deserialize_row(
+                    page[value_offset : value_offset + row_length]
                 )
+                self.values.append(value)
         else:
             cell_length = datatypes.Integer().length * 2
             for i in range(num_keys):
@@ -126,11 +148,12 @@ class Node:
                 page_number_offset = (
                     (cell_length * i) + datatypes.Integer.length + Node.header_length
                 )
-                self.values.append(datatypes.Integer().read(page, page_number_offset))
+                value = datatypes.Integer().read(page, page_number_offset)
+                self.values.append(value)
 
         return self
 
-    def find(self, key):
+    def find(self, key) -> Tuple[int, int]:
         """
         For a given key, returns the index where
         the key should be inserted and the
@@ -168,10 +191,11 @@ class Node:
                 self.keys.append(key)
                 self.values.append(value)
 
-    def split(self):
+    def split(self) -> List["Node"]:
         """Splits the node into two and stores them as child nodes."""
-        left = Node(self.order, self.table)
-        right = Node(self.order, self.table)
+        total_pages = len(self.table.pager)
+        left = Node.read(self.table, total_pages + 1)
+        right = Node.read(self.table, total_pages + 2)
         # // is floor division.
         mid = self.order // 2
 
@@ -183,8 +207,9 @@ class Node:
 
         # When the node is split, set the parent key to the left-most key of the right child node.
         self.keys = [right.keys[0]]
-        self.values = [left, right]
+        self.values = [left.page_number, right.page_number]
         self.leaf = False
+        return [right, left]
 
     def is_full(self):
         """Returns True if the node is full."""
@@ -202,8 +227,9 @@ class Node:
     def traverse(self, rows):
         if not self.leaf:
 
-            for item in self.values:
-                item.traverse(rows)
+            for page_number in self.values:
+                node = Node.read(self.table, page_number)
+                node.traverse(rows)
 
         if self.leaf:
             for i, key in enumerate(self.keys):
@@ -216,13 +242,11 @@ class BPlusTree:
     """B+ tree, consisting of nodes.
     Nodes will automatically be split into two once it is full. When a split occurs, a key will
     'float' upwards and be inserted into the parent node to act as a pivot.
-    Attributes:
-        order (int): The maximum number of keys each node can hold.
     """
 
-    def __init__(self, table, order=8):
+    def __init__(self, table):
         self.table = table
-        self.root = Node(order, self.table)
+        self.root = Node.read(self.table, self.table.root_page_num)
 
     def _merge(self, parent, child, index):
         """For a parent and child node, extract a pivot from the child to be inserted into the keys
@@ -253,25 +277,35 @@ class BPlusTree:
         # Traverse tree until leaf node is reached.
         while not child.leaf:
             parent = child
-            child, index = child.find(key)
+            page_num, index = child.find(key)
+            child = Node.read(self.table, page_num)
 
+        print(value)
         child.add(key, value)
 
+        nodes_updated = [child]
         # If the leaf node is full, split the leaf node into two.
         if child.is_full():
-            child.split()
+            [left, right] = child.split()
+            nodes_updated.extend([left, right])
 
             # Once a leaf node is split, it consists of a internal node and two leaf nodes. These
             # need to be re-inserted back into the tree.
             if parent and not parent.is_full():
                 self._merge(parent, child, index)
+                nodes_updated.append(parent)
+
+        for node in nodes_updated:
+            # Flush changes to pager
+            node.write()
 
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""
         child = self.root
 
         while not child.leaf:
-            child, _ = child.find(key)
+            page_num, _ = child.find(key)
+            child = Node.read(self.table, page_num)
 
         for i, item in enumerate(child.keys):
             if key == item:

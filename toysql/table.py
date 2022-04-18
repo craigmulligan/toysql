@@ -27,14 +27,14 @@ class Table(TableLike):
         self.tree = BPlusTree(self)
 
     def insert(self, row: Row) -> Row:
-        self.tree.insert(row[0], self.serialize_row(row))
+        self.tree.insert(row[0], row)
         return row
 
     def select(self) -> List[Row]:
         result = []
         for r in self.tree.traverse():
             [_, value] = r
-            result.append(self.deserialize_row(value))
+            result.append(value)
 
         return result
 
