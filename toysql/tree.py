@@ -44,13 +44,27 @@ class Node:
         """Child nodes can be converted into parent nodes by setting self.leaf = False. Parent nodes
         simply act as a medium to traverse the tree."""
 
-        self.order = 10
         self.keys = []
         self.values = []
         self.leaf = True
         self.key_datatype = datatypes.Integer()
         self.table = table
         self.page_number = page_number
+
+    @property
+    def cell_length(self):
+        if self.leaf:
+            return self.key_datatype.length + self.table.row_length()
+
+        return self.key_datatype.length * 2
+
+    @property
+    def order(self):
+        """
+        Determines the number of cells that can be stored per body.
+        """
+        body_length = PAGE_SIZE - Node.header_length
+        return body_length // self.cell_length
 
     def ensure_full_page(self, page):
         """TODO move to Pager"""
@@ -193,9 +207,10 @@ class Node:
 
     def split(self) -> List["Node"]:
         """Splits the node into two and stores them as child nodes."""
-        total_pages = len(self.table.pager)
-        left = Node.read(self.table, total_pages + 1)
-        right = Node.read(self.table, total_pages + 2)
+        # Passing in None will append a new page
+        # because we are creating one.
+        left = Node.read(self.table, None)
+        right = Node.read(self.table, None)
         # // is floor division.
         mid = self.order // 2
 
@@ -217,12 +232,13 @@ class Node:
 
     def show(self, counter=0):
         """Prints the keys at each level."""
-        print(counter, str(self.keys))
+        print(counter, self.page_number, str(self.keys))
 
         # Recursively print the key of child nodes (if these exist).
         if not self.leaf:
-            for item in self.values:
-                item.show(counter + 1)
+            for page_num in self.values:
+                child = Node.read(self.table, page_num)
+                child.show(counter + 1)
 
     def traverse(self, rows):
         if not self.leaf:
@@ -278,6 +294,8 @@ class BPlusTree:
         while not child.leaf:
             parent = child
             page_num, index = child.find(key)
+
+            print("page_num", len(self.table.pager))
             child = Node.read(self.table, page_num)
 
         child.add(key, value)
@@ -297,6 +315,8 @@ class BPlusTree:
         for node in nodes_updated:
             # Flush changes to pager
             node.write()
+
+        # print("pages", len(self.table.pager))
 
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""

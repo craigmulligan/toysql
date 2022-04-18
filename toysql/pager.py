@@ -20,29 +20,30 @@ class Pager:
 
     def new(self):
         page = bytearray(b"".ljust(self.page_size, b"\0"))
-        page_number = len(self) + 1
+        page_number = len(self)
         self.write(page_number, page)
+
         return page_number
 
-    def read(self, i: int) -> bytes:
-        if i >= len(self):
-            raise PageNotFoundException(f"page_number: {i} not found")
-        self.f.seek(i * self.page_size)
+    def read(self, page_number: int) -> bytes:
+        if page_number is None or page_number >= len(self):
+            raise PageNotFoundException(f"page_number: {page_number} not found")
+        self.f.seek(page_number * self.page_size)
         page = bytearray(self.f.read(self.page_size))
+
         return page
 
     def write(self, page_number: int, page: bytearray):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)
         self.f.flush()
+
         return page
 
-    def total_pages(self):
-        return int(self.__sizeof__() / self.page_size)
-
     def __len__(self):
-        return int(self.__sizeof__() / self.page_size)
+        size = self.s()
+        return int(size / self.page_size)
 
-    def __sizeof__(self):
+    def s(self):
         self.f.seek(0, os.SEEK_END)
         return self.f.tell()
