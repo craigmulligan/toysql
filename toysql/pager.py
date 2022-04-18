@@ -4,9 +4,8 @@ import os
 
 class Pager:
     """
-    Abstracts the filesystem into pages.
-    Everything is stored into a file. This allows you to
-    get and set pages (chunks) of data.
+    Abstracts a file into pages
+    This allows you to get and set pages (chunks) of data.
     """
 
     def __init__(self, file_path: str, page_size=4096):
@@ -19,14 +18,14 @@ class Pager:
         # TODO check for corrupt file.
         # file_length % PAGE_SIZE != 0
 
-    def __getitem__(self, i: int) -> bytes:
+    def read(self, i: int) -> bytes:
         if i >= self.num_pages:
             self.num_pages += 1
         self.f.seek(i * self.page_size)
         page = bytearray(self.f.read(self.page_size))
         return page
 
-    def __setitem__(self, page_number: int, page: bytearray):
+    def write(self, page_number: int, page: bytearray):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)
         self.f.flush()

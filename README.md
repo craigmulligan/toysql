@@ -15,3 +15,8 @@ This is a dependency free, minimal clone of sql written in python. You should be
 - https://cstack.github.io/db_tutorial/
 - https://github.com/erikgrinaker/toydb
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
+
+Next steps:
+
+1. One by one implement bytes backend for Tree.
+2. Store tree to disk with Pager.
