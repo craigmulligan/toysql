@@ -2,6 +2,9 @@ from pathlib import Path
 import os
 from toysql.exceptions import PageNotFoundException
 
+PageNumber = int
+Page = bytearray
+
 
 class Pager:
     """
@@ -18,32 +21,36 @@ class Pager:
         # TODO check for corrupt file.
         # file_length % PAGE_SIZE != 0
 
-    def new(self):
+    def new(self) -> PageNumber:
+        """
+        Requests a new page
+        """
         page = bytearray(b"".ljust(self.page_size, b"\0"))
         page_number = len(self)
         self.write(page_number, page)
 
         return page_number
 
-    def read(self, page_number: int) -> bytes:
+    def read(self, page_number: PageNumber) -> Page:
         if page_number is None or page_number >= len(self):
             raise PageNotFoundException(f"page_number: {page_number} not found")
+
         self.f.seek(page_number * self.page_size)
         page = bytearray(self.f.read(self.page_size))
 
         return page
 
-    def write(self, page_number: int, page: bytearray):
+    def write(self, page_number: PageNumber, page: Page):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)
         self.f.flush()
 
         return page
 
-    def __len__(self):
+    def __len__(self) -> int:
         size = self.s()
         return int(size / self.page_size)
 
-    def s(self):
+    def s(self) -> float:
         self.f.seek(0, os.SEEK_END)
         return self.f.tell()
