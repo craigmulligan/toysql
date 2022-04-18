@@ -67,7 +67,7 @@ class Node:
 
         # Write the header
         datatypes.Boolean().write(page, 0, self.leaf)
-        datatypes.Integer().write(page, 1, len(self.keys))
+        datatypes.Integer().write(page, 5, len(self.keys))
 
         # Write the body based on node_type
         if self.leaf:
@@ -103,7 +103,7 @@ class Node:
         ...
         """
         self.leaf = datatypes.Boolean().read(page, 0)
-        num_keys = datatypes.Integer().read(page, 1)
+        num_keys = datatypes.Integer().read(page, 5)
 
         if self.leaf:
             row_length = self.table.row_length()
