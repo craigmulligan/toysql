@@ -4,7 +4,7 @@ from toysql.vm import VM
 from toysql.exceptions import DuplicateKeyException
 
 
-def test_vm_one_page(vm: VM):
+def test_vm_one_page_x(vm: VM):
     row = (1, "fred", "fred@flintstone.com")
     row_2 = (2, "pebbles", "pebbles@flintstone.com")
 
