@@ -45,3 +45,4 @@ def test_to_from_bytes(table):
 
     assert node.leaf == root_node.leaf
     assert node.keys == root_node.keys
+    assert node.values == [34] * 8
