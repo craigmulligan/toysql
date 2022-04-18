@@ -64,7 +64,8 @@ class Node:
         Determines the number of cells that can be stored per body.
         """
         body_length = PAGE_SIZE - Node.header_length
-        return body_length // self.cell_length
+        order = body_length // self.cell_length
+        return order
 
     def ensure_full_page(self, page):
         """TODO move to Pager"""
@@ -167,15 +168,15 @@ class Node:
 
         return self
 
-    def find(self, key) -> Tuple[int, int]:
+    def find(self, search_key) -> Tuple[int, int]:
         """
         For a given key, returns the index where
         the key should be inserted and the
-        list of values at that index.
+        page_number at that index.
         """
         i = 0
-        for i, item in enumerate(self.keys):
-            if key < item:
+        for i, key in enumerate(self.keys):
+            if search_key < key:
                 return self.values[i], i
 
         return self.values[i + 1], i + 1
@@ -233,6 +234,8 @@ class Node:
     def show(self, counter=0):
         """Prints the keys at each level."""
         print(counter, self.page_number, str(self.keys))
+        if not self.leaf:
+            print("page numbers:", self.values)
 
         # Recursively print the key of child nodes (if these exist).
         if not self.leaf:
@@ -265,9 +268,11 @@ class BPlusTree:
         self.root = Node.read(self.table, self.table.root_page_num)
 
     def _merge(self, parent, child, index):
-        """For a parent and child node, extract a pivot from the child to be inserted into the keys
+        """
+        For a parent and child node, extract a pivot from the child to be inserted into the keys
         of the parent. Insert the values from the child into the values of the parent.
         """
+        print("popping", parent.values.pop(index))
         parent.values.pop(index)
         pivot = child.keys[0]
 
@@ -294,8 +299,6 @@ class BPlusTree:
         while not child.leaf:
             parent = child
             page_num, index = child.find(key)
-
-            print("page_num", len(self.table.pager))
             child = Node.read(self.table, page_num)
 
         child.add(key, value)
@@ -311,12 +314,12 @@ class BPlusTree:
             if parent and not parent.is_full():
                 self._merge(parent, child, index)
                 nodes_updated.append(parent)
+            # else:
+            #     raise Exception("Parent full can't merge back to tree")
 
         for node in nodes_updated:
-            # Flush changes to pager
+            # Flush changes to pager backend
             node.write()
-
-        # print("pages", len(self.table.pager))
 
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""

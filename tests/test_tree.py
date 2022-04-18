@@ -11,6 +11,7 @@ def test_node(table):
         tree.insert(i, row)
 
     tree.show()
+    raise Exception()
 
     search_key = int(total / 2)
     v = tree.find(search_key)
