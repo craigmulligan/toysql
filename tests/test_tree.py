@@ -3,13 +3,14 @@ from toysql.tree import BPlusTree, Node
 
 def test_node(table):
     total = 50
+    # TODO this fails if re-init the tree eg BPlusTree(table)
     tree = table.tree
 
     for i in range(0, total):
         row = (i, f"fred-{i}", f"fred-{i}@flintstone.com")
         tree.insert(i, row)
 
-    # tree.show()
+    tree.show()
 
     search_key = int(total / 2)
     v = tree.find(search_key)
@@ -19,6 +20,7 @@ def test_node(table):
     rows = tree.traverse()
     assert len(rows) == total
     assert rows[0] == [0, (0, "fred-0", "fred-0@flintstone.com")]
+    assert len(table.pager) == 15
 
 
 def test_to_from_bytes(table):

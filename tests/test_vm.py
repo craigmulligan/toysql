@@ -12,7 +12,9 @@ def test_vm_one_page_x(vm: VM):
     vm.execute(InsertStatement(row_2))
     result = vm.execute(SelectStatement())
     assert result == [row, row_2]
+
     # Ensure only 1 page is used.
+    assert len(vm.table.pager) == 1
 
 
 def test_vm_one_page_out_of_order(vm: VM):
