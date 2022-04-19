@@ -44,6 +44,7 @@ class Node:
         """Child nodes can be converted into parent nodes by setting self.leaf = False. Parent nodes
         simply act as a medium to traverse the tree."""
 
+        # TODO use bisect
         self.keys = []
         self.values = []
         self.leaf = True
@@ -57,6 +58,9 @@ class Node:
             return self.key_datatype.length + self.table.row_length()
 
         return self.key_datatype.length * 2
+
+    def delete(self):
+        self.table.pager.delete(self.page_number)
 
     @property
     def order(self):
@@ -271,8 +275,17 @@ class BPlusTree:
         """
         For a parent and child node, extract a pivot from the child to be inserted into the keys
         of the parent. Insert the values from the child into the values of the parent.
+
+        Once we have merge the childs keys & values into the parent
+        it is no longer attached to the parent as it's point is gone.
+        this means it's essentially deleted.
+
+        Ofcoarse this means we'll have "unused" pages in our db file,
+        which is something we'll need to handle with a free node list.
+
+        https://stackoverflow.com/questions/9227769/why-are-there-unused-pages-in-my-sqlite-database
         """
-        print("popping", parent.values.pop(index))
+        parent.values[index]
         parent.values.pop(index)
         pivot = child.keys[0]
 
@@ -281,7 +294,6 @@ class BPlusTree:
                 parent.keys = parent.keys[:i] + [pivot] + parent.keys[i:]
                 parent.values = parent.values[:i] + child.values + parent.values[i:]
                 break
-
             elif i + 1 == len(parent.keys):
                 parent.keys += [pivot]
                 parent.values += child.values
@@ -311,11 +323,12 @@ class BPlusTree:
 
             # Once a leaf node is split, it consists of a internal node and two leaf nodes. These
             # need to be re-inserted back into the tree.
-            if parent and not parent.is_full():
-                self._merge(parent, child, index)
-                nodes_updated.append(parent)
-            # else:
-            #     raise Exception("Parent full can't merge back to tree")
+            if parent:
+                if not parent.is_full():
+                    self._merge(parent, child, index)
+                    nodes_updated.append(parent)
+                else:
+                    print("Parent full can't merge back to tree")
 
         for node in nodes_updated:
             # Flush changes to pager backend
