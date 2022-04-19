@@ -61,6 +61,7 @@ def test_retains_state_on_disk(vm: VM, db_file_path):
     # Should read from same db.
     result = vm2.execute(SelectStatement())
 
+    print("pages", len(vm.table.pager))
     vm.table.tree.show()
     print("----")
     vm2.table.tree.show()
