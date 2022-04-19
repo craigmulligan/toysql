@@ -32,4 +32,3 @@ Nextup:
 - index other columns
 - delete row
 - multiple tables
-

@@ -1,11 +1,10 @@
 import random
-from toysql.tree import Node
+from toysql.tree import Node, BPlusTree
 
 
 def test_node(table):
-    # TODO this fails if re-init the tree eg BPlusTree(table)
     total = 50
-    tree = table.tree
+    tree = BPlusTree(table)
 
     inserts = []
     for i in range(0, total):
