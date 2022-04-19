@@ -2,6 +2,7 @@ import pytest
 from toysql.statement import InsertStatement, SelectStatement
 from toysql.vm import VM
 from toysql.exceptions import DuplicateKeyException
+from toysql.tree import Node
 
 
 def test_vm_one_page_x(vm: VM):
@@ -61,9 +62,5 @@ def test_retains_state_on_disk(vm: VM, db_file_path):
     # Should read from same db.
     result = vm2.execute(SelectStatement())
 
-    print("pages", len(vm.table.pager))
-    vm.table.tree.show()
-    print("----")
-    vm2.table.tree.show()
-    print(len(result), len(expected_rows))
     assert result == expected_rows
+    assert vm.table.tree.show() == vm2.table.tree.show()

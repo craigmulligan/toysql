@@ -118,8 +118,15 @@ class Node:
                 page += self.table.serialize_row(self.values[i])
         else:
             for i, key in enumerate(self.keys):
+                # There will always be 1 more value than key:
+                # Eg: keys [6] , values: [1, 2]
+                # Which means keys below 6 stored in page 1,
+                # Keys above stored in page 2.
                 page += self.key_datatype.serialize(key)
                 page += self.key_datatype.serialize(self.values[i])
+
+            # Write the last value for internal node
+            page += self.key_datatype.serialize(self.values[len(self.keys)])
 
         return self.ensure_full_page(page)
 
@@ -164,11 +171,15 @@ class Node:
             for i in range(num_keys):
                 key_offset = (cell_length * i) + Node.header_length
                 self.keys.append(datatypes.Integer().read(page, key_offset))
-                page_number_offset = (
-                    (cell_length * i) + datatypes.Integer.length + Node.header_length
-                )
+                page_number_offset = key_offset + datatypes.Integer.length
                 value = datatypes.Integer().read(page, page_number_offset)
                 self.values.append(value)
+
+            # There is always 1 more value than key per internal node.
+            # let's manually read it.
+            page_number_offset = (cell_length * num_keys) + Node.header_length
+            value = datatypes.Integer().read(page, page_number_offset)
+            self.values.append(value)
 
         return self
 
@@ -316,7 +327,7 @@ class BPlusTree:
 
     def insert(self, key, value):
         """Inserts a key-value pair after traversing to a leaf node. If the leaf node is full, split
-        the leaf node into two.
+        the leaf node into two and try merge the internal node into the parent.
         """
         parent = None
         child = self.root
