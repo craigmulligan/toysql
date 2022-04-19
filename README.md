@@ -18,3 +18,18 @@ This is a dependency free, minimal clone of sql written in python. You should be
 - https://github.com/erikgrinaker/toydb
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
 - https://github.com/NicolasLM/bplustree
+
+
+## Current Features
+
+1. Fixed table schema. (int, str, str)
+2. Can insert rows - always indexed by primary key (int)
+3. Can select all rows.
+
+Nextup:
+
+- Select row by id
+- index other columns
+- delete row
+- multiple tables
+
