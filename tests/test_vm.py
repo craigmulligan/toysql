@@ -47,8 +47,6 @@ def test_vm_multiple_pages(vm: VM):
 
     result = vm.execute(SelectStatement())
     assert result == expected_rows
-    # Ensure 4 pages are used.
-    # assert len(vm.table.pager) == 4
 
 
 def test_retains_state_on_disk(vm: VM, db_file_path):
