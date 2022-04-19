@@ -4,8 +4,22 @@ from dataclasses import dataclass
 ByteOrder = Literal["little", "big"]
 
 
+# TODO this should be an Abstract class
+# But hitting this mypy issue: https://github.com/python/mypy/issues/5374
 @dataclass
-class Boolean:
+class DataType:
+    length: int
+    Byteorder: ByteOrder = "little"
+
+    def serialize(self, value: Any) -> bytearray:
+        return bytearray()
+
+    def deserialize(self, value: bytearray) -> Any:
+        pass
+
+
+@dataclass
+class Boolean(DataType):
     length: int = 1
     byteorder: ByteOrder = "little"
 
@@ -24,7 +38,7 @@ class Boolean:
 
 
 @dataclass
-class Integer:
+class Integer(DataType):
     length: int = 4
     byteorder: ByteOrder = "little"
 
@@ -43,7 +57,7 @@ class Integer:
 
 
 @dataclass
-class String:
+class String(DataType):
     # TODO implement __len__ feature.
     length: int
     byteorder: ByteOrder = "little"

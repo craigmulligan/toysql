@@ -17,7 +17,6 @@ class Pager:
         file_name.touch(exist_ok=True)
         self.f = open(file_name, "rb+")
         self.page_size = page_size
-
         # TODO check for corrupt file.
         # file_length % PAGE_SIZE != 0
 

@@ -1,7 +1,7 @@
-from typing import Tuple, List, Any
+from typing import List, Any
 from toysql.pager import Pager
 from toysql.constants import *
-from toysql.btree import Cursor, TableLike
+from toysql.btree import TableLike
 from toysql.tree import BPlusTree
 
 # from toysql.btree import Tree
