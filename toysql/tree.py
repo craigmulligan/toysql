@@ -284,6 +284,21 @@ class BPlusTree:
         which is something we'll need to handle with a free node list.
 
         https://stackoverflow.com/questions/9227769/why-are-there-unused-pages-in-my-sqlite-database
+
+        Old state
+        parent:
+          keys: [1]
+          values: [1, 2]
+
+        child:
+          keys: [2]
+          values: [3, 4]
+
+        After merge:
+
+        parent:
+          keys: [1, 2]
+          values: [1, 3, 4]
         """
         parent.values[index]
         parent.values.pop(index)
