@@ -52,5 +52,7 @@ def test_to_from_bytes(table):
 
     assert node.leaf == root_node.leaf
     assert node.keys == root_node.keys
-    assert len(node.values) == len(node.keys)
+    # Ensure that for internal nodes our
+    # we have more values than keys.
+    assert len(node.values) > len(node.keys)
     assert table.pager.read(0) == root_node.to_bytes()
