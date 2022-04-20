@@ -72,8 +72,7 @@ class Node:
 
     def ensure_header_size(self, page):
         """TODO move to Pager"""
-        header_size = 9
-        return bytearray(page.ljust(header_size, b"\0"))
+        return bytearray(page.ljust(Node.header_length, b"\0"))
 
     @staticmethod
     def read(table, page_number) -> "Node":
@@ -141,9 +140,12 @@ class Node:
         byte 14-306: value 0
         ...
 
-        internal node:
+        internal node: (internal nodes will always have one more value (page_number) than keys)
         byte 10-13: key0
-        byte 14-18: child pointer
+        byte 14-18: page_number (child pointer)
+        byte 19-23: key1
+        byte 24-28: page_number (child pointer)
+        byte 29-33: page_number (child pointer)
         ...
         """
         self.leaf = datatypes.Boolean().read(page, 0)
