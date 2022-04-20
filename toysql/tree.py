@@ -157,7 +157,7 @@ class Node:
 
             for i in range(num_keys):
                 key_offset = (cell_length * i) + Node.header_length
-                value_offset = key_offset + datatypes.Integer.length
+                value_offset = key_offset + datatypes.Integer().length
                 self.keys.append(datatypes.Integer().read(page, key_offset))
                 value = self.table.deserialize_row(
                     page[value_offset : value_offset + row_length]
@@ -168,7 +168,7 @@ class Node:
             for i in range(num_keys):
                 key_offset = (cell_length * i) + Node.header_length
                 self.keys.append(datatypes.Integer().read(page, key_offset))
-                page_number_offset = key_offset + datatypes.Integer.length
+                page_number_offset = key_offset + datatypes.Integer().length
                 value = datatypes.Integer().read(page, page_number_offset)
                 self.values.append(value)
 

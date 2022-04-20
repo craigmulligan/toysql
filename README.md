@@ -1,16 +1,15 @@
 # toysql
 
-I work with sql databases everyday but I don't have deep understanding of how they work.
+I work with sql databases everyday but don't have deep understanding of how they work.
 
-This is a dependency free, minimal clone of sql written in python. You should be able to follow the code and improve your understanding of databases.
+This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work. 
 
 ## Questions:
 
 * What format is data stored on disk?
 * Joins implementation?
 * Indexes implementation?
-
-* How do you handle deleted pages?
+* How do you handle deleted pages (freenode list)?
 
 ## Inspiration:
 
@@ -19,16 +18,16 @@ This is a dependency free, minimal clone of sql written in python. You should be
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
 - https://github.com/NicolasLM/bplustree
 
-
 ## Current Features
 
 1. Fixed table schema. (int, str, str)
 2. Can insert rows - always indexed by primary key (int)
-3. Can select all rows.
+3. Can select all rows
 
-Nextup:
+TODOs:
 
-- Select row by id
-- index other columns
-- delete row
-- multiple tables
+- Where filter on pk
+- Where filter on other columns
+- create table (multiple tables)
+- WAL with transactions + rollback
+- Indexes (btree not b+tree implementation)
