@@ -57,9 +57,6 @@ class Node:
 
         return self.key_datatype.length * 2
 
-    def delete(self):
-        self.table.pager.delete(self.page_number)
-
     @property
     def order(self):
         """
