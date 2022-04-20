@@ -1,7 +1,6 @@
 import pytest
 import os
 from toysql.vm import VM
-from toysql.table import Table
 
 
 @pytest.fixture(scope="function")
@@ -19,6 +18,10 @@ def vm(db_file_path):
 
 
 @pytest.fixture()
-def table(db_file_path):
-    table = Table(db_file_path)
-    return table
+def pager(vm):
+    return vm.pager
+
+
+@pytest.fixture()
+def table(vm):
+    return vm.table

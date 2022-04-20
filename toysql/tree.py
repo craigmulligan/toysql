@@ -4,9 +4,7 @@ import toysql.datatypes as datatypes
 
 from toysql.exceptions import PageNotFoundException
 from toysql.constants import PAGE_SIZE
-
-
-Page: bytearray
+from toysql.pager import Page
 
 
 class Node:
@@ -101,7 +99,7 @@ class Node:
         data = self.to_bytes()
         self.table.pager.write(self.page_number, data)
 
-    def to_bytes(self):
+    def to_bytes(self) -> Page:
         """
         return the bytes representation
         """
