@@ -11,6 +11,9 @@ class DataType:
     length: int
     Byteorder: ByteOrder = "little"
 
+    def __len__(self):
+        return self.length
+
     def serialize(self, value: Any) -> bytearray:
         return bytearray()
 

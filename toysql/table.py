@@ -1,22 +1,20 @@
 from typing import List, Any
+
 from toysql.pager import Pager
 from toysql.constants import *
-from toysql.btree import TableLike
 from toysql.tree import BPlusTree
-
-# from toysql.btree import Tree
 import toysql.datatypes as datatypes
-
 
 Row = Any
 
 
-class Table(TableLike):
+class Table:
     # support two operations: inserting a row and printing all rows
     # currently supports a single, hard-coded table
 
-    def __init__(self, file_path: str):
-        self.pager = Pager(file_path, page_size=PAGE_SIZE)
+    # Table should take a pager
+    def __init__(self, pager: Pager):
+        self.pager = pager
         self.root_page_num = 0
         self.schema = [
             datatypes.Integer(),
@@ -44,7 +42,7 @@ class Table(TableLike):
         """
         l = 0
         for s in self.schema:
-            l += s.length
+            l += len(s)
 
         return l
 
