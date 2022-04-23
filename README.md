@@ -1,8 +1,8 @@
 # toysql
 
-I work with sql databases everyday but don't have deep understanding of how they work.
+I work with sql databases everyday but don't have deep understanding of how they work, this is an attempt to improve my understanding of their implementation. 
 
-This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work. 
+This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work.
 
 ## Questions:
 
