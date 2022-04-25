@@ -17,6 +17,7 @@ This is a dependency free, minimal clone of sql database written in python. I've
 - https://github.com/erikgrinaker/toydb
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
 - https://github.com/NicolasLM/bplustree
+- https://notes.eatonphil.com/database-basics.html
 
 ## Current Features
 
