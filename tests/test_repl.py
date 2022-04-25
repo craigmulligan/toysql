@@ -1,25 +1,29 @@
 import logging
 from toysql.repl import repl
-from unittest import mock
+from unittest import mock, TestCase
 
 
-def test_success(caplog):
-    mock_callback = mock.Mock()
-    query = "select * from my_table;"
+class TestRepl(TestCase):
+    def test_success(self):
+        mock_callback = mock.Mock()
+        query = "select * from my_table;"
 
-    with caplog.at_level(logging.INFO), mock.patch("builtins.input", lambda _: query):
-        repl(mock_callback)
-        assert f"your query was {query}" in caplog.text
+        with self.assertLogs(level=logging.INFO) as caplog, mock.patch(
+            "builtins.input", lambda _: query
+        ):
+            repl(mock_callback)
+            assert f"your query was {query}" in caplog.output[0]
 
-    mock_callback.assert_called_once()
+        mock_callback.assert_called_once()
 
+    def test_failure(self):
+        mock_callback = mock.Mock()
+        query = "selct * from my_table;"
 
-def test_failure(caplog):
-    mock_callback = mock.Mock()
-    query = "selct * from my_table;"
+        with self.assertLogs(level=logging.ERROR) as cm, mock.patch(
+            "builtins.input", lambda _: query
+        ):
+            repl(mock_callback)
+            assert f"Oops something went wrong: Invalid query" in cm.output[0]
 
-    with caplog.at_level(logging.ERROR), mock.patch("builtins.input", lambda _: query):
-        repl(mock_callback)
-        assert f"Oops something went wrong" in caplog.text
-
-    mock_callback.assert_called_once()
+        mock_callback.assert_called_once()
