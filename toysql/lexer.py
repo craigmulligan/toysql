@@ -80,7 +80,7 @@ class KeywordLexer(Lexer):
         match = "hi"
 
         if match == "":
-            return None, cursor, False
+            return None, cursor
 
         cursor.pointer = cursor.pointer + len(match)
         cursor.loc.col = cursor.loc.col + len(match)
@@ -92,7 +92,74 @@ class KeywordLexer(Lexer):
         if match == Keyword.null:
             kind = Kind.null
 
-        return Token(match, kind, cursor.loc), cursor, True
+        return Token(match, kind, cursor.loc), cursor
+
+
+class NumericLexer(Lexer):
+    def lex(self, source, ic):
+        period_found = False
+        exp_marker_found = False
+
+        cursor = ic.copy()
+        while cursor.pointer < len(source):
+            c = source[cursor.pointer]
+            cursor.loc.col += 1
+            is_digit = c >= "0" and c <= "9"
+            is_period = c == "."
+            is_exp_marker = c == "e"
+
+            if cursor.pointer == ic.pointer:
+                if not is_digit and not is_period:
+                    return None, ic
+
+                period_found = is_period
+                cursor.pointer += 1
+                continue
+
+            if is_period:
+                if period_found:
+                    return None, ic
+
+                period_found = True
+                cursor.pointer += 1
+                continue
+
+            if is_exp_marker:
+                if exp_marker_found:
+                    return None, ic
+
+                # No periods allowed after expMarker
+                period_found = True
+                exp_marker_found = True
+
+                # expMarker must be followed by digits
+                if cursor.pointer == len(source) - 1:
+                    return None, ic
+
+                c_next = source[cursor.pointer + 1]
+                if c_next == "-" or c_next == "+":
+                    cursor.pointer += 1
+                    cursor.loc.col += 1
+
+                cursor.pointer += 1
+                continue
+
+            if not is_digit:
+                break
+
+            cursor.pointer += 1
+
+        if cursor.pointer == ic.pointer:
+            return None, ic
+
+        return (
+            Token(
+                source[ic.pointer : cursor.pointer],
+                Kind.numeric,
+                ic.loc,
+            ),
+            cursor,
+        )
 
 
 class StringLexer(Lexer):
@@ -149,19 +216,22 @@ class StatementLexer:
     def lex(source: str) -> List[Token]:
         tokens = []
         cursor = Cursor(0, Location(0, 0))
-        lexers = [StringLexer()]
+        lexers = [NumericLexer(), StringLexer()]
         while cursor.pointer < len(source):
+            new_tokens = []
             for lexer in lexers:
                 token, cursor = lexer.lex(source, cursor)
-                # Usually the lexer moves the cursor
-
                 # Omit nil tokens for valid, but empty syntax like newlines
                 if token is not None:
-                    tokens.append(token)
-                else:
-                    cursor.pointer += 1
+                    new_tokens.append(token)
                 continue
 
+            if len(new_tokens) == 0:
+                # Should be able to remove this once all
+                # lexers are implemented.
+                cursor.pointer += 1
+
+            tokens.extend(new_tokens)
             hint = ""
             if len(tokens) > 0:
                 hint = "after " + tokens[-1].value

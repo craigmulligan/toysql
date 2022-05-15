@@ -4,5 +4,5 @@ test:
 pytest:
 	pytest .	
 
-mypy:
-	mypy .
+typetest:
+	pyright .
