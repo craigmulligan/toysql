@@ -15,7 +15,7 @@ class TestRepl(TestCase):
             and y = 123;
         """
         tokens = StatementLexer().lex(query)
-        assert len(tokens) == 6
+        assert len(tokens) == 7
         string_tokens = self.get_token_by_kind(tokens, Kind.string)
         assert next(string_tokens).value == "hi"
 
@@ -23,11 +23,7 @@ class TestRepl(TestCase):
         assert next(numeric_tokens).value == "123"
 
         keyword_tokens = self.get_token_by_kind(tokens, Kind.keyword)
-        expected_keywords = ["select", "from", "where", "and"]
+        expected_keywords = ["select", "from", "table", "where", "and"]
 
         for keyword in expected_keywords:
             assert next(keyword_tokens).value == keyword
-
-        # Once we have all lexers the cursor will be correct.
-        # assert string_token.loc.col == 34
-        # assert string_token.loc.line == 0

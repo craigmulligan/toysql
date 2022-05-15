@@ -13,6 +13,8 @@ class Keyword(Enum):
     _from = "from"
     _as = "as"
     table = "table"
+    where = "where"
+    _and = "and"
     create = "create"
     insert = "insert"
     into = "into"
@@ -72,14 +74,27 @@ class Lexer(Protocol):
         ...
 
 
+def longest_match(source: str, options: List[str]) -> Optional[str]:
+    """
+    Given a string we find the longest_match from the first character.
+    """
+    options.sort(key=len, reverse=True)
+    for option in options:
+        l = len(option)
+        substr = source[:l]
+        if substr == option:
+            print(substr)
+            return substr
+
+
 class KeywordLexer(Lexer):
-    def lex(self, source, cursor):
+    def lex(self, source, ic):
+        cursor = ic.copy()
         options = [e.value for e in Keyword]
 
-        # match = longestMatch(source, ic, options)
-        match = "hi"
+        match = longest_match(source[cursor.pointer :], options)
 
-        if match == "":
+        if match is None:
             return None, cursor
 
         cursor.pointer = cursor.pointer + len(match)
@@ -216,7 +231,7 @@ class StatementLexer:
     def lex(source: str) -> List[Token]:
         tokens = []
         cursor = Cursor(0, Location(0, 0))
-        lexers = [NumericLexer(), StringLexer()]
+        lexers = [NumericLexer(), StringLexer(), KeywordLexer()]
         while cursor.pointer < len(source):
             new_tokens = []
             for lexer in lexers:
