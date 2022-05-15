@@ -22,7 +22,11 @@ class TestRepl(TestCase):
         assert next(numeric_tokens).value == "123"
 
         identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
-        assert next(identifier_tokens).value == "my_table"
+
+        expected_identifiers = ["my_table", "x", "y"]
+
+        for identifier in expected_identifiers:
+            assert next(identifier_tokens).value == identifier
 
         string_tokens = self.get_token_by_kind(tokens, Kind.string)
         assert next(string_tokens).value == "hi"
