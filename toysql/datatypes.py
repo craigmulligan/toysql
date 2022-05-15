@@ -32,6 +32,12 @@ class DataType(DataTypeContainer[T]):
         content[offset : offset + self.length] = self.serialize(value)
         return content
 
+    def serialize(self, value: T) -> bytearray:
+        ...
+
+    def deserialize(self, value) -> T:
+        ...
+
 
 class Boolean(DataType[bool]):
     def __init__(self) -> None:
@@ -40,7 +46,7 @@ class Boolean(DataType[bool]):
     def serialize(self, value: bool) -> bytearray:
         return bytearray(value.to_bytes(self.length, self.byteorder))
 
-    def deserialize(self, value) -> bool:
+    def deserialize(self, value: bytearray) -> bool:
         return bool(int.from_bytes(value, self.byteorder))
 
 
@@ -56,8 +62,8 @@ class Integer(DataType[int]):
 
 
 class String(DataType[str]):
-    def serialize(self, value) -> bytearray:
+    def serialize(self, value: str) -> bytearray:
         return bytearray(value.encode("utf-8").ljust(self.length, b"\0"))
 
-    def deserialize(_self, value) -> str:
+    def deserialize(_self, value: bytearray) -> str:
         return value.decode("utf-8").rstrip("\x00")
