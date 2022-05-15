@@ -26,11 +26,16 @@ class Keyword(Enum):
 
 
 class Symbol(Enum):
-    semicolonSymbol = ";"
-    asteriskSymbol = "*"
-    commaSymbol = ","
-    leftparenSymbol = "("
-    rightparenSymbol = ")"
+    semicolon = ";"
+    asterisk = "*"
+    comma = ","
+    left_paren = "("
+    right_paren = ")"
+    equal = "="
+    gt = ">"
+    gteq = ">="
+    lt = "<"
+    lteq = ">="
 
 
 class Kind(Enum):
