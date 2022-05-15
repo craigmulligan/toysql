@@ -6,7 +6,7 @@ from unittest import TestCase
 class TestRepl(TestCase):
     @staticmethod
     def get_token_by_kind(tokens: List[Token], kind: Kind):
-        return [token for token in tokens if token.kind == kind][0]
+        return (token for token in tokens if token.kind == kind)
 
     def test_select(self):
         query = """
@@ -15,12 +15,18 @@ class TestRepl(TestCase):
             and y = 123;
         """
         tokens = StatementLexer().lex(query)
-        assert len(tokens) == 2
-        string_token = self.get_token_by_kind(tokens, Kind.string)
-        assert string_token.value == "hi"
+        assert len(tokens) == 6
+        string_tokens = self.get_token_by_kind(tokens, Kind.string)
+        assert next(string_tokens).value == "hi"
 
-        numeric_token = self.get_token_by_kind(tokens, Kind.numeric)
-        assert numeric_token.value == "123"
+        numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
+        assert next(numeric_tokens).value == "123"
+
+        keyword_tokens = self.get_token_by_kind(tokens, Kind.keyword)
+        expected_keywords = ["select", "from", "where", "and"]
+
+        for keyword in expected_keywords:
+            assert next(keyword_tokens).value == keyword
 
         # Once we have all lexers the cursor will be correct.
         # assert string_token.loc.col == 34
