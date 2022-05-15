@@ -242,6 +242,7 @@ class IdentifierLexer(Lexer):
         if token:
             return token, cursor
 
+        # TODO find the rest.
         return None, cursor
 
 
