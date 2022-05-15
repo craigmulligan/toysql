@@ -22,6 +22,9 @@ class TestRepl(TestCase):
         numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
         assert next(numeric_tokens).value == "123"
 
+        identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
+        assert next(identifier_tokens).value == "my_table"
+
         keyword_tokens = self.get_token_by_kind(tokens, Kind.keyword)
         expected_keywords = ["select", "from", "table", "where", "and"]
 
