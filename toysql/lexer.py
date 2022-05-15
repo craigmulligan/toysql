@@ -12,7 +12,6 @@ class Keyword(Enum):
     select = "select"
     _from = "from"
     _as = "as"
-    table = "table"
     where = "where"
     _and = "and"
     create = "create"
@@ -83,7 +82,6 @@ def longest_match(source: str, options: List[str]) -> Optional[str]:
         l = len(option)
         substr = source[:l]
         if substr == option:
-            print(substr)
             return substr
 
 
@@ -177,15 +175,17 @@ class NumericLexer(Lexer):
         )
 
 
-class StringLexer(Lexer):
-    def lex(self, source, cursor):
-        delimiter = "'"
+class DelimitedLexer(Lexer):
+    def __init__(self, delimiter: str, kind: Kind) -> None:
+        self.delimiter = delimiter
+        self.kind = kind
 
+    def lex(self, source, cursor):
         remaining_source = source[cursor.pointer :]
         if len(remaining_source) == 0:
             return None, cursor
 
-        if source[cursor.pointer] != delimiter:
+        if source[cursor.pointer] != self.delimiter:
             # we haven't found the delimiter
             # break exit early
             return None, cursor
@@ -202,22 +202,22 @@ class StringLexer(Lexer):
             c = source[cursor.pointer]
             cursor.pointer += 1
 
-            if c == delimiter:
+            if c == self.delimiter:
                 # SQL escapes are via double characters, not backslash.
                 if (
                     cursor.pointer + 1 >= len(source)
-                    or source[cursor.pointer + 1] != delimiter
+                    or source[cursor.pointer + 1] != self.delimiter
                 ):
                     return (
                         Token(
                             value,
-                            Kind.string,
+                            self.kind,
                             cursor.loc,
                         ),
                         cursor,
                     )
                 else:
-                    value = value + delimiter
+                    value = value + self.delimiter
                     cursor.pointer += 1
                     cursor.loc.col += 1
 
@@ -226,12 +226,36 @@ class StringLexer(Lexer):
         return None, cursor
 
 
+class StringLexer(DelimitedLexer):
+    def __init__(self):
+        super().__init__("'", Kind.string)
+
+
+class IdentifierLexer(Lexer):
+    def __init__(self) -> None:
+        self.double_quote = DelimitedLexer('"', Kind.identifier)
+
+    def lex(self, source, ic):
+        # Look for double quote texts.
+        token, cursor = self.double_quote.lex(source, ic)
+
+        if token:
+            return token, cursor
+
+        return None, cursor
+
+
 class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
         tokens = []
         cursor = Cursor(0, Location(0, 0))
-        lexers = [NumericLexer(), StringLexer(), KeywordLexer()]
+        lexers = [
+            NumericLexer(),
+            StringLexer(),
+            IdentifierLexer(),
+            KeywordLexer(),
+        ]
         while cursor.pointer < len(source):
             new_tokens = []
             for lexer in lexers:
