@@ -16,7 +16,7 @@ class TestRepl(TestCase):
         """
 
         tokens = StatementLexer().lex(query)
-        assert len(tokens) == 9
+        assert len(tokens) == 11
 
         numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
         assert next(numeric_tokens).value == "123"
@@ -35,3 +35,8 @@ class TestRepl(TestCase):
 
         for keyword in expected_keywords:
             assert next(keyword_tokens).value == keyword
+
+        symbol_tokens = self.get_token_by_kind(tokens, Kind.symbol)
+        expected_symbols = ["*", ";"]
+        for keyword in expected_symbols:
+            assert next(symbol_tokens).value == keyword
