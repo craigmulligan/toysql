@@ -16,13 +16,12 @@ class TestRepl(TestCase):
         """
 
         tokens = StatementLexer().lex(query)
-        assert len(tokens) == 7
+        assert len(tokens) == 9
 
         numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
         assert next(numeric_tokens).value == "123"
 
         identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
-
         expected_identifiers = ["my_table", "x", "y"]
 
         for identifier in expected_identifiers:

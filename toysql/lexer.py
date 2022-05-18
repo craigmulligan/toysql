@@ -247,8 +247,40 @@ class IdentifierLexer(Lexer):
         if token:
             return token, cursor
 
-        # TODO find the rest.
-        return None, cursor
+        cursor = ic.copy()
+
+        c = source[cursor.pointer]
+
+        is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
+
+        if not is_alphabetical:
+            return None, ic
+
+        value = ""
+        while cursor.pointer < len(source):
+            c = source[cursor.pointer]
+
+            is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
+            is_numeric = c >= "0" and c <= "9"
+            if is_alphabetical or is_numeric or c == "$" or c == "_":
+                value += c
+                cursor.loc.col += 1
+                cursor.pointer += 1
+                continue
+
+            break
+
+        if len(value) == 0:
+            return None, ic
+
+        return (
+            Token(
+                value.lower(),
+                Kind.identifier,
+                ic.loc,
+            ),
+            cursor,
+        )
 
 
 class StatementLexer:
@@ -257,10 +289,10 @@ class StatementLexer:
         tokens = []
         cursor = Cursor(0, Location(0, 0))
         lexers = [
+            KeywordLexer(),  # Note keyword should always have first pick.
             NumericLexer(),
             StringLexer(),
             IdentifierLexer(),
-            KeywordLexer(),
         ]
         while cursor.pointer < len(source):
             new_tokens = []
