@@ -92,6 +92,7 @@ class KeywordLexer(Lexer):
         cursor = ic.copy()
         options = [e.value for e in Keyword]
 
+        print(source[cursor.pointer] + "\n")
         match = longest_match(source[cursor.pointer :], options)
 
         if match is None:
