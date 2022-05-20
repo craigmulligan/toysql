@@ -117,6 +117,8 @@ class NumericLexer(Lexer):
         cursor = ic.copy()
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
+            cursor.loc.col += 1
+            cursor.pointer += 1
             is_digit = c >= "0" and c <= "9"
             is_period = c == "."
             is_exp_marker = c == "e"
@@ -126,9 +128,6 @@ class NumericLexer(Lexer):
                     return None, ic
 
                 period_found = is_period
-
-                cursor.loc.col += 1
-                cursor.pointer += 1
                 continue
 
             if is_period:
@@ -136,8 +135,6 @@ class NumericLexer(Lexer):
                     return None, ic
 
                 period_found = True
-                cursor.loc.col += 1
-                cursor.pointer += 1
                 continue
 
             if is_exp_marker:
@@ -157,18 +154,16 @@ class NumericLexer(Lexer):
                     cursor.loc.col += 1
                     cursor.pointer += 1
 
-                cursor.loc.col += 1
-                cursor.pointer += 1
                 continue
 
             if not is_digit:
-                break
-
-            cursor.loc.col += 1
-            cursor.pointer += 1
+                return None, ic
 
         if cursor.pointer == ic.pointer:
             return None, ic
+
+        cursor.loc.col += 1
+        cursor.pointer += 1
 
         return (
             Token(
@@ -182,18 +177,19 @@ class NumericLexer(Lexer):
 
 class SymbolLexer(Lexer):
     def lex(self, source, ic):
-        c = source[ic.pointer]
         cursor = ic.copy()
-
+        c = source[cursor.pointer]
         # Will get overwritten later if not an ignored syntax
-        cursor.loc.col += 1
-        cursor.pointer += 1
 
         if c == "\n":
             cursor.loc.line += 1
             cursor.loc.col = 0
+            cursor.pointer += 1
+            return None, cursor
 
         if c == " ":
+            cursor.pointer += 1
+            cursor.loc.col += 1
             return None, cursor
 
         options = [e.value for e in Symbol]
@@ -232,16 +228,17 @@ class DelimitedLexer(Lexer):
             # break exit early
             return None, cursor
 
-        value = ""
-
-        # cursor.loc.col += 1
-        # cursor.pointer += 1
-
         # Now we have found the delimiter
         # we want to continue until we find the
         # end delimiter.
+        value = ""
+        cursor.pointer += 1
+        cursor.loc.col += 1
+
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
+            cursor.loc.col += 1
+            cursor.pointer += 1
 
             if c == self.delimiter:
                 # SQL escapes are via double characters, not backslash.
@@ -249,7 +246,6 @@ class DelimitedLexer(Lexer):
                     cursor.pointer + 1 >= len(source)
                     or source[cursor.pointer + 1] != self.delimiter
                 ):
-                    cursor.pointer += 1
                     return (
                         Token(
                             value,
@@ -260,11 +256,8 @@ class DelimitedLexer(Lexer):
                     )
                 else:
                     value = value + self.delimiter
-                    cursor.pointer += 1
-                    cursor.loc.col += 1
 
             value = value + c
-            cursor.loc.col += 1
         return None, cursor
 
 
@@ -284,8 +277,6 @@ class IdentifierLexer(Lexer):
         if token:
             return token, cursor
 
-        cursor = ic.copy()
-
         c = source[cursor.pointer]
 
         is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
@@ -293,19 +284,21 @@ class IdentifierLexer(Lexer):
         if not is_alphabetical:
             return None, ic
 
-        cursor.pointer += 1
+        value = c
         cursor.loc.col += 1
+        cursor.pointer += 1
 
-        value = ""
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
+            cursor.loc.col += 1
+            cursor.pointer += 1
 
             is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
             is_numeric = c >= "0" and c <= "9"
+
             if is_alphabetical or is_numeric or c == "$" or c == "_":
+
                 value += c
-                cursor.loc.col += 1
-                cursor.pointer += 1
                 continue
 
             break
@@ -340,7 +333,6 @@ class StatementLexer:
         while cursor.pointer < len(source):
             new_tokens = []
             for lexer in lexers:
-                print(cursor.pointer, source[cursor.pointer :])
                 token, cursor = lexer.lex(source, cursor)
                 # Omit nil tokens for valid, but empty syntax like newlines
                 if token is not None:
