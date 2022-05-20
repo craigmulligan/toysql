@@ -2,6 +2,7 @@ from typing import Tuple, List, Protocol, Optional
 from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.exceptions import LexingException
+import logging
 
 
 class Keyword(Enum):
@@ -109,35 +110,42 @@ class KeywordLexer(Lexer):
         return Token(match, kind, cursor.loc), cursor
 
 
+def is_digit(c: str):
+    return c >= "0" and c <= "9"
+
+
+def is_period(c: str):
+    return c == "."
+
+
+def is_exp_marker(c: str):
+    return c == "e"
+
+
 class NumericLexer(Lexer):
     def lex(self, source, ic):
         period_found = False
         exp_marker_found = False
 
         cursor = ic.copy()
+
+        c = source[cursor.pointer]
+
+        if not is_digit(c) and not is_period(c):
+            return None, ic
+
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
-            cursor.loc.col += 1
-            cursor.pointer += 1
-            is_digit = c >= "0" and c <= "9"
-            is_period = c == "."
-            is_exp_marker = c == "e"
-
-            if cursor.pointer == ic.pointer:
-                if not is_digit and not is_period:
-                    return None, ic
-
-                period_found = is_period
-                continue
-
-            if is_period:
+            if is_period(c):
                 if period_found:
                     return None, ic
 
                 period_found = True
+                cursor.loc.col += 1
+                cursor.pointer += 1
                 continue
 
-            if is_exp_marker:
+            if is_exp_marker(c):
                 if exp_marker_found:
                     return None, ic
 
@@ -154,16 +162,19 @@ class NumericLexer(Lexer):
                     cursor.loc.col += 1
                     cursor.pointer += 1
 
+                cursor.loc.col += 1
+                cursor.pointer += 1
                 continue
 
-            if not is_digit:
-                return None, ic
+            if not is_digit(c):
+                break
 
+            cursor.loc.col += 1
+            cursor.pointer += 1
+
+        # No characters accumulated
         if cursor.pointer == ic.pointer:
             return None, ic
-
-        cursor.loc.col += 1
-        cursor.pointer += 1
 
         return (
             Token(
@@ -331,13 +342,25 @@ class StatementLexer:
         ]
 
         while cursor.pointer < len(source):
+            pointer = cursor.pointer
             new_tokens = []
             for lexer in lexers:
                 token, cursor = lexer.lex(source, cursor)
                 # Omit nil tokens for valid, but empty syntax like newlines
                 if token is not None:
                     new_tokens.append(token)
-                continue
+                    break
+
+            if pointer == cursor.pointer:
+                raise Exception(
+                    f"Cursor Pointer hasn't changed {pointer} - next few chars {source[pointer:pointer+5]}"
+                )
+            # else:
+            # This shouldn't ever happend
+            # raise Exception(f"No tokens were found at: {source[cursor.pointer:]}")
+            # logging.warning()
+            # cursor.pointer += 1
+            # cursor.loc.col += 1
 
             tokens.extend(new_tokens)
             hint = ""
