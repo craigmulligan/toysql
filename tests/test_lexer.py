@@ -16,6 +16,7 @@ class TestRepl(TestCase):
         """
 
         tokens = StatementLexer().lex(query)
+
         assert len(tokens) == 11
 
         numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
