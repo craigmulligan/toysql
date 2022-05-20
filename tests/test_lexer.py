@@ -68,7 +68,12 @@ class TestStringLexer(TestCase):
 class TestKeywordLexer(TestCase):
     def test_lex(self):
         lexer = KeywordLexer()
-        cases = [("select", "select"), (" select", None), ("hello", None)]
+        cases = [
+            ("select", "select"),
+            (" select", None),
+            ("hello", None),
+            ("from", "from"),
+        ]
 
         for source, value in cases:
             cursor = Cursor(0, Location(0, 0))
@@ -114,20 +119,7 @@ class TestStatementLexer(TestCase):
 
         tokens = StatementLexer().lex(query)
 
-        print(tokens)
-        assert len(tokens) == 11
-
-        numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
-        assert next(numeric_tokens).value == "123"
-
-        identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
-        expected_identifiers = ["my_table", "x", "y"]
-
-        for identifier in expected_identifiers:
-            assert next(identifier_tokens).value == identifier
-
-        string_tokens = self.get_token_by_kind(tokens, Kind.string)
-        assert next(string_tokens).value == "hi"
+        assert len(tokens) == 13
 
         keyword_tokens = self.get_token_by_kind(tokens, Kind.keyword)
         expected_keywords = ["select", "from", "where", "and"]
@@ -136,6 +128,18 @@ class TestStatementLexer(TestCase):
             assert next(keyword_tokens).value == keyword
 
         symbol_tokens = self.get_token_by_kind(tokens, Kind.symbol)
-        expected_symbols = ["*", ";"]
+        expected_symbols = ["*", "=", "=", ";"]
         for keyword in expected_symbols:
             assert next(symbol_tokens).value == keyword
+
+        numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
+        assert next(numeric_tokens).value == "123"
+
+        string_tokens = self.get_token_by_kind(tokens, Kind.string)
+        assert next(string_tokens).value == "hi"
+
+        identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
+        expected_identifiers = ["my_table", "x", "y"]
+
+        for identifier in expected_identifiers:
+            assert next(identifier_tokens).value == identifier
