@@ -3,10 +3,6 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.exceptions import LexingException
 
-# Keyword = str
-# Symbol = str
-# TokenKind = int
-
 
 class Keyword(Enum):
     select = "select"
@@ -98,7 +94,7 @@ class KeywordLexer(Lexer):
         match = longest_match(source[cursor.pointer :], options)
 
         if match is None:
-            return None, cursor
+            return None, ic
 
         cursor.pointer = cursor.pointer + len(match)
         cursor.loc.col = cursor.loc.col + len(match)
@@ -121,7 +117,6 @@ class NumericLexer(Lexer):
         cursor = ic.copy()
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
-            cursor.loc.col += 1
             is_digit = c >= "0" and c <= "9"
             is_period = c == "."
             is_exp_marker = c == "e"
@@ -131,6 +126,8 @@ class NumericLexer(Lexer):
                     return None, ic
 
                 period_found = is_period
+
+                cursor.loc.col += 1
                 cursor.pointer += 1
                 continue
 
@@ -139,6 +136,7 @@ class NumericLexer(Lexer):
                     return None, ic
 
                 period_found = True
+                cursor.loc.col += 1
                 cursor.pointer += 1
                 continue
 
@@ -156,15 +154,17 @@ class NumericLexer(Lexer):
 
                 c_next = source[cursor.pointer + 1]
                 if c_next == "-" or c_next == "+":
-                    cursor.pointer += 1
                     cursor.loc.col += 1
+                    cursor.pointer += 1
 
+                cursor.loc.col += 1
                 cursor.pointer += 1
                 continue
 
             if not is_digit:
                 break
 
+            cursor.loc.col += 1
             cursor.pointer += 1
 
         if cursor.pointer == ic.pointer:
@@ -174,6 +174,41 @@ class NumericLexer(Lexer):
             Token(
                 source[ic.pointer : cursor.pointer],
                 Kind.numeric,
+                cursor.loc,
+            ),
+            cursor,
+        )
+
+
+class SymbolLexer(Lexer):
+    def lex(self, source, ic):
+        c = source[ic.pointer]
+        cursor = ic.copy()
+
+        # Will get overwritten later if not an ignored syntax
+        cursor.loc.col += 1
+        cursor.pointer += 1
+
+        if c == "\n":
+            cursor.loc.line += 1
+            cursor.loc.col = 0
+
+        if c == " ":
+            return None, cursor
+
+        options = [e.value for e in Symbol]
+        match = longest_match(source[cursor.pointer :], options)
+
+        if match is None:
+            return None, cursor
+
+        cursor.pointer = cursor.pointer + len(match)
+        cursor.loc.col = cursor.loc.col + len(match)
+
+        return (
+            Token(
+                c,
+                Kind.symbol,
                 ic.loc,
             ),
             cursor,
@@ -185,7 +220,9 @@ class DelimitedLexer(Lexer):
         self.delimiter = delimiter
         self.kind = kind
 
-    def lex(self, source, cursor):
+    def lex(self, source, ic):
+        cursor = ic.copy()
+
         remaining_source = source[cursor.pointer :]
         if len(remaining_source) == 0:
             return None, cursor
@@ -197,15 +234,14 @@ class DelimitedLexer(Lexer):
 
         value = ""
 
-        cursor.loc.col += 1
-        cursor.pointer += 1
+        # cursor.loc.col += 1
+        # cursor.pointer += 1
 
         # Now we have found the delimiter
         # we want to continue until we find the
         # end delimiter.
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
-            cursor.pointer += 1
 
             if c == self.delimiter:
                 # SQL escapes are via double characters, not backslash.
@@ -213,6 +249,7 @@ class DelimitedLexer(Lexer):
                     cursor.pointer + 1 >= len(source)
                     or source[cursor.pointer + 1] != self.delimiter
                 ):
+                    cursor.pointer += 1
                     return (
                         Token(
                             value,
@@ -256,6 +293,9 @@ class IdentifierLexer(Lexer):
         if not is_alphabetical:
             return None, ic
 
+        cursor.pointer += 1
+        cursor.loc.col += 1
+
         value = ""
         while cursor.pointer < len(source):
             c = source[cursor.pointer]
@@ -286,27 +326,26 @@ class IdentifierLexer(Lexer):
 class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
+        source = source.strip()
         tokens = []
         cursor = Cursor(0, Location(0, 0))
         lexers = [
             KeywordLexer(),  # Note keyword should always have first pick.
+            SymbolLexer(),
             NumericLexer(),
             StringLexer(),
             IdentifierLexer(),
         ]
+
         while cursor.pointer < len(source):
             new_tokens = []
             for lexer in lexers:
+                print(cursor.pointer, source[cursor.pointer :])
                 token, cursor = lexer.lex(source, cursor)
                 # Omit nil tokens for valid, but empty syntax like newlines
                 if token is not None:
                     new_tokens.append(token)
                 continue
-
-            if len(new_tokens) == 0:
-                # Should be able to remove this once all
-                # lexers are implemented.
-                cursor.pointer += 1
 
             tokens.extend(new_tokens)
             hint = ""
