@@ -11,7 +11,7 @@ from toysql.lexer import (
     KeywordLexer,
     IdentifierLexer,
 )
-from unittest import TestCase, skip
+from unittest import TestCase
 
 
 class TestSymbolLexer(TestCase):
