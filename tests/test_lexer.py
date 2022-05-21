@@ -17,14 +17,14 @@ from unittest import TestCase, skip
 class TestSymbolLexer(TestCase):
     def test_lex(self):
         lexer = SymbolLexer()
-        cases = [("*", "*"), (" *", None), ("select", None)]
+        cases = [("*", "*", 1), (" *", None, 1), ("select", None, 0)]
 
-        for source, value in cases:
+        for source, value, pointer in cases:
             cursor = Cursor(0, Location(0, 0))
             token, cursor = lexer.lex(source, cursor)
 
             if token:
-                assert cursor.pointer == len(source)
+                assert cursor.pointer == pointer
                 assert token.value == value
             else:
                 assert value is None
