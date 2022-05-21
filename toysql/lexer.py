@@ -43,6 +43,7 @@ class Kind(Enum):
     numeric = auto()
     bool = auto()
     null = auto()
+    discard = auto()
 
 
 @dataclass
@@ -92,7 +93,6 @@ class KeywordLexer(Lexer):
         cursor = ic.copy()
         options = [e.value for e in Keyword]
 
-        print(source[cursor.pointer] + "\n")
         match = longest_match(source[cursor.pointer :], options)
 
         if match is None:
@@ -192,17 +192,6 @@ class SymbolLexer(Lexer):
         cursor = ic.copy()
         c = source[cursor.pointer]
         # Will get overwritten later if not an ignored syntax
-
-        if c == "\n":
-            cursor.loc.line += 1
-            cursor.loc.col = 0
-            cursor.pointer += 1
-            return None, cursor
-
-        if c == " ":
-            cursor.pointer += 1
-            cursor.loc.col += 1
-            return None, cursor
 
         options = [e.value for e in Symbol]
         match = longest_match(source[cursor.pointer :], options)
@@ -328,6 +317,31 @@ class IdentifierLexer(Lexer):
         )
 
 
+class DiscardLexer(Lexer):
+    """
+    This is the simplest lexer, it finds things like whitespace
+    and line break and moves the cursor forward accordingly.
+
+    The tokens of Kind.discard are removed later.
+    """
+
+    def lex(self, data, cursor):
+        c = data[cursor.pointer]
+
+        if c == "\n":
+            cursor.pointer += 1
+            cursor.loc.line = +1
+            cursor.loc.col = 0
+            return Token(c, Kind.discard, cursor.loc), cursor
+
+        if c == " ":
+            cursor.pointer += 1
+            cursor.loc.col += 1
+            return Token(c, Kind.discard, cursor.loc), cursor
+
+        return None, cursor
+
+
 class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
@@ -335,6 +349,7 @@ class StatementLexer:
         tokens = []
         cursor = Cursor(0, Location(0, 0))
         lexers = [
+            DiscardLexer(),
             KeywordLexer(),  # Note keyword should always have first pick.
             SymbolLexer(),
             NumericLexer(),
@@ -346,22 +361,19 @@ class StatementLexer:
             pointer = cursor.pointer
             new_tokens = []
             for lexer in lexers:
+                # Something
+
                 token, cursor = lexer.lex(source, cursor)
                 # Omit nil tokens for valid, but empty syntax like newlines
                 if token is not None:
-                    new_tokens.append(token)
+                    if token.kind != Kind.discard:
+                        new_tokens.append(token)
                     break
 
             if pointer == cursor.pointer:
                 raise Exception(
-                    f"Cursor Pointer hasn't changed {pointer} - next few chars {source[pointer:pointer+5]}"
+                    f"Cursor Pointer hasn't changed {pointer} - next few chars '{source[pointer:pointer+5]}'"
                 )
-            # else:
-            # This shouldn't ever happend
-            # raise Exception(f"No tokens were found at: {source[cursor.pointer:]}")
-            # logging.warning()
-            # cursor.pointer += 1
-            # cursor.loc.col += 1
 
             tokens.extend(new_tokens)
             hint = ""
