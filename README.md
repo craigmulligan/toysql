@@ -27,6 +27,7 @@ This is a dependency free, minimal clone of sql database written in python. I've
 
 TODOs:
 
+- Use bisect & insort in BTree 
 - Where filter on pk
 - Where filter on other columns
 - create table (multiple tables)
