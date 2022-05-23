@@ -105,11 +105,14 @@ class TestIdentifierLexer(TestCase):
 
 
 class TestStatementLexer(TestCase):
+    def __init__(self, methodName) -> None:
+        self.lexer = StatementLexer()
+        super().__init__(methodName)
+
     @staticmethod
     def get_token_by_kind(tokens: List[Token], kind: Kind):
         return (token for token in tokens if token.kind == kind)
 
-    # @skip("oops")
     def test_select(self):
         query = """
             select * from "my_table"
@@ -117,29 +120,44 @@ class TestStatementLexer(TestCase):
             and y = 123;
         """
 
-        tokens = StatementLexer().lex(query)
+        tokens = self.lexer.lex(query)
 
-        assert len(tokens) == 13
+        # TODO cursor Location doesnt work.
+        expected_tokens = [
+            Token("select", Kind.keyword, Location(0, 0)),
+            Token("*", Kind.symbol, Location(0, 0)),
+            Token("from", Kind.keyword, Location(0, 0)),
+            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("where", Kind.keyword, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("hi", Kind.string, Location(0, 0)),
+            Token("and", Kind.keyword, Location(0, 0)),
+            Token("y", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("123", Kind.numeric, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
 
-        keyword_tokens = self.get_token_by_kind(tokens, Kind.keyword)
-        expected_keywords = ["select", "from", "where", "and"]
+        assert tokens == expected_tokens
 
-        for keyword in expected_keywords:
-            assert next(keyword_tokens).value == keyword
+    def test_create_table(self):
+        query = """CREATE TABLE u (id INT, name TEXT)"""
 
-        symbol_tokens = self.get_token_by_kind(tokens, Kind.symbol)
-        expected_symbols = ["*", "=", "=", ";"]
-        for keyword in expected_symbols:
-            assert next(symbol_tokens).value == keyword
+        tokens = self.lexer.lex(query)
 
-        numeric_tokens = self.get_token_by_kind(tokens, Kind.numeric)
-        assert next(numeric_tokens).value == "123"
+        # TODO cursor Location doesnt work.
+        expected_tokens = [
+            Token("create", Kind.keyword, Location(0, 0)),
+            Token("table", Kind.keyword, Location(0, 0)),
+            Token("u", Kind.identifier, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("id", Kind.identifier, Location(0, 0)),
+            Token("int", Kind.keyword, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("name", Kind.identifier, Location(0, 0)),
+            Token("text", Kind.keyword, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+        ]
 
-        string_tokens = self.get_token_by_kind(tokens, Kind.string)
-        assert next(string_tokens).value == "hi"
-
-        identifier_tokens = self.get_token_by_kind(tokens, Kind.identifier)
-        expected_identifiers = ["my_table", "x", "y"]
-
-        for identifier in expected_identifiers:
-            assert next(identifier_tokens).value == identifier
+        assert tokens == expected_tokens

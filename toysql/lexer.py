@@ -12,6 +12,7 @@ class Keyword(Enum):
     _and = "and"
     create = "create"
     insert = "insert"
+    table = "table"
     into = "into"
     values = "values"
     int = "int"
@@ -199,7 +200,6 @@ class SymbolLexer(Lexer):
             return None, cursor
 
         cursor.pointer = cursor.pointer + len(match)
-        cursor.loc.col = cursor.loc.col + len(match)
 
         return (
             Token(
@@ -344,7 +344,7 @@ class DiscardLexer(Lexer):
 class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
-        source = source.strip()
+        source = source.strip().lower()
         tokens = []
         cursor = Cursor(0, Location(0, 0))
         lexers = [
