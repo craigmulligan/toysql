@@ -161,3 +161,24 @@ class TestStatementLexer(TestCase):
         ]
 
         assert tokens == expected_tokens
+
+    def test_insert(self):
+        query = """INSERT INTO users VALUES (1, 'Phil');"""
+
+        tokens = self.lexer.lex(query)
+
+        # TODO cursor Location doesnt work.
+        expected_tokens = [
+            Token("insert", Kind.keyword, Location(0, 0)),
+            Token("into", Kind.keyword, Location(0, 0)),
+            Token("users", Kind.identifier, Location(0, 0)),
+            Token("values", Kind.keyword, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("1", Kind.numeric, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("Phil", Kind.string, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+
+        assert tokens == expected_tokens
