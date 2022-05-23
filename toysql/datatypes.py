@@ -8,10 +8,10 @@ from typing import Protocol
 
 
 class DataTypeContainer(Protocol[T]):
-    def serialize(self, value: T) -> bytearray:
+    def serialize(self, _value: T) -> bytearray:
         ...
 
-    def deserialize(self, value: bytearray) -> T:
+    def deserialize(self, _value: bytearray) -> T:
         ...
 
 
@@ -19,7 +19,7 @@ class DataType(DataTypeContainer[T]):
     length: int
     byteorder: ByteOrder = "little"
 
-    def __init__(self, length) -> None:
+    def __init__(self, length: int) -> None:
         self.length = length
 
     def __len__(self):
@@ -32,10 +32,10 @@ class DataType(DataTypeContainer[T]):
         content[offset : offset + self.length] = self.serialize(value)
         return content
 
-    def serialize(self, value: T) -> bytearray:
+    def serialize(self, _value: T) -> bytearray:
         ...
 
-    def deserialize(self, value) -> T:
+    def deserialize(self, _value: bytearray) -> T:
         ...
 
 

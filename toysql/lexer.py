@@ -2,7 +2,6 @@ from typing import Tuple, List, Protocol, Optional
 from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.exceptions import LexingException
-import logging
 
 
 class Keyword(Enum):
