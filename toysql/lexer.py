@@ -84,8 +84,9 @@ def longest_match(source: str, options: List[str]) -> Optional[str]:
     for option in options:
         l = len(option)
         substr = source[:l]
-        if substr == option:
-            return substr
+        lower_substr = substr.lower()
+        if lower_substr == option:
+            return lower_substr
 
 
 class KeywordLexer(Lexer):
@@ -344,7 +345,7 @@ class DiscardLexer(Lexer):
 class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
-        source = source.strip().lower()
+        source = source.strip()
         tokens = []
         cursor = Cursor(0, Location(0, 0))
         lexers = [
