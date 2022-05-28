@@ -8,3 +8,7 @@ class PageNotFoundException(Exception):
 
 class LexingException(Exception):
     pass
+
+
+class ParsingException(Exception):
+    pass

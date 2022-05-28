@@ -65,7 +65,7 @@ class Cursor:
 class Token:
     value: str
     kind: Kind
-    loc: Location
+    loc: Optional[Location] = None
 
     def __eq__(self, other: "Token"):  # type: ignore[override]
         return self.value == other.value and self.kind == other.kind
