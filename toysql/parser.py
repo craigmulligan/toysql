@@ -1,9 +1,7 @@
-from typing import Tuple, Optional, Any, List, NewType
+from typing import Tuple, Optional, Any, List
 from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.lexer import Token
-
-Cursor = NewType("ParserCursor", int)
 
 
 class Op(Enum):
@@ -22,7 +20,7 @@ class Expression:
 
 class Statement:
     @staticmethod
-    def parse(tokens: Token, cursor: int) -> Tuple[Optional["Statement"], Cursor]:
+    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
         ...
 
 
@@ -34,7 +32,7 @@ class SelectStatement(Statement):
     offset: Optional[Expression] = None
 
     @staticmethod
-    def parse(tokens: Token, cursor: Cursor) -> Tuple[Optional["Statement"], Cursor]:
+    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
         # Implement parse for select statement.
         return SelectStatement(), cursor
 
@@ -49,11 +47,11 @@ class Parser:
         stmts = []
         cursor = 0
 
-        parsers = [SelectStatement.parse, InsertStatement.parse]
+        parsers = [SelectStatement, InsertStatement]
 
         while cursor < len(tokens):
-            for parse in parsers:
-                stmt, cursor = parse(tokens, cursor)
+            for parser in parsers:
+                stmt, cursor = parser.parse(tokens, cursor)
 
                 if stmt:
                     stmts.append(stmt)
