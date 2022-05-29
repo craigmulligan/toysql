@@ -1,7 +1,7 @@
 from typing import Tuple, Optional, Any, List
 from dataclasses import dataclass
 from enum import Enum, auto
-from toysql.lexer import Token, Kind, Keyword
+from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
 
 
@@ -63,6 +63,57 @@ class Statement:
 
         return None, cursor
 
+    @staticmethod
+    def parse_expression(
+        tokens: List[Token], cursor: int
+    ) -> Tuple[Optional[Expression], int]:
+
+        """
+        The parseExpression helper (for now) will look for a numeric, string, or identifier token.
+        """
+        c = cursor
+
+        kinds = [Kind.numeric, Kind.string, Kind.identifier]
+
+        for kind in kinds:
+            token, c = Statement.find_token_by_kind(tokens, c, kind)
+            if token:
+                return Expression(token), c
+
+        return None, cursor
+
+    @staticmethod
+    def parse_expressions(
+        tokens: List[Token], cursor: int, delimiters: List[Token]
+    ) -> Tuple[List[Expression], int]:
+        expressions = []
+        c = cursor
+
+        while True:
+            if cursor >= len(tokens):
+                return expressions, cursor
+
+            current = tokens[c]
+            for delimiter in delimiters:
+                if delimiter == current:
+                    break
+
+            if len(expressions) > 0:
+                if not Statement.expect_token(
+                    tokens, cursor, Token(Symbol.comma.value, Kind.symbol)
+                ):
+                    raise ParsingException("Expected comma")
+                cursor += 1
+
+            # // Look for expression
+            exp, c = Statement.parse_expression(tokens, cursor)
+            if not exp:
+                raise ParsingException("Expected expression")
+
+            expressions.append(exp)
+
+        return expressions, c
+
 
 @dataclass
 class SelectItem:
@@ -89,6 +140,7 @@ class SelectStatement(Statement):
         $table-name
         """
         # Implement parse for select statement.
+        c = cursor
         if not Statement.expect_token(
             tokens, cursor, Token(Keyword.select.value, Kind.keyword)
         ):
@@ -97,23 +149,27 @@ class SelectStatement(Statement):
 
         # Okay we have a select statement.
         # TODO: Look for expression.
+        exps, c = Statement.parse_expressions(
+            tokens,
+            cursor,
+            [
+                Token(Keyword._from.value, Kind.keyword),
+                Token(Symbol.semicolon.value, Kind.symbol),
+            ],
+        )
+        if len(exps) == 0:
+            return None, cursor
 
-        cursor += 1
-        cursor += 1
-
-        if Statement.expect_token(
-            tokens, cursor, Token(Keyword._from.value, Kind.keyword)
-        ):
-            cursor += 1
-            from_identifier, cursor = Statement.find_token_by_kind(
+        if Statement.expect_token(tokens, c, Token(Keyword._from.value, Kind.keyword)):
+            from_identifier, c = Statement.find_token_by_kind(
                 tokens, cursor, Kind.identifier
             )
             if not from_identifier:
                 raise ParsingException("Expected FROM token")
 
-            return SelectStatement(_from=from_identifier), cursor
+            return SelectStatement(_from=from_identifier), c
 
-        return None, cursor
+        return None, c
 
 
 @dataclass
