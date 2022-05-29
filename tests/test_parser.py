@@ -24,7 +24,7 @@ class TestSelectParser(TestCase):
 
         stmt, cursor = SelectStatement.parse(tokens, cursor)
         assert isinstance(stmt, SelectStatement)
-        assert stmt._from == "my_table"
+        assert stmt._from.value == "my_table"
 
     def test_not_found(self):
         tokens = [

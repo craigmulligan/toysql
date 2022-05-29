@@ -12,11 +12,22 @@ class Op(Enum):
     NotEqual = auto()
 
 
-class Expression:
+class Comparer:
     # TODO we will need expressions without left right.
     a: Any
     b: Any
     op: Op
+
+
+@dataclass
+class Expression:
+    token: Token
+
+
+@dataclass
+class BinaryExpression:
+    token: Token
+    comparer: Comparer
 
 
 class Statement:
@@ -54,8 +65,15 @@ class Statement:
 
 
 @dataclass
+class SelectItem:
+    exp: Expression
+    asterisk: bool
+
+
+@dataclass
 class SelectStatement(Statement):
-    _from: Optional[Token] = None
+    _from: Token
+    items: Optional[List[SelectItem]] = None
     where: Optional[Expression] = None
     limit: Optional[Expression] = None
     offset: Optional[Expression] = None
@@ -93,7 +111,7 @@ class SelectStatement(Statement):
             if not from_identifier:
                 raise ParsingException("Expected FROM token")
 
-            return SelectStatement(from_identifier), cursor
+            return SelectStatement(_from=from_identifier), cursor
 
         return None, cursor
 
