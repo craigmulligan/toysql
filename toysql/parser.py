@@ -46,6 +46,20 @@ class Statement:
         return tokens[cursor] == token
 
     @staticmethod
+    def parse_token(
+        tokens: List[Token], cursor: int, token: Token
+    ) -> Tuple[Optional[Token], int]:
+        """
+        parse_token looks for a Token the same as passed in (ignoring Token
+        location)
+        """
+        if Statement.expect_token(tokens, cursor, token):
+            t = tokens[cursor]
+            return t, cursor + 1
+
+        return None, cursor
+
+    @staticmethod
     def find_token_by_kind(
         tokens: List[Token], cursor: int, kind: Kind
     ) -> Tuple[Optional[Token], int]:
@@ -89,24 +103,23 @@ class Statement:
         expressions = []
         c = cursor
 
-        while True:
-            if cursor >= len(tokens):
-                return expressions, cursor
-
+        while c <= len(tokens):
             current = tokens[c]
+
             for delimiter in delimiters:
                 if delimiter == current:
-                    break
+                    return expressions, c
 
             if len(expressions) > 0:
-                if not Statement.expect_token(
-                    tokens, cursor, Token(Symbol.comma.value, Kind.symbol)
-                ):
-                    raise ParsingException("Expected comma")
-                cursor += 1
+                token, c = Statement.parse_token(
+                    tokens, c, Token(Symbol.comma.value, Kind.symbol)
+                )
 
-            # // Look for expression
-            exp, c = Statement.parse_expression(tokens, cursor)
+                if not token:
+                    raise ParsingException("Expected comma")
+
+            exp, c = Statement.parse_expression(tokens, c)
+
             if not exp:
                 raise ParsingException("Expected expression")
 
@@ -148,10 +161,12 @@ class SelectStatement(Statement):
             return None, cursor
 
         # Okay we have a select statement.
-        # TODO: Look for expression.
+        # Now look for expressions
+        c += 1
+
         exps, c = Statement.parse_expressions(
             tokens,
-            cursor,
+            c,
             [
                 Token(Keyword._from.value, Kind.keyword),
                 Token(Symbol.semicolon.value, Kind.symbol),
@@ -160,7 +175,11 @@ class SelectStatement(Statement):
         if len(exps) == 0:
             return None, cursor
 
-        if Statement.expect_token(tokens, c, Token(Keyword._from.value, Kind.keyword)):
+        (
+            from_token,
+            cursor,
+        ) = Statement.parse_token(tokens, c, Token(Keyword._from.value, Kind.keyword))
+        if from_token:
             from_identifier, c = Statement.find_token_by_kind(
                 tokens, cursor, Kind.identifier
             )

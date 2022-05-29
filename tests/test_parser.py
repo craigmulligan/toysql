@@ -7,7 +7,7 @@ class TestSelectParser(TestCase):
     def test_found(self):
         tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
-            Token("*", Kind.symbol, Location(0, 0)),
+            Token("a", Kind.identifier, Location(0, 0)),
             Token("from", Kind.keyword, Location(0, 0)),
             Token("my_table", Kind.identifier, Location(0, 0)),
             Token("where", Kind.keyword, Location(0, 0)),
