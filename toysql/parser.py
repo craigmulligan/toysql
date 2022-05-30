@@ -137,7 +137,7 @@ class SelectItem:
 @dataclass
 class SelectStatement(Statement):
     _from: Token
-    items: Optional[List[SelectItem]] = None
+    items: List[SelectItem]
     where: Optional[Expression] = None
     limit: Optional[Expression] = None
     offset: Optional[Expression] = None
