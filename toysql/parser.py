@@ -1,33 +1,17 @@
-from typing import Tuple, Optional, Any, List
+from typing import Tuple, Optional, List, Union
 from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
 
-
-class Op(Enum):
-    GreaterThan = auto()
-    LessThan = auto()
-    Equal = auto()
-    NotEqual = auto()
-
-
-class Comparer:
-    # TODO we will need expressions without left right.
-    a: Any
-    b: Any
-    op: Op
-
-
-@dataclass
-class Expression:
-    token: Token
+Expression = Token
 
 
 @dataclass
 class BinaryExpression:
-    token: Token
-    comparer: Comparer
+    a: Expression
+    b: Expression
+    op: Token
 
 
 class Statement:
@@ -92,7 +76,7 @@ class Statement:
         for kind in kinds:
             token, c = Statement.find_token_by_kind(tokens, c, kind)
             if token:
-                return Expression(token), c
+                return token, c
 
         return None, cursor
 
@@ -121,7 +105,12 @@ class Statement:
             exp, c = Statement.parse_expression(tokens, c)
 
             if not exp:
-                raise ParsingException("Expected expression")
+                # Didn't find an identifier
+                # Let's look for a asterisk
+                exp, c = Statement.parse_token(tokens, c, Token("*", Kind.symbol))
+
+                if not exp:
+                    raise ParsingException("Expected expression")
 
             expressions.append(exp)
 
@@ -129,18 +118,9 @@ class Statement:
 
 
 @dataclass
-class SelectItem:
-    exp: Expression
-    asterisk: bool
-
-
-@dataclass
 class SelectStatement(Statement):
     _from: Token
-    items: List[SelectItem]
-    where: Optional[Expression] = None
-    limit: Optional[Expression] = None
-    offset: Optional[Expression] = None
+    items: List[Expression]
 
     @staticmethod
     def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
@@ -164,7 +144,7 @@ class SelectStatement(Statement):
         # Now look for expressions
         c += 1
 
-        exps, c = Statement.parse_expressions(
+        select_items, c = Statement.parse_expressions(
             tokens,
             c,
             [
@@ -172,7 +152,7 @@ class SelectStatement(Statement):
                 Token(Symbol.semicolon.value, Kind.symbol),
             ],
         )
-        if len(exps) == 0:
+        if len(select_items) == 0:
             return None, cursor
 
         (
@@ -186,7 +166,7 @@ class SelectStatement(Statement):
             if not from_identifier:
                 raise ParsingException("Expected FROM token")
 
-            return SelectStatement(_from=from_identifier), c
+            return SelectStatement(_from=from_identifier, items=select_items), c
 
         return None, c
 
