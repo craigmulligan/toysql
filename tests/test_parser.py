@@ -21,7 +21,7 @@ class TestSelectParser(TestCase):
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = TokenCursor(tokens)
-        stmt, cursor = SelectStatement.parse(cursor)
+        stmt = SelectStatement.parse(cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "*"
@@ -43,7 +43,7 @@ class TestSelectParser(TestCase):
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = TokenCursor(tokens)
-        stmt, cursor = SelectStatement.parse(cursor)
+        stmt = SelectStatement.parse(cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "a"
@@ -62,6 +62,8 @@ class TestSelectParser(TestCase):
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = TokenCursor(tokens)
-        stmt, cursor = SelectStatement.parse(cursor)
-        assert not stmt
+
+        with self.assertRaises(LookupError):
+            SelectStatement.parse(cursor)
+
         assert cursor.pointer == 0

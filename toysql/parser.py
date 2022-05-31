@@ -47,45 +47,19 @@ class TokenCursor:
     def is_complete(self):
         return self.pointer >= len(self.tokens)
 
-
-class Statement:
-    @staticmethod
-    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
-        ...
-
-    @staticmethod
-    def find_token_by_kind(
-        cursor: TokenCursor, kind: Kind
-    ) -> Tuple[Optional[Token], TokenCursor]:
-        """
-        Will find a token of
-        """
-        if cursor.is_complete():
-            return None, cursor
-
-        current = cursor.peek()
-        if current.kind == kind:
-            cursor.move()
-            return current, cursor
-
-        return None, cursor
-
-    @staticmethod
-    def parse_expressions(
-        cursor: TokenCursor, delimiters: List[Token]
-    ) -> Tuple[List[Expression], TokenCursor]:
+    def parse_expressions(self, delimiters: List[Token]) -> List[Expression]:
         expressions = []
 
-        while not cursor.is_complete():
+        while not self.is_complete():
             for delimiter in delimiters:
-                if delimiter == cursor.peek():
-                    return expressions, cursor
+                if delimiter == self.peek():
+                    return expressions
 
             if len(expressions) > 0:
-                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
+                if self.peek() != Token(Symbol.comma.value, Kind.symbol):
                     raise ParsingException("Expected comma")
 
-                cursor.move()
+                self.move()
 
             # Now look for one of identifier kind
             exp = None
@@ -93,7 +67,7 @@ class Statement:
 
             for kind in kinds:
                 try:
-                    exp = cursor.expect_kind(kind)
+                    exp = self.expect_kind(kind)
                 except LookupError:
                     pass
 
@@ -101,13 +75,19 @@ class Statement:
                 # Didn't find an identifier
                 # Let's look for a asterisk
                 try:
-                    exp = cursor.expect(Token("*", Kind.symbol))
+                    exp = self.expect(Token("*", Kind.symbol))
                 except:
                     raise ParsingException("Expected expression")
 
             expressions.append(exp)
 
-        return expressions, cursor
+        return expressions
+
+
+class Statement:
+    @staticmethod
+    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
+        ...
 
 
 @dataclass
@@ -116,7 +96,7 @@ class SelectStatement(Statement):
     items: List[Expression]
 
     @staticmethod
-    def parse(cursor: TokenCursor) -> Tuple[Optional["Statement"], TokenCursor]:
+    def parse(cursor: TokenCursor) -> "Statement":
         """
         Parsing SELECT statements is easy. We'll look for the following token pattern:
 
@@ -128,10 +108,9 @@ class SelectStatement(Statement):
         # Implement parse for select statement.
         if cursor.current() != Token(Keyword.select.value, Kind.keyword):
             # Not a select statement, let's bail.
-            return None, cursor
+            raise LookupError()
 
-        select_items, c = Statement.parse_expressions(
-            cursor,
+        select_items = cursor.parse_expressions(
             [
                 Token(Keyword._from.value, Kind.keyword),
                 Token(Symbol.semicolon.value, Kind.symbol),
@@ -139,7 +118,7 @@ class SelectStatement(Statement):
         )
 
         if len(select_items) == 0:
-            return None, cursor
+            raise LookupError()
 
         try:
             cursor.expect(Token(Keyword._from.value, Kind.keyword))
@@ -151,7 +130,7 @@ class SelectStatement(Statement):
         except LookupError:
             raise ParsingException("Expected table name")
 
-        return SelectStatement(_from=from_identifier, items=select_items), c
+        return SelectStatement(_from=from_identifier, items=select_items)
 
 
 @dataclass
@@ -167,10 +146,10 @@ class Parser:
 
         while not cursor.is_complete():
             for parser in parsers:
-                stmt, cursor = parser.parse(cursor)
-
-                if stmt:
+                try:
+                    stmt = parser.parse(cursor)
                     stmts.append(stmt)
-                    break
+                except LookupError:
+                    continue
 
         return stmts
