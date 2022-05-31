@@ -1,5 +1,5 @@
 from toysql.lexer import Token, Kind, Location
-from toysql.parser import SelectStatement
+from toysql.parser import SelectStatement, TokenCursor
 from unittest import TestCase
 
 
@@ -20,8 +20,8 @@ class TestSelectParser(TestCase):
             Token("123", Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
-        cursor = 0
-        stmt, cursor = SelectStatement.parse(tokens, cursor)
+        cursor = TokenCursor(tokens)
+        stmt, cursor = SelectStatement.parse(cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "*"
@@ -42,9 +42,8 @@ class TestSelectParser(TestCase):
             Token("123", Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
-        cursor = 0
-
-        stmt, cursor = SelectStatement.parse(tokens, cursor)
+        cursor = TokenCursor(tokens)
+        stmt, cursor = SelectStatement.parse(cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "a"
@@ -62,7 +61,7 @@ class TestSelectParser(TestCase):
             Token(")", Kind.symbol, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
-        cursor = 0
-        stmt, cursor = SelectStatement.parse(tokens, cursor)
+        cursor = TokenCursor(tokens)
+        stmt, cursor = SelectStatement.parse(cursor)
         assert not stmt
-        assert cursor == 0
+        assert cursor.pointer == 0
