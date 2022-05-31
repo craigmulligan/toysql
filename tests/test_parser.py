@@ -21,10 +21,10 @@ class TestSelectParser(TestCase):
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = 0
-
         stmt, cursor = SelectStatement.parse(tokens, cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
+        assert stmt.items[0].value == "*"
 
     def test_found(self):
         tokens = [
@@ -47,7 +47,7 @@ class TestSelectParser(TestCase):
         stmt, cursor = SelectStatement.parse(tokens, cursor)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
-        assert stmt.items[0].exp.token.value == "a"
+        assert stmt.items[0].value == "a"
 
     def test_not_found(self):
         tokens = [
