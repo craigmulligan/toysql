@@ -22,12 +22,30 @@ class TokenCursor:
         self.tokens = tokens
         self.pointer = 0
 
+    def current(self):
+        return self.tokens[self.pointer]
+
     def peek(self):
         return self.tokens[self.pointer + 1]
 
     def move(self):
         self.pointer += 1
         return self.tokens[self.pointer]
+
+    def expect(self, token):
+        if self.peek() == token:
+            return self.move()
+
+        raise LookupError("Unexpected token")
+
+    def expect_kind(self, kind: Kind):
+        if self.peek().kind == kind:
+            return self.move()
+
+        raise LookupError("Unexpected token")
+
+    def is_complete(self):
+        return self.pointer >= len(self.tokens)
 
 
 class Statement:
@@ -36,101 +54,60 @@ class Statement:
         ...
 
     @staticmethod
-    def expect_token(tokens: List[Token], cursor: int, token: Token) -> bool:
-        """
-        Returns True if the token at current cursor index is equal to the token provided.
-        """
-        if cursor >= len(tokens):
-            return False
-
-        return tokens[cursor] == token
-
-    @staticmethod
-    def parse_token(
-        tokens: List[Token], cursor: int, token: Token
-    ) -> Tuple[Optional[Token], int]:
-        """
-        parse_token looks for a Token the same as passed in (ignoring Token
-        location)
-        """
-        if Statement.expect_token(tokens, cursor, token):
-            t = tokens[cursor]
-            return t, cursor + 1
-
-        return None, cursor
-
-    @staticmethod
     def find_token_by_kind(
-        tokens: List[Token], cursor: int, kind: Kind
-    ) -> Tuple[Optional[Token], int]:
+        cursor: TokenCursor, kind: Kind
+    ) -> Tuple[Optional[Token], TokenCursor]:
         """
         Will find a token of
         """
-        c = cursor
-
-        if c >= len(tokens):
+        if cursor.is_complete():
             return None, cursor
 
-        current = tokens[c]
+        current = cursor.peek()
         if current.kind == kind:
-            return current, c + 1
-
-        return None, cursor
-
-    @staticmethod
-    def parse_expression(
-        tokens: List[Token], cursor: int
-    ) -> Tuple[Optional[Expression], int]:
-
-        """
-        The parseExpression helper (for now) will look for a numeric, string, or identifier token.
-        """
-        c = cursor
-
-        kinds = [Kind.numeric, Kind.string, Kind.identifier]
-
-        for kind in kinds:
-            token, c = Statement.find_token_by_kind(tokens, c, kind)
-            if token:
-                return token, c
+            cursor.move()
+            return current, cursor
 
         return None, cursor
 
     @staticmethod
     def parse_expressions(
-        tokens: List[Token], cursor: int, delimiters: List[Token]
-    ) -> Tuple[List[Expression], int]:
+        cursor: TokenCursor, delimiters: List[Token]
+    ) -> Tuple[List[Expression], TokenCursor]:
         expressions = []
-        c = cursor
 
-        while c <= len(tokens):
-            current = tokens[c]
-
+        while not cursor.is_complete():
             for delimiter in delimiters:
-                if delimiter == current:
-                    return expressions, c
+                if delimiter == cursor.peek():
+                    return expressions, cursor
 
             if len(expressions) > 0:
-                token, c = Statement.parse_token(
-                    tokens, c, Token(Symbol.comma.value, Kind.symbol)
-                )
-
-                if not token:
+                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
                     raise ParsingException("Expected comma")
 
-            exp, c = Statement.parse_expression(tokens, c)
+                cursor.move()
+
+            # Now look for one of identifier kind
+            exp = None
+            kinds = [Kind.numeric, Kind.string, Kind.identifier]
+
+            for kind in kinds:
+                try:
+                    exp = cursor.expect_kind(kind)
+                except LookupError:
+                    pass
 
             if not exp:
                 # Didn't find an identifier
                 # Let's look for a asterisk
-                exp, c = Statement.parse_token(tokens, c, Token("*", Kind.symbol))
-
-                if not exp:
+                try:
+                    exp = cursor.expect(Token("*", Kind.symbol))
+                except:
                     raise ParsingException("Expected expression")
 
             expressions.append(exp)
 
-        return expressions, c
+        return expressions, cursor
 
 
 @dataclass
@@ -139,7 +116,7 @@ class SelectStatement(Statement):
     items: List[Expression]
 
     @staticmethod
-    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
+    def parse(cursor: TokenCursor) -> Tuple[Optional["Statement"], TokenCursor]:
         """
         Parsing SELECT statements is easy. We'll look for the following token pattern:
 
@@ -149,42 +126,32 @@ class SelectStatement(Statement):
         $table-name
         """
         # Implement parse for select statement.
-        c = cursor
-        if not Statement.expect_token(
-            tokens, cursor, Token(Keyword.select.value, Kind.keyword)
-        ):
+        if cursor.current() != Token(Keyword.select.value, Kind.keyword):
             # Not a select statement, let's bail.
             return None, cursor
 
-        # Okay we have a select statement.
-        # Now look for expressions
-        c += 1
-
         select_items, c = Statement.parse_expressions(
-            tokens,
-            c,
+            cursor,
             [
                 Token(Keyword._from.value, Kind.keyword),
                 Token(Symbol.semicolon.value, Kind.symbol),
             ],
         )
+
         if len(select_items) == 0:
             return None, cursor
 
-        (
-            from_token,
-            cursor,
-        ) = Statement.parse_token(tokens, c, Token(Keyword._from.value, Kind.keyword))
-        if from_token:
-            from_identifier, c = Statement.find_token_by_kind(
-                tokens, cursor, Kind.identifier
-            )
-            if not from_identifier:
-                raise ParsingException("Expected FROM token")
+        try:
+            cursor.expect(Token(Keyword._from.value, Kind.keyword))
+        except LookupError:
+            raise ParsingException("Expected FROM token")
 
-            return SelectStatement(_from=from_identifier, items=select_items), c
+        try:
+            from_identifier = cursor.expect_kind(Kind.identifier)
+        except LookupError:
+            raise ParsingException("Expected table name")
 
-        return None, c
+        return SelectStatement(_from=from_identifier, items=select_items), c
 
 
 @dataclass
@@ -195,13 +162,12 @@ class InsertStatement(Statement):
 class Parser:
     def parse(self, tokens: List[Token]):
         stmts = []
-        cursor = 0
+        parsers = [SelectStatement]
+        cursor = TokenCursor(tokens)
 
-        parsers = [SelectStatement, InsertStatement]
-
-        while cursor < len(tokens):
+        while not cursor.is_complete():
             for parser in parsers:
-                stmt, cursor = parser.parse(tokens, cursor)
+                stmt, cursor = parser.parse(cursor)
 
                 if stmt:
                     stmts.append(stmt)
