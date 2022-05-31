@@ -14,6 +14,22 @@ class BinaryExpression:
     op: Token
 
 
+class TokenCursor:
+    tokens: List[Token]
+    pointer: int
+
+    def __init__(self, tokens) -> None:
+        self.tokens = tokens
+        self.pointer = 0
+
+    def peek(self):
+        return self.tokens[self.pointer + 1]
+
+    def move(self):
+        self.pointer += 1
+        return self.tokens[self.pointer]
+
+
 class Statement:
     @staticmethod
     def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
