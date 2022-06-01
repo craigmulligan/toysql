@@ -1,6 +1,28 @@
 from toysql.lexer import Token, Kind, Location
-from toysql.parser import SelectStatement, TokenCursor
+from toysql.parser import SelectStatement, InsertStatement, TokenCursor
 from unittest import TestCase
+
+
+class TestInsertParser(TestCase):
+    def test_found(self):
+        tokens = [
+            Token("insert", Kind.keyword, Location(0, 0)),
+            Token("into", Kind.keyword, Location(0, 0)),
+            Token("users", Kind.identifier, Location(0, 0)),
+            Token("values", Kind.keyword, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("1", Kind.numeric, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("Phil", Kind.string, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+        cursor = TokenCursor(tokens)
+        stmt = InsertStatement.parse(cursor)
+        assert isinstance(stmt, InsertStatement)
+        assert stmt.columns == []
+        assert stmt.values == [tokens[5], tokens[7]]
+        assert stmt.into == tokens[2]
 
 
 class TestSelectParser(TestCase):
