@@ -221,6 +221,106 @@ class InsertStatement(Statement):
         return InsertStatement(into=table_identifier, values=values, columns=columns)
 
 
+@dataclass
+class ColumnDefinition:
+    name: Token
+    datatype: Token
+    length: Optional[Token]
+
+
+@dataclass
+class CreateStatement(Statement):
+    table: Token
+    columns: List[ColumnDefinition]
+
+    @staticmethod
+    def parse_columns(cursor: TokenCursor) -> List[ColumnDefinition]:
+        if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
+            raise ParsingException(f"Expected ( found {cursor.peek().value}")
+
+        cursor.move()
+        columns = []
+        delimiter = Token(Symbol.right_paren.value, Kind.symbol)
+
+        while not cursor.is_complete():
+            if delimiter == cursor.peek():
+                return columns
+
+            if len(columns) > 0:
+                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
+                    raise ParsingException(f"Expected comma {cursor.peek().value}")
+
+                cursor.move()
+
+            # Now look for one of identifier kind
+            try:
+                name = cursor.expect_kind(Kind.identifier)
+            except LookupError:
+                raise ParsingException(
+                    f"Expected indentifier found {cursor.peek().value}"
+                )
+
+            try:
+                datatype = cursor.expect_kind(Kind.keyword)
+            except LookupError:
+                raise ParsingException(f"Expected keyword found {cursor.peek().value}")
+
+            length = None
+            # Let's look for length which is (<numeric)
+            if cursor.peek() == Token(Symbol.left_paren.value, Kind.symbol):
+                cursor.move()
+                try:
+                    length = cursor.expect_kind(Kind.numeric)
+                except LookupError:
+                    raise ParsingException(
+                        f"Expected numeric found {cursor.peek().value}"
+                    )
+
+                try:
+                    cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+                except LookupError:
+                    raise ParsingException(
+                        f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
+                    )
+
+            column = ColumnDefinition(name, datatype, length)
+            columns.append(column)
+
+        return columns
+
+    @staticmethod
+    def parse(cursor: TokenCursor) -> "Statement":
+        """
+        Parses a create statement in the format:
+            CREATE TABLE table_name (
+                column1 datatype,
+                column2 datatype,
+                column3 datatype,
+               ....
+            );
+        """
+        if cursor.current() != Token(Keyword.create.value, Kind.keyword):
+            # Not a select statement, let's bail.
+            raise LookupError()
+
+        # First look for a TABLE keyword.
+        try:
+            cursor.expect(Token(Keyword.table.value, Kind.keyword))
+        except LookupError:
+            raise ParsingException(
+                f"Expected table keyword found {cursor.peek().value}"
+            )
+
+        try:
+            table_identifier = cursor.expect_kind(Kind.identifier)
+        except LookupError:
+            raise ParsingException(f"Expected table name {cursor.peek().value}")
+
+        columns = CreateStatement.parse_columns(cursor)
+
+        return CreateStatement(table=table_identifier, columns=columns)
+
+
 class Parser:
     def parse(self, tokens: List[Token]):
         stmts = []
