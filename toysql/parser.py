@@ -324,7 +324,7 @@ class CreateStatement(Statement):
 class Parser:
     def parse(self, tokens: List[Token]):
         stmts = []
-        parsers = [SelectStatement]
+        parsers = [SelectStatement, CreateStatement, InsertStatement]
         cursor = TokenCursor(tokens)
 
         while not cursor.is_complete():
