@@ -1,6 +1,40 @@
 from toysql.lexer import Token, Kind, Location
-from toysql.parser import SelectStatement, InsertStatement, TokenCursor
+from toysql.parser import (
+    SelectStatement,
+    InsertStatement,
+    CreateStatement,
+    TokenCursor,
+    ColumnDefinition,
+)
 from unittest import TestCase
+
+
+class TestCreateParser(TestCase):
+    def test_found(self):
+        tokens = [
+            Token("create", Kind.keyword, Location(0, 0)),
+            Token("table", Kind.keyword, Location(0, 0)),
+            Token("users", Kind.identifier, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("id", Kind.identifier, Location(0, 0)),
+            Token("int", Kind.keyword, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("name", Kind.identifier, Location(0, 0)),
+            Token("text", Kind.keyword, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("255", Kind.numeric, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+        cursor = TokenCursor(tokens)
+        stmt = CreateStatement.parse(cursor)
+        assert isinstance(stmt, CreateStatement)
+        assert stmt.columns == [
+            ColumnDefinition(tokens[4], tokens[5], None),
+            ColumnDefinition(tokens[7], tokens[8], tokens[10]),
+        ]
+        assert stmt.table == tokens[2]
 
 
 class TestInsertParser(TestCase):
