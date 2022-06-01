@@ -1,5 +1,6 @@
 from toysql.lexer import Token, Kind, Location
 from toysql.parser import (
+    Parser,
     SelectStatement,
     InsertStatement,
     CreateStatement,
@@ -7,6 +8,62 @@ from toysql.parser import (
     ColumnDefinition,
 )
 from unittest import TestCase
+
+
+class TestParser(TestCase):
+    def test_found(self):
+        create = [
+            Token("create", Kind.keyword, Location(0, 0)),
+            Token("table", Kind.keyword, Location(0, 0)),
+            Token("users", Kind.identifier, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("id", Kind.identifier, Location(0, 0)),
+            Token("int", Kind.keyword, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("name", Kind.identifier, Location(0, 0)),
+            Token("text", Kind.keyword, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("255", Kind.numeric, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+        insert = [
+            Token("insert", Kind.keyword, Location(0, 0)),
+            Token("into", Kind.keyword, Location(0, 0)),
+            Token("users", Kind.identifier, Location(0, 0)),
+            Token("values", Kind.keyword, Location(0, 0)),
+            Token("(", Kind.symbol, Location(0, 0)),
+            Token("1", Kind.numeric, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("Phil", Kind.string, Location(0, 0)),
+            Token(")", Kind.symbol, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+        select = [
+            Token("select", Kind.keyword, Location(0, 0)),
+            Token("a", Kind.identifier, Location(0, 0)),
+            Token("from", Kind.keyword, Location(0, 0)),
+            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("where", Kind.keyword, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("hi", Kind.string, Location(0, 0)),
+            Token("and", Kind.keyword, Location(0, 0)),
+            Token("y", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("123", Kind.numeric, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+
+        tokens = create + insert + select
+        raise Exception(
+            "We aren't forwarding all the way through statements via the cursor"
+        )
+        stmts = Parser().parse(tokens)
+        assert isinstance(stmts[0], CreateStatement)
+        assert isinstance(stmts[0], InsertStatement)
+        assert isinstance(stmts[0], SelectStatement)
 
 
 class TestCreateParser(TestCase):

@@ -332,6 +332,7 @@ class Parser:
                 try:
                     stmt = parser.parse(cursor)
                     stmts.append(stmt)
+                    breakpoint()
                 except LookupError:
                     continue
 
