@@ -36,13 +36,13 @@ class TokenCursor:
         if self.peek() == token:
             return self.move()
 
-        raise LookupError("Unexpected token")
+        raise LookupError("Unexpected token kind")
 
     def expect_kind(self, kind: Kind):
         if self.peek().kind == kind:
             return self.move()
 
-        raise LookupError("Unexpected token")
+        raise LookupError("Unexpected token kind")
 
     def is_complete(self):
         return self.pointer >= len(self.tokens)
@@ -123,7 +123,7 @@ class SelectStatement(Statement):
         try:
             cursor.expect(Token(Keyword._from.value, Kind.keyword))
         except LookupError:
-            raise ParsingException("Expected FROM token")
+            raise ParsingException("Expected FROM keyword")
 
         try:
             from_identifier = cursor.expect_kind(Kind.identifier)
@@ -135,7 +135,90 @@ class SelectStatement(Statement):
 
 @dataclass
 class InsertStatement(Statement):
-    row: Tuple[int, str, str]
+    values: List[Token]
+    into: Token
+    columns: List[Token]
+
+    @staticmethod
+    def parse_values(cursor: TokenCursor) -> List[Token]:
+        """
+        Looks for a comman seperated list of values
+        """
+        if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
+            # Not a select statement, let's bail.
+            raise LookupError()
+
+        cursor.move()
+        tokens = []
+        delimiter = Token(Symbol.right_paren.value, Kind.symbol)
+
+        while not cursor.is_complete():
+            if delimiter == cursor.peek():
+                return tokens
+
+            if len(tokens) > 0:
+                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
+                    raise ParsingException("Expected comma")
+
+                cursor.move()
+
+            # Now look for one of identifier kind
+            token = None
+            kinds = [Kind.numeric, Kind.string, Kind.identifier]
+
+            for kind in kinds:
+                try:
+                    token = cursor.expect_kind(kind)
+                except LookupError:
+                    pass
+
+            if token is None:
+                raise LookupError()
+
+            tokens.append(token)
+
+        return tokens
+
+    @staticmethod
+    def parse(cursor: TokenCursor) -> "Statement":
+        """
+        Parses a insert statement in the format:
+
+            INSERT INTO table_name (column1, column2, column3, ...)
+            VALUES (value1, value2, value3, ...);
+
+        or
+
+            INSERT INTO table_name
+            VALUES (value1, value2, value3, ...);
+        """
+        if cursor.current() != Token(Keyword.insert.value, Kind.keyword):
+            # Not a select statement, let's bail.
+            raise LookupError()
+
+        try:
+            cursor.expect(Token(Keyword.into.value, Kind.keyword))
+        except LookupError:
+            raise ParsingException("Expected into keyword")
+
+        try:
+            table_identifier = cursor.expect_kind(Kind.identifier)
+        except LookupError:
+            raise ParsingException("Expected table name")
+
+        columns = []
+        try:
+            cursor.expect(Token(Keyword.values.value, Kind.keyword))
+        except LookupError:
+            # if next token is not VALUES it might be declaring columns
+            try:
+                columns = InsertStatement.parse_values(cursor)
+            except LookupError:
+                raise ParsingException("Expected values keyword")
+
+        values = InsertStatement.parse_values(cursor)
+
+        return InsertStatement(into=table_identifier, values=values, columns=columns)
 
 
 class Parser:
