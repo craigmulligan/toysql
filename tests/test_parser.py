@@ -11,7 +11,7 @@ from unittest import TestCase
 
 
 class TestParser(TestCase):
-    def test_found(self):
+    def test_found_x(self):
         create = [
             Token("create", Kind.keyword, Location(0, 0)),
             Token("table", Kind.keyword, Location(0, 0)),
@@ -45,25 +45,14 @@ class TestParser(TestCase):
             Token("a", Kind.identifier, Location(0, 0)),
             Token("from", Kind.keyword, Location(0, 0)),
             Token("my_table", Kind.identifier, Location(0, 0)),
-            Token("where", Kind.keyword, Location(0, 0)),
-            Token("x", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token("hi", Kind.string, Location(0, 0)),
-            Token("and", Kind.keyword, Location(0, 0)),
-            Token("y", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token("123", Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
 
         tokens = create + insert + select
-        raise Exception(
-            "We aren't forwarding all the way through statements via the cursor"
-        )
         stmts = Parser().parse(tokens)
         assert isinstance(stmts[0], CreateStatement)
-        assert isinstance(stmts[0], InsertStatement)
-        assert isinstance(stmts[0], SelectStatement)
+        assert isinstance(stmts[1], InsertStatement)
+        assert isinstance(stmts[2], SelectStatement)
 
 
 class TestCreateParser(TestCase):

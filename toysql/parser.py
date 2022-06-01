@@ -30,6 +30,11 @@ class TokenCursor:
 
     def move(self):
         self.pointer += 1
+
+        if self.pointer == len(self.tokens):
+            # If pointer is on the last token return None
+            raise StopIteration
+
         return self.tokens[self.pointer]
 
     def expect(self, token):
@@ -130,6 +135,13 @@ class SelectStatement(Statement):
         except LookupError:
             raise ParsingException("Expected table name")
 
+        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+            try:
+                cursor.move()
+                cursor.move()
+            except StopIteration:
+                pass
+
         return SelectStatement(_from=from_identifier, items=select_items)
 
 
@@ -142,7 +154,7 @@ class InsertStatement(Statement):
     @staticmethod
     def parse_values(cursor: TokenCursor) -> List[Token]:
         """
-        Looks for a comman seperated list of values
+        Looks for a comma seperated list of values
         """
         if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
             # Not a select statement, let's bail.
@@ -154,7 +166,7 @@ class InsertStatement(Statement):
 
         while not cursor.is_complete():
             if delimiter == cursor.peek():
-                return tokens
+                break
 
             if len(tokens) > 0:
                 if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
@@ -176,6 +188,13 @@ class InsertStatement(Statement):
                 raise LookupError()
 
             tokens.append(token)
+
+        try:
+            cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+        except LookupError:
+            raise ParsingException(
+                f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
+            )
 
         return tokens
 
@@ -218,6 +237,13 @@ class InsertStatement(Statement):
 
         values = InsertStatement.parse_values(cursor)
 
+        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+            try:
+                cursor.move()
+                cursor.move()
+            except StopIteration:
+                pass
+
         return InsertStatement(into=table_identifier, values=values, columns=columns)
 
 
@@ -244,7 +270,7 @@ class CreateStatement(Statement):
 
         while not cursor.is_complete():
             if delimiter == cursor.peek():
-                return columns
+                break
 
             if len(columns) > 0:
                 if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
@@ -286,6 +312,13 @@ class CreateStatement(Statement):
             column = ColumnDefinition(name, datatype, length)
             columns.append(column)
 
+        try:
+            cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+        except LookupError:
+            raise ParsingException(
+                f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
+            )
+
         return columns
 
     @staticmethod
@@ -318,6 +351,13 @@ class CreateStatement(Statement):
 
         columns = CreateStatement.parse_columns(cursor)
 
+        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+            try:
+                cursor.move()
+                cursor.move()
+            except StopIteration:
+                pass
+
         return CreateStatement(table=table_identifier, columns=columns)
 
 
@@ -328,12 +368,14 @@ class Parser:
         cursor = TokenCursor(tokens)
 
         while not cursor.is_complete():
+            pointer = cursor.pointer
             for parser in parsers:
                 try:
                     stmt = parser.parse(cursor)
                     stmts.append(stmt)
-                    breakpoint()
                 except LookupError:
                     continue
 
+            if pointer == cursor.pointer:
+                raise Exception("Something went wrong: cursor hasnt moved.")
         return stmts
