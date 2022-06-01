@@ -19,6 +19,7 @@ def repl(callback: Callable):
     repl is responsible for interacting with the
     db.
     """
+    # TODO add keyboard interupt.
     text = input("Enter your query:\n")
 
     try:
@@ -31,4 +32,6 @@ def repl(callback: Callable):
 
 if __name__ == "__main__":
     print("Welcome to toysql.")
+    # We pass itself as the callback
+    # so that it infinitely continues
     repl(repl)
