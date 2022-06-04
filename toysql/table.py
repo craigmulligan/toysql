@@ -16,7 +16,7 @@ class Table:
     def __init__(self, pager: Pager):
         self.pager = pager
         self.root_page_num = 0
-        self.schema: List[Any] = [
+        self.schema: List[datatypes.DataType] = [
             datatypes.Integer(),
             datatypes.String(USERNAME_SIZE),
             datatypes.String(EMAIL_SIZE),
