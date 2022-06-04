@@ -1,4 +1,4 @@
-from typing import Tuple, List, Protocol, Optional
+from typing import Tuple, List, Protocol, Optional, Union
 from dataclasses import dataclass
 from enum import Enum, auto
 from toysql.exceptions import LexingException
@@ -63,11 +63,13 @@ class Cursor:
 
 @dataclass
 class Token:
-    value: str
+    value: Union[str, int]
     kind: Kind
     loc: Optional[Location] = None
 
-    def __eq__(self, other: "Token"):  # type: ignore[override]
+    def __eq__(self, other: Optional["Token"]):  # type: ignore[override]
+        if other is None:
+            return False
         return self.value == other.value and self.kind == other.kind
 
 
@@ -180,7 +182,7 @@ class NumericLexer(Lexer):
 
         return (
             Token(
-                source[ic.pointer : cursor.pointer],
+                int(source[ic.pointer : cursor.pointer]),
                 Kind.numeric,
                 cursor.loc,
             ),
@@ -378,7 +380,7 @@ class StatementLexer:
             tokens.extend(new_tokens)
             hint = ""
             if len(tokens) > 0:
-                hint = "after " + tokens[-1].value
+                hint = "after " + str(tokens[-1].value)
 
             LexingException(
                 f"Unable to lex token {hint}, at {cursor.loc.line}:{cursor.loc.col}"

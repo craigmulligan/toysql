@@ -3,6 +3,7 @@ from typing import List, Any
 from toysql.pager import Pager
 from toysql.constants import *
 from toysql.tree import BPlusTree
+from toysql.lexer import Token
 import toysql.datatypes as datatypes
 
 Row = Any
@@ -24,7 +25,8 @@ class Table:
         self.primary_key = self.schema[0]
         self.tree = BPlusTree(self)
 
-    def insert(self, row: Row) -> Row:
+    def insert(self, tokens: List[Token]) -> Row:
+        row = [token.value for token in tokens]
         self.tree.insert(row[0], row)
         return row
 

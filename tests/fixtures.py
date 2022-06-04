@@ -1,5 +1,6 @@
 from unittest import TestCase
 from toysql.vm import VM
+from toysql.table import Table
 import tempfile
 
 
@@ -12,7 +13,7 @@ class Fixtures(TestCase):
 
         self.vm = VM(self.db_file_path)
         self.pager = self.vm.pager
-        self.table = self.vm.table
+        self.table = Table(self.pager)
 
         return super().setUp()
 
