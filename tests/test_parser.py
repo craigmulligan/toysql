@@ -23,7 +23,7 @@ class TestParser(TestCase):
             Token("name", Kind.identifier, Location(0, 0)),
             Token("text", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("255", Kind.numeric, Location(0, 0)),
+            Token(255, Kind.numeric, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
@@ -34,7 +34,7 @@ class TestParser(TestCase):
             Token("users", Kind.identifier, Location(0, 0)),
             Token("values", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("1", Kind.numeric, Location(0, 0)),
+            Token(1, Kind.numeric, Location(0, 0)),
             Token(",", Kind.symbol, Location(0, 0)),
             Token("Phil", Kind.string, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
@@ -54,6 +54,18 @@ class TestParser(TestCase):
         assert isinstance(stmts[1], InsertStatement)
         assert isinstance(stmts[2], SelectStatement)
 
+    def test_found_not_terminator(self):
+        tokens = [
+            Token("select", Kind.keyword, Location(0, 0)),
+            Token("*", Kind.identifier, Location(0, 0)),
+            Token("from", Kind.keyword, Location(0, 0)),
+            Token("my_table", Kind.identifier, Location(0, 0)),
+        ]
+        [stmt] = Parser().parse(tokens)
+        assert isinstance(stmt, SelectStatement)
+        assert stmt._from.value == "my_table"
+        assert stmt.items[0].value == "*"
+
 
 class TestCreateParser(TestCase):
     def test_found(self):
@@ -68,7 +80,7 @@ class TestCreateParser(TestCase):
             Token("name", Kind.identifier, Location(0, 0)),
             Token("text", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("255", Kind.numeric, Location(0, 0)),
+            Token(255, Kind.numeric, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
@@ -91,7 +103,7 @@ class TestInsertParser(TestCase):
             Token("users", Kind.identifier, Location(0, 0)),
             Token("values", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("1", Kind.numeric, Location(0, 0)),
+            Token(1, Kind.numeric, Location(0, 0)),
             Token(",", Kind.symbol, Location(0, 0)),
             Token("Phil", Kind.string, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
@@ -119,7 +131,7 @@ class TestSelectParser(TestCase):
             Token("and", Kind.keyword, Location(0, 0)),
             Token("y", Kind.identifier, Location(0, 0)),
             Token("=", Kind.symbol, Location(0, 0)),
-            Token("123", Kind.numeric, Location(0, 0)),
+            Token(123, Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = TokenCursor(tokens)
@@ -141,7 +153,7 @@ class TestSelectParser(TestCase):
             Token("and", Kind.keyword, Location(0, 0)),
             Token("y", Kind.identifier, Location(0, 0)),
             Token("=", Kind.symbol, Location(0, 0)),
-            Token("123", Kind.numeric, Location(0, 0)),
+            Token(123, Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
         cursor = TokenCursor(tokens)
@@ -157,7 +169,7 @@ class TestSelectParser(TestCase):
             Token("users", Kind.identifier, Location(0, 0)),
             Token("values", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("1", Kind.numeric, Location(0, 0)),
+            Token(1, Kind.numeric, Location(0, 0)),
             Token(",", Kind.symbol, Location(0, 0)),
             Token("Phil", Kind.string, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),

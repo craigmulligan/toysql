@@ -34,8 +34,8 @@ class TestNumericLexer(TestCase):
     def test_lex(self):
         lexer = NumericLexer()
         cases = [
-            ("123", "123", 3),
-            ("123 ", "123", 3),
+            ("123", 123, 3),
+            ("123 ", 123, 3),
             (" 123", None, 0),
             ("select", None, 0),
         ]
@@ -135,7 +135,7 @@ class TestStatementLexer(TestCase):
             Token("and", Kind.keyword, Location(0, 0)),
             Token("y", Kind.identifier, Location(0, 0)),
             Token("=", Kind.symbol, Location(0, 0)),
-            Token("123", Kind.numeric, Location(0, 0)),
+            Token(123, Kind.numeric, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
 
@@ -174,7 +174,7 @@ class TestStatementLexer(TestCase):
             Token("users", Kind.identifier, Location(0, 0)),
             Token("values", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token("1", Kind.numeric, Location(0, 0)),
+            Token(1, Kind.numeric, Location(0, 0)),
             Token(",", Kind.symbol, Location(0, 0)),
             Token("Phil", Kind.string, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),

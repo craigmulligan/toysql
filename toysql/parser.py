@@ -26,7 +26,10 @@ class TokenCursor:
         return self.tokens[self.pointer]
 
     def peek(self):
-        return self.tokens[self.pointer + 1]
+        try:
+            return self.tokens[self.pointer + 1]
+        except IndexError:
+            return None
 
     def move(self):
         self.pointer += 1
@@ -44,7 +47,8 @@ class TokenCursor:
         raise LookupError("Unexpected token kind")
 
     def expect_kind(self, kind: Kind):
-        if self.peek().kind == kind:
+        next_token = self.peek()
+        if next_token and next_token.kind == kind:
             return self.move()
 
         raise LookupError("Unexpected token kind")
@@ -138,6 +142,11 @@ class SelectStatement(Statement):
         if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
             try:
                 cursor.move()
+                cursor.move()
+            except StopIteration:
+                pass
+        else:
+            try:
                 cursor.move()
             except StopIteration:
                 pass
@@ -373,9 +382,10 @@ class Parser:
                 try:
                     stmt = parser.parse(cursor)
                     stmts.append(stmt)
+                    break
                 except LookupError:
                     continue
 
             if pointer == cursor.pointer:
-                raise Exception("Something went wrong: cursor hasnt moved.")
+                break
         return stmts
