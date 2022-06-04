@@ -25,7 +25,7 @@ class TestTree(Fixtures):
         assert result == rows
 
         # Ensure only 1 page is used.
-        assert len(vm.get_table("users").pager) == 1
+        assert len(vm.pager) == 1
 
     # def test_vm_one_page_out_of_order(self):
     #     vm: VM = self.vm
