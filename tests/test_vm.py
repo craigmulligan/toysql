@@ -27,6 +27,9 @@ class TestTree(Fixtures):
         # Ensure only 1 page is used.
         assert len(vm.pager) == 1
 
+        table = vm.get_table(table_name)
+        raise Exception("Assert that table has correct schema from CREATE")
+
     # def test_vm_one_page_out_of_order(self):
     #     vm: VM = self.vm
     #     row = (1, "fred", "fred@flintstone.com")
