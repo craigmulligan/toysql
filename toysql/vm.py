@@ -4,6 +4,8 @@ from toysql.table import Table
 from toysql.pager import Pager
 from toysql.lexer import StatementLexer
 from toysql.parser import Parser
+from toysql.lexer import Keyword
+import toysql.datatypes as datatypes
 
 
 class VM:
@@ -14,8 +16,8 @@ class VM:
 
         self.tables = {}
 
-    def create_table(self, table_name) -> Table:
-        table = Table(self.pager)
+    def create_table(self, table_name, columns) -> Table:
+        table = Table(self.pager, columns)
         self.tables[table_name] = table
         return table
 
@@ -45,5 +47,11 @@ class VM:
         if isinstance(statement, CreateStatement):
             table_name = statement.table.value
 
-            # TODO handle column definition
-            return self.create_table(table_name)
+            columns = {}
+            for col in statement.columns:
+                length = col.length.value if col.length else None
+                columns[col.name.value] = datatypes.factory(
+                    Keyword(col.datatype.value), length
+                )
+
+            return self.create_table(table_name, columns)

@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import List, Any, Dict
 
 from toysql.pager import Pager
 from toysql.constants import *
@@ -14,14 +14,11 @@ class Table:
     # currently supports a single, hard-coded table
 
     # Table should take a pager
-    def __init__(self, pager: Pager):
+    def __init__(self, pager: Pager, columns: Dict[str, datatypes.DataType]):
         self.pager = pager
         self.root_page_num = 0
-        self.schema: List[datatypes.DataType] = [
-            datatypes.Integer(),
-            datatypes.String(USERNAME_SIZE),
-            datatypes.String(EMAIL_SIZE),
-        ]
+        self.schema = list(columns.values())
+        self.columns = columns
         self.primary_key = self.schema[0]
         self.tree = BPlusTree(self)
 

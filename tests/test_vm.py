@@ -2,6 +2,7 @@ from toysql.parser import InsertStatement, SelectStatement
 from toysql.vm import VM
 from toysql.exceptions import DuplicateKeyException
 from tests.fixtures import Fixtures
+import toysql.datatypes as datatypes
 
 
 class TestTree(Fixtures):
@@ -28,7 +29,8 @@ class TestTree(Fixtures):
         assert len(vm.pager) == 1
 
         table = vm.get_table(table_name)
-        raise Exception("Assert that table has correct schema from CREATE")
+        column_names = [*table.columns]
+        assert column_names == ["id", "name", "email"]
 
     # def test_vm_one_page_out_of_order(self):
     #     vm: VM = self.vm

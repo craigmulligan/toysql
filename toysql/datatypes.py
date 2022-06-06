@@ -1,4 +1,5 @@
 from typing import Literal, TypeVar
+from toysql.lexer import Keyword
 
 T = TypeVar("T")
 
@@ -67,3 +68,16 @@ class String(DataType[str]):
 
     def deserialize(_self, value: bytearray) -> str:
         return value.decode("utf-8").rstrip("\x00")
+
+
+def factory(name: Keyword, length) -> DataType:
+    if name == Keyword.text:
+        return String(length)
+
+    if name == Keyword.int:
+        return Integer()
+
+    if name == Keyword.bool:
+        return Boolean()
+
+    raise Exception(f"DataType of {name.value} does not exist")
