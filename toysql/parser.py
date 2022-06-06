@@ -1,6 +1,5 @@
-from typing import Tuple, Optional, List, Union
+from typing import Tuple, Optional, List
 from dataclasses import dataclass
-from enum import Enum, auto
 from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
 
@@ -201,9 +200,7 @@ class InsertStatement(Statement):
         try:
             cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
         except LookupError:
-            raise ParsingException(
-                f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
-            )
+            raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
         return tokens
 
@@ -271,7 +268,7 @@ class CreateStatement(Statement):
     @staticmethod
     def parse_columns(cursor: TokenCursor) -> List[ColumnDefinition]:
         if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
-            raise ParsingException(f"Expected ( found {cursor.peek().value}")
+            raise ParsingException(f"Expected {Symbol.left_paren.value} found")
 
         cursor.move()
         columns = []
@@ -283,7 +280,7 @@ class CreateStatement(Statement):
 
             if len(columns) > 0:
                 if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
-                    raise ParsingException(f"Expected comma {cursor.peek().value}")
+                    raise ParsingException(f"Expected {Symbol.comma.value}")
 
                 cursor.move()
 
@@ -291,14 +288,12 @@ class CreateStatement(Statement):
             try:
                 name = cursor.expect_kind(Kind.identifier)
             except LookupError:
-                raise ParsingException(
-                    f"Expected indentifier found {cursor.peek().value}"
-                )
+                raise ParsingException(f"Expected {Kind.identifier.value}")
 
             try:
                 datatype = cursor.expect_kind(Kind.keyword)
             except LookupError:
-                raise ParsingException(f"Expected keyword found {cursor.peek().value}")
+                raise ParsingException(f"Expected {Kind.keyword.value}")
 
             length = None
             # Let's look for length which is (<numeric)
@@ -307,16 +302,12 @@ class CreateStatement(Statement):
                 try:
                     length = cursor.expect_kind(Kind.numeric)
                 except LookupError:
-                    raise ParsingException(
-                        f"Expected numeric found {cursor.peek().value}"
-                    )
+                    raise ParsingException(f"Expected {Kind.numeric.value} found")
 
                 try:
                     cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
                 except LookupError:
-                    raise ParsingException(
-                        f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
-                    )
+                    raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
             column = ColumnDefinition(name, datatype, length)
             columns.append(column)
@@ -324,9 +315,7 @@ class CreateStatement(Statement):
         try:
             cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
         except LookupError:
-            raise ParsingException(
-                f"Expected {Symbol.right_paren.value} found {cursor.peek().value}"
-            )
+            raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
         return columns
 
@@ -349,14 +338,12 @@ class CreateStatement(Statement):
         try:
             cursor.expect(Token(Keyword.table.value, Kind.keyword))
         except LookupError:
-            raise ParsingException(
-                f"Expected table keyword found {cursor.peek().value}"
-            )
+            raise ParsingException(f"Expected table keyword")
 
         try:
             table_identifier = cursor.expect_kind(Kind.identifier)
         except LookupError:
-            raise ParsingException(f"Expected table name {cursor.peek().value}")
+            raise ParsingException(f"Expected table name")
 
         columns = CreateStatement.parse_columns(cursor)
 
