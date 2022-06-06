@@ -16,6 +16,7 @@ class Keyword(Enum):
     into = "into"
     values = "values"
     int = "int"
+    bool = "bool"
     text = "text"
     null = "null"
     true = "true"
