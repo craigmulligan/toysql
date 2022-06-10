@@ -34,6 +34,11 @@ class DataType(DataTypeContainer[T]):
         return content
 
     def serialize(self, _value: T) -> bytearray:
+        """
+        Note we could use pickle here. But we want control
+        over the serialization. For instance pickle.dumps(True)
+        will use 4 bytes but we only need one for a bool.
+        """
         ...
 
     def deserialize(self, _value: bytearray) -> T:
