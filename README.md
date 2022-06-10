@@ -18,6 +18,7 @@ This is a dependency free, minimal clone of sql database written in python. I've
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
 - https://github.com/NicolasLM/bplustree
 - https://notes.eatonphil.com/database-basics.html
+- https://jvns.ca/blog/2014/09/27/how-does-sqlite-work-part-1-pages/
 
 ## Current Features
 
