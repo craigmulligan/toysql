@@ -15,8 +15,18 @@ class VM:
         self.parser = Parser()
         self.tables = {}
 
+    def create_schema_table(self) -> Table:
+            # TODO we need to load the schema (cols) from disk. 
+            # sqlite uses txt.
+            columns = {
+                "id": datatypes.Integer(),
+                "root_page_num": datatypes.Integer(),
+                "name": datatypes.String(500),
+            }
+            return Table(self.pager, columns, 0)
+
     def create_table(self, table_name, columns) -> Table:
-        table = Table(self.pager, columns)
+        table = Table(self.pager, columns, 0)
         self.tables[table_name] = table
         return table
 

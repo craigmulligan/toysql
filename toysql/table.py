@@ -11,9 +11,9 @@ Row = Any
 
 
 class Table:
-    def __init__(self, pager: Pager, columns: Dict[str, datatypes.DataType]):
+    def __init__(self, pager: Pager, columns: Dict[str, datatypes.DataType], root_page_num: int):
         self.pager = pager
-        self.root_page_num = 0
+        self.root_page_num = root_page_num 
         self.schema = list(columns.values())
         self.columns = columns
         self.primary_key = self.schema[0]
