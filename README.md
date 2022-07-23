@@ -43,3 +43,9 @@ What I've learnt so far:
 - How tricky tree algorithms and recursions are to debug, day to day I'm working with much simpler data structures that are easier to reason about.
 - Lexers pretty simple - the most complicated part is managing the cursor. I'm sure I could rewrite it much more simply.
 - python unittest framework is pretty feature complete. The only thing I miss from pytest is the pretty output & parameterized tests.
+
+
+# NEXT: 
+
+- Store table schemas on disk and load + initialize them from disk.
+- https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
