@@ -1,4 +1,4 @@
-from typing import Union, List, Any
+from typing import List, Any
 from toysql.parser import SelectStatement, InsertStatement, CreateStatement, Statement
 from toysql.table import Table
 from toysql.pager import Pager
@@ -21,7 +21,7 @@ class VM:
         return table
 
     def get_table(self, table_name) -> Table:
-        # TODO we should instead read from the "tables" internal table.
+        # TODO we should instead read from internal "tables" table.
         return self.tables[table_name]
 
     def execute(self, input: str) -> List[Any]:
