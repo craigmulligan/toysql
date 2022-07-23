@@ -15,6 +15,7 @@ class Fixtures(TestCase):
 
         self.vm = VM(self.db_file_path)
         self.pager = self.vm.pager
+        # TODO shouldn't set the pager columns.
         self.table = Table(
             self.pager,
             {
