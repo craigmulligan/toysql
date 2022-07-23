@@ -6,14 +6,11 @@ from toysql.tree import BPlusTree
 from toysql.lexer import Token
 import toysql.datatypes as datatypes
 
+# TODO type rows properly
 Row = Any
 
 
 class Table:
-    # support two operations: inserting a row and printing all rows
-    # currently supports a single, hard-coded table
-
-    # Table should take a pager
     def __init__(self, pager: Pager, columns: Dict[str, datatypes.DataType]):
         self.pager = pager
         self.root_page_num = 0
