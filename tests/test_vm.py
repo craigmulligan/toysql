@@ -8,8 +8,8 @@ import toysql.datatypes as datatypes
 class TestTree(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-        self.table_name = "users"
         self.vm: VM
+        self.table_name = "users"
         self.vm.execute(
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
@@ -102,3 +102,17 @@ class TestTree(Fixtures):
 
         assert result == expected_rows
         assert self.vm.tables[self.table_name].tree.show() == self.vm2.tables[self.table_name].tree.show()
+
+
+    def test_multiple_tables(self):
+        table_name_2 = "birds"  
+        row = [1, "tit"]
+        self.vm.execute(
+            f"CREATE TABLE {table_name_2} (id INT, name TEXT(32));"
+        )
+        self.vm.execute(
+            f"INSERT INTO {table_name_2} VALUES ({row[0]}, '{row[1]}');"
+        )
+
+        [result] = self.vm.execute(f"SELECT * FROM {table_name_2}")
+        assert result == [row]
