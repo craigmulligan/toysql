@@ -13,7 +13,6 @@ class VM:
         self.pager = Pager(file_path)
         self.lexer = StatementLexer()
         self.parser = Parser()
-
         self.tables = {}
 
     def create_table(self, table_name, columns) -> Table:
@@ -22,6 +21,7 @@ class VM:
         return table
 
     def get_table(self, table_name) -> Table:
+        # TODO we should instead read from the "tables" internal table.
         return self.tables[table_name]
 
     def execute(self, input: str) -> List[Any]:
