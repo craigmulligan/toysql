@@ -7,6 +7,7 @@ from toysql.parser import Parser
 from toysql.lexer import Keyword
 import toysql.datatypes as datatypes
 
+SCHEME_TABLE_NAME = "schema"
 
 # TODO this should be called the executor.
 class VM:
@@ -17,17 +18,29 @@ class VM:
         self.tables = {}
 
     def create_schema_table(self) -> Table:
-            # TODO we need to load the schema (cols) from disk.
-            # sqlite uses txt.
-            columns = {
-                "id": datatypes.Integer(),
-                "root_page_num": datatypes.Integer(),
-                "name": datatypes.String(500),
-            }
-            return Table(self.pager, columns, 0)
+        # TODO we need to load the schema (cols) from disk.
+        # sqlite uses txt.
+        # TODO: The string datatypes should be variable lengths. 
+        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name TEXT(12), email TEXT(500));"
+        tokens = self.lexer.lex(input)
+        [statement]= self.parser.parse(tokens)
+        return self.create_table(statement, 0)
 
-    def create_table(self, table_name, columns) -> Table:
-        table = Table(self.pager, columns, 0)
+    def get_schema_table(self) -> Table:
+        return self.get_table(SCHEME_TABLE_NAME) 
+
+    def create_table(self, statement: CreateStatement, root_page_number=None) -> Table:
+        if root_page_number is None: 
+            root_page_number = len(self.pager)
+
+        table_name = statement.table.value
+        columns = {}
+        for col in statement.columns:
+            length = col.length.value if col.length else None
+            columns[col.name.value] = datatypes.factory(
+                Keyword(col.datatype.value), length
+            )
+        table = Table(self.pager, columns, root_page_number)
         self.tables[table_name] = table
         return table
 
@@ -56,14 +69,4 @@ class VM:
             return self.get_table(table_name).insert(statement.values)
 
         if isinstance(statement, CreateStatement):
-            breakpoint()
-            table_name = statement.table.value
-
-            columns = {}
-            for col in statement.columns:
-                length = col.length.value if col.length else None
-                columns[col.name.value] = datatypes.factory(
-                    Keyword(col.datatype.value), length
-                )
-
-            return self.create_table(table_name, columns)
+            return self.create_table(statement)
