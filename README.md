@@ -51,5 +51,6 @@ What I've learnt so far:
 
 # NEXT: 
 
-- Store table schemas on disk and load + initialize them from disk.
+- Store table schemas on disk and load + initialize them from disk. (Need variable length strings)
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
+- auto-incrementing IDs.
