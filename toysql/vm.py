@@ -8,6 +8,7 @@ from toysql.lexer import Keyword
 import toysql.datatypes as datatypes
 
 
+# TODO this should be called the executor.
 class VM:
     def __init__(self, file_path):
         self.pager = Pager(file_path)
@@ -55,6 +56,7 @@ class VM:
             return self.get_table(table_name).insert(statement.values)
 
         if isinstance(statement, CreateStatement):
+            breakpoint()
             table_name = statement.table.value
 
             columns = {}
