@@ -14,7 +14,8 @@ SCHEME_TABLE_NAME = "schema"
 # TODO this should be called the executor.
 
 # dynamic from disk.
-# 1. read schema table from disk
+# 1. Always create schema table load vm.schema_table.
+# 1. read schema table from disk.
 # 2. find table by name and get root_page_number.
 # 3. perform function on table. 
  
@@ -24,6 +25,7 @@ class VM:
         self.lexer = StatementLexer()
         self.parser = Parser()
         self.tables = {}
+        self.schema_table = self.create_schema_table()
 
     def create_schema_table(self) -> Table:
         # TODO we need to load the schema (cols) from disk.
@@ -33,9 +35,9 @@ class VM:
             return self.tables[SCHEME_TABLE_NAME]
 
         input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name TEXT(12), sql_text TEXT(500), root_page_number INT);"
-
         [statement] = self.parse_input(input)
-        return self.load_table(statement, input, 0)
+
+        return self.create_table(statement, input, 0)
 
     def get_schema_table(self) -> Optional[Table]:
         return self.get_table(SCHEME_TABLE_NAME)
@@ -46,9 +48,8 @@ class VM:
 
         table_name = statement.table.value
         key = randint(0, 100) # TODO this is a hack - should be auto-incremented.
-        self.execute(f"INSERT INTO {SCHEME_TABLE_NAME} VALUES ({key}, '{table_name}', '{input}', {root_page_number});")
-
         table = self.load_table(statement, input, root_page_number)
+        self.execute(f"INSERT INTO {SCHEME_TABLE_NAME} VALUES ({key}, '{table_name}', '{input}', {root_page_number});")
         return table
 
 
@@ -88,7 +89,6 @@ class VM:
         return results
 
     def execute_statement(self, statement: Statement, input: str):
-        self.create_schema_table()
 
         if isinstance(statement, SelectStatement):
             table_name = statement._from.value
