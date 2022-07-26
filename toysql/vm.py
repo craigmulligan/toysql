@@ -46,6 +46,8 @@ class VM:
 
     def get_table(self, table_name) -> Table:
         # TODO we should instead read from internal "tables" table.
+        results = self.execute(f"select * from {SCHEME_TABLE_NAME}")
+        print(results)
         return self.tables[table_name]
 
     def execute(self, input: str) -> List[Any]:
