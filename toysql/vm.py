@@ -16,7 +16,7 @@ class VM:
         self.tables = {}
 
     def create_schema_table(self) -> Table:
-            # TODO we need to load the schema (cols) from disk. 
+            # TODO we need to load the schema (cols) from disk.
             # sqlite uses txt.
             columns = {
                 "id": datatypes.Integer(),

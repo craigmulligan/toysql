@@ -15,16 +15,6 @@ class Fixtures(TestCase):
 
         self.vm = VM(self.db_file_path)
         self.pager = self.vm.pager
-        # TODO shouldn't set the pager columns.
-        self.table = Table(
-            self.pager,
-            {
-                "id": datatypes.Integer(),
-                "name": datatypes.String(USERNAME_SIZE),
-                "email": datatypes.String(EMAIL_SIZE),
-            },
-        )
-
         return super().setUp()
 
     def cleanUp(self) -> None:

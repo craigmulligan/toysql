@@ -4,6 +4,15 @@ from tests.fixtures import Fixtures
 
 
 class TestTree(Fixtures):
+    def setUp(self) -> None:
+        super().setUp()
+        table_name = "users"
+        self.vm.execute(
+            f"CREATE TABLE {table_name} (id INT, name TEXT(32), email TEXT(255));"
+        )
+        self.table = self.vm.get_table(table_name) 
+
+
     def test_node(self):
         table = self.table
         total = 50

@@ -4,12 +4,8 @@ I work with sql databases everyday but don't have deep understanding of how they
 
 This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work.
 
-## Questions:
 
-* What format is data stored on disk?
-* Joins implementation?
-* Indexes implementation?
-* How do you handle deleted pages (freenode list)?
+
 
 ## Inspiration:
 
@@ -22,7 +18,7 @@ This is a dependency free, minimal clone of sql database written in python. I've
 
 ## Current Features
 
-1. Fixed table schema. (int, str, str)
+1. Fixed table schema. (int, str, str) # TODO remove.
 2. Can insert rows - always indexed by primary key (int)
 3. Can select all rows
 
@@ -44,6 +40,14 @@ What I've learnt so far:
 - Lexers pretty simple - the most complicated part is managing the cursor. I'm sure I could rewrite it much more simply.
 - python unittest framework is pretty feature complete. The only thing I miss from pytest is the pretty output & parameterized tests.
 
+## Questions:
+
+* What format is data stored on disk?
+* Joins implementation?
+* Indexes implementation?
+* How do you handle deleted pages (freenode list)?
+* How does a WAL work?
+* How do you store text with variable lengths?
 
 # NEXT: 
 
