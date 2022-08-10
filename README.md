@@ -19,6 +19,7 @@ This is a dependency free, minimal clone of sql database written in python. I've
 - https://jvns.ca/blog/2014/10/02/how-does-sqlite-work-part-2-btrees/
 - https://books.google.com.mx/books?id=9Z6IQQnX1JEC&lpg=PP1&pg=PA185#v=onepage&q&f=false
 - https://fly.io/blog/sqlite-internals-btree/
+- https://fly.io/blog/sqlite-internals-rollback-journal/
 
 ## Current Features
 
