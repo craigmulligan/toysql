@@ -19,58 +19,24 @@ class Integer():
     Uses variable integer encoding
 
     see: https://fly.io/blog/sqlite-internals-btree/#the-header-variable-length-integers
-    Logic copied from: https://github.com/fmoo/python-varint/blob/master/varint.py
+    Python stdlib has handy varint methods.
     """
     def __init__(self, value) -> None:
         self.value = value
-        self.content_length = self.get_content_length(value)
         self.byte_order = "little"
-
-    def get_content_length(self, value):
-        if value == 0:
-            return 0 
-
-        if value == 1:
-            return 0
-
-        if value < 255:
-            # Value is an 8-bit twos-complement integer.
-            return 1
-
-        raise NotImplemented("Number greater than 255 used for type Integer")
 
     def to_bytes(self):
         """
         Pack `value` into varint bytes
         """
-
-        buf = b''
-        number = self.value
-        if self.content_length == 0:
-            return buf
-
-        while True:
-            towrite = number & 0x7f
-            number >>= 7
-            if number:
-                buf += bytes((towrite | 0x80, ))
-            else:
-                buf += bytes((towrite, ))
-                break
-
-        return buf
+        if self.value == 0 or self.value == 1:
+            return b"" 
+        return self.value.to_bytes(self.value.bit_length()//8 + 1, 'little', signed=False)
 
     @staticmethod
     def from_bytes(value):
         """Read a varint from bytes"""
-        shift = 0
-        result = 0
-        for i in value:
-            result |= (i & 0x7f) << shift
-            shift += 7
-            if not (i & 0x80):
-                break
-
+        result = int.from_bytes(value, 'little', signed=False)
         return Integer(result)
 
 

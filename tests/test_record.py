@@ -22,18 +22,25 @@ class TestInteger(TestCase):
         for c in [0, 1]:
             d = Integer(c)
 
-            assert d.content_length == 0
             assert d.value == c
             # Should return empty
-            assert d.to_bytes() == b"" 
-
+            assert len(d.to_bytes()) == 0
+            assert d.to_bytes() == b""
 
     def test_varint(self):
         value = 201
         d = Integer(value)
 
-        assert d.content_length == 1 
         assert d.value == value 
         raw_bytes = d.to_bytes()
-        assert raw_bytes == b'\xc9\x01'
         assert Integer.from_bytes(raw_bytes).value == value 
+        assert len(d.to_bytes()) == 2
+
+    def test_bigvarint(self):
+        value = 2147483647300 
+        d = Integer(value)
+
+        assert d.value == value 
+        raw_bytes = d.to_bytes()
+        assert Integer.from_bytes(raw_bytes).value == value 
+        assert len(d.to_bytes()) == 6
