@@ -23,30 +23,64 @@ class Integer():
     """
     def __init__(self, value) -> None:
         self.value = value
-        self.byte_order = "little"
+
+    def content_length(self):
+        return len(self.to_bytes())
 
     def to_bytes(self):
         """
         Pack `value` into varint bytes
         """
-        if self.value == 0 or self.value == 1:
-            return b"" 
-        return self.value.to_bytes(self.value.bit_length()//8 + 1, 'little', signed=False)
+        return self.value.to_bytes(self.value.bit_length()//8 + 1, "little", signed=True)
 
     @staticmethod
     def from_bytes(value):
         """Read a varint from bytes"""
-        result = int.from_bytes(value, 'little', signed=False)
+        result = int.from_bytes(value, "little", signed=True)
         return Integer(result)
 
 
 class Record:
     def __init__(self, payload):
-        pass 
+        self.values = payload
+
+    def header(self):
+        header_data = b""
+        for type, value in self.values: 
+            if type == DataType.INTEGER:
+                content_length = Integer(value).content_length()
+                header_data += Integer(content_length).to_bytes()
+
+        header_length = len(header_data)
+        return Integer(header_length).to_bytes() + header_data
+
+    def body(self):
+        body_data = b""
+        for type, value in self.values: 
+            if type == DataType.INTEGER:
+                body_data += Integer(value).to_bytes()
+
+        return body_data
+
 
     def to_bytes(self):
-        pass
+        return self.header() + self.body()
 
     @staticmethod
-    def from_bytes(): 
-        pass
+    def from_bytes(data): 
+        header_size = Integer.from_bytes(data[0:1]).value
+        header_data = data[1:header_size + 1]
+        body_data = data[header_size + 1:]
+        serial_types = []
+        values = []
+
+        for i in range(len(header_data)):
+            b = header_data[i:i+1]
+            serial_types.append(Integer.from_bytes(b).value)
+
+        for type_length in serial_types:
+            chunk = body_data[:type_length]
+            values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
+            body_data =  body_data[type_length:]
+
+        return Record(values)
