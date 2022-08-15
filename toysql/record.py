@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from typing import cast, Literal
 
 class DataType(Enum):
     """
@@ -20,6 +21,9 @@ class Null():
     """
     def __init__(self) -> None:
         self.value = None 
+
+    def serial_type(self):
+        return 0 
 
     def content_length(self):
         """
@@ -46,6 +50,10 @@ class Text():
     def __init__(self, value) -> None:
         self.value = value
 
+    def serial_type(self):
+        # anything greater than 12 and odd is type TEXT.
+        return self.content_length()
+
     def content_length(self):
         """
         Copied the sqllite variable length formula (n*2) + 13
@@ -66,6 +74,7 @@ class Text():
         return Text(result)
 
 
+IntSizes = Literal[1,2,3,4,6,8]
 
 class Integer():
     """
@@ -77,8 +86,13 @@ class Integer():
     def __init__(self, value) -> None:
         self.value = value
 
-    def content_length(self):
-        return len(self.to_bytes())
+    def content_length(self) -> IntSizes:
+        return cast(IntSizes, len(self.to_bytes()))
+
+    def serial_type(self):
+        serial_type_map = dict([(1, 1), (2, 2), (3,3), (4,4), (6, 5), (8, 6)])
+        content_length = self.content_length()
+        return serial_type_map[content_length]
 
     def to_bytes(self):
         """
@@ -101,15 +115,15 @@ class Record:
         header_data = b""
         for type, value in self.values: 
             if type == DataType.INTEGER:
-                content_length = Integer(value).content_length()
+                content_length = Integer(value).serial_type()
                 header_data += Integer(content_length).to_bytes()
 
             if type == DataType.TEXT:
-                content_length = Text(value).content_length()
+                content_length = Text(value).serial_type()
                 header_data += Integer(content_length).to_bytes()
 
             if type == DataType.NULL:
-                content_length = Null().content_length()
+                content_length = Null().serial_type()
                 header_data += Integer(content_length).to_bytes()
 
         header_length = len(header_data)
