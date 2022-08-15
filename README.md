@@ -4,9 +4,6 @@ I work with sql databases everyday but don't have deep understanding of how they
 
 This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work.
 
-
-
-
 ## Inspiration:
 
 - https://cstack.github.io/db_tutorial/
@@ -56,6 +53,6 @@ What I've learnt so far:
 
 # NEXT: 
 
-- Store table schemas on disk and load + initialize them from disk. (Need variable length strings)
+- Replace current Datatypes code with record.py. 
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
-- auto-incrementing IDs.
+- auto-incrementing IDs

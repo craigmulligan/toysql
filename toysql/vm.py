@@ -89,7 +89,6 @@ class VM:
         return results
 
     def execute_statement(self, statement: Statement, input: str):
-
         if isinstance(statement, SelectStatement):
             table_name = statement._from.value
             return self.get_table(table_name).select()
