@@ -14,12 +14,40 @@ class DataType(Enum):
     BLOB = auto()
 
 
+class Text():
+    """
+    Variable length text encoded to bytes as UTF-8. 
+    """
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def content_length(self):
+        """
+        Copied the sqllite variable length formula (n*2) + 13
+        """
+        n = len(self.to_bytes())
+        return (n*2) + 13
+
+    def to_bytes(self):
+        """
+        Pack `value` into varint bytes
+        """
+        return bytes(self.value, "utf-8")
+
+    @staticmethod
+    def from_bytes(value):
+        """Read a varint from bytes"""
+        result = value.decode("utf-8")
+        return Text(result)
+
+
+
 class Integer():
     """
     Uses variable integer encoding
 
-    see: https://fly.io/blog/sqlite-internals-btree/#the-header-variable-length-integers
-    Python stdlib has handy varint methods.
+    Python stdlib does most of the hard work here. But you can read this post on how variable integer incoding works here:
+    https://fly.io/blog/sqlite-internals-btree/#the-header-variable-length-integers
     """
     def __init__(self, value) -> None:
         self.value = value
@@ -51,6 +79,10 @@ class Record:
                 content_length = Integer(value).content_length()
                 header_data += Integer(content_length).to_bytes()
 
+            if type == DataType.TEXT:
+                content_length = Text(value).content_length()
+                header_data += Integer(content_length).to_bytes()
+
         header_length = len(header_data)
         return Integer(header_length).to_bytes() + header_data
 
@@ -59,6 +91,9 @@ class Record:
         for type, value in self.values: 
             if type == DataType.INTEGER:
                 body_data += Integer(value).to_bytes()
+
+            if type == DataType.TEXT:
+                body_data += Text(value).to_bytes()
 
         return body_data
 
@@ -78,9 +113,15 @@ class Record:
             b = header_data[i:i+1]
             serial_types.append(Integer.from_bytes(b).value)
 
-        for type_length in serial_types:
-            chunk = body_data[:type_length]
-            values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
-            body_data =  body_data[type_length:]
+        for serial_type in serial_types:
+            chunk = body_data[:serial_type]
+            
+            if 0 < serial_type < 7:
+                values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
+
+            if serial_type >= 13 and (serial_type % 2) != 0:
+                values.append([DataType.TEXT, Text.from_bytes(chunk).value])
+
+            body_data =  body_data[serial_type:]
 
         return Record(values)
