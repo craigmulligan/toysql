@@ -82,6 +82,8 @@ class Integer():
 
     Python stdlib does most of the hard work here. But you can read this post on how variable integer incoding works here:
     https://fly.io/blog/sqlite-internals-btree/#the-header-variable-length-integers
+
+    TODO: Should handle big-endian IEEE 754-2008 64-bit floating point number.
     """
     def __init__(self, value) -> None:
         self.value = value
@@ -111,41 +113,29 @@ class Record:
     def __init__(self, payload):
         self.values = payload
 
-    def header(self):
+    def to_bytes(self):
         header_data = b""
+        body_data = b""
+
         for type, value in self.values: 
             if type == DataType.INTEGER:
                 content_length = Integer(value).serial_type()
                 header_data += Integer(content_length).to_bytes()
+                body_data += Integer(value).to_bytes()
 
             if type == DataType.TEXT:
                 content_length = Text(value).serial_type()
                 header_data += Integer(content_length).to_bytes()
+                body_data += Text(value).to_bytes()
 
             if type == DataType.NULL:
                 content_length = Null().serial_type()
                 header_data += Integer(content_length).to_bytes()
-
-        header_length = len(header_data)
-        return Integer(header_length).to_bytes() + header_data
-
-    def body(self):
-        body_data = b""
-        for type, value in self.values: 
-            if type == DataType.INTEGER:
-                body_data += Integer(value).to_bytes()
-
-            if type == DataType.TEXT:
-                body_data += Text(value).to_bytes()
-
-            if type == DataType.NULL:
                 body_data += Null().to_bytes()
 
-        return body_data
+        header_length = len(header_data)
 
-
-    def to_bytes(self):
-        return self.header() + self.body()
+        return Integer(header_length).to_bytes() + header_data + body_data
 
     @staticmethod
     def from_bytes(data): 
