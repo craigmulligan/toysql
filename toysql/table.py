@@ -5,13 +5,14 @@ from toysql.constants import *
 from toysql.tree import BPlusTree
 from toysql.lexer import Token
 import toysql.datatypes as datatypes
+from toysql.record import Record, DataType
 
 # TODO type rows properly
 Row = Any
 
 
 class Table:
-    def __init__(self, pager: Pager, columns: Dict[str, datatypes.DataType], root_page_num: int):
+    def __init__(self, pager: Pager, columns: Dict[str, DataType], root_page_num: int):
         self.pager = pager
         self.root_page_num = root_page_num 
         self.schema = list(columns.values())
@@ -32,29 +33,9 @@ class Table:
 
         return result
 
-    def row_length(self):
-        """
-        Returns the length of the row as stored bytes
-        """
-        l = 0
-        for s in self.schema:
-            l += len(s)
+    def serialize_row(self, record: Record) -> bytearray:
+        raw_bytes = record.to_bytes()
+        return bytearray(raw_bytes)
 
-        return l
-
-    def serialize_row(self, row: Row) -> bytearray:
-        cell = bytearray()
-        for i, datatype in enumerate(self.schema):
-            cell += datatype.serialize(row[i])
-
-        return cell
-
-    def deserialize_row(self, cell: bytearray) -> Row:
-        row = []
-        index = 0
-        for datatype in self.schema:
-            value = datatype.deserialize(cell[index : datatype.length])
-            row.append(value)
-            index += datatype.length
-
-        return tuple(row)
+    def deserialize_row(self, cell: bytearray) -> Record:
+        return Record.from_bytes(bytes(cell))
