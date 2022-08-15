@@ -1,4 +1,4 @@
-from toysql.record import Record, DataType, Integer, Text
+from toysql.record import Record, DataType, Integer, Text, Null
 from unittest import TestCase
 
 class TestRecord(TestCase):
@@ -6,12 +6,13 @@ class TestRecord(TestCase):
         payload = [
             [DataType.INTEGER, 3],
             [DataType.INTEGER, 124],
-            [DataType.TEXT, "Craig"]
+            [DataType.TEXT, "Craig"],
+            [DataType.NULL, None]
         ]
         raw_bytes = Record(payload).to_bytes()
         assert raw_bytes
         record = Record.from_bytes(raw_bytes)
-        assert record.values == payload 
+        assert record.values == payload
 
 
 class TestInteger(TestCase):
@@ -32,3 +33,13 @@ class TestText(TestCase):
         raw_bytes = s.to_bytes()
         assert Text.from_bytes(raw_bytes).value == value 
         assert s.content_length() == 35 
+
+
+class TestNull(TestCase):
+    def test_null(self):
+        s = Null()
+        assert s.value is None 
+        raw_bytes = s.to_bytes()
+        assert len(raw_bytes) == 0
+        assert Null.from_bytes().value is None 
+        assert s.content_length() == 0 

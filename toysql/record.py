@@ -14,6 +14,31 @@ class DataType(Enum):
     BLOB = auto()
 
 
+class Null():
+    """
+    Variable length text encoded to bytes as UTF-8. 
+    """
+    def __init__(self) -> None:
+        self.value = None 
+
+    def content_length(self):
+        """
+        Null is always stored as empty. 
+        """
+        return 0 
+
+    def to_bytes(self):
+        """
+        Pack `value` into varint bytes
+        """
+        return b"" 
+
+    @staticmethod
+    def from_bytes():
+        """Read a varint from bytes"""
+        return Null()
+
+
 class Text():
     """
     Variable length text encoded to bytes as UTF-8. 
@@ -83,6 +108,10 @@ class Record:
                 content_length = Text(value).content_length()
                 header_data += Integer(content_length).to_bytes()
 
+            if type == DataType.NULL:
+                content_length = Null().content_length()
+                header_data += Integer(content_length).to_bytes()
+
         header_length = len(header_data)
         return Integer(header_length).to_bytes() + header_data
 
@@ -94,6 +123,9 @@ class Record:
 
             if type == DataType.TEXT:
                 body_data += Text(value).to_bytes()
+
+            if type == DataType.NULL:
+                body_data += Null().to_bytes()
 
         return body_data
 
@@ -115,7 +147,10 @@ class Record:
 
         for serial_type in serial_types:
             chunk = body_data[:serial_type]
-            
+
+            if serial_type == 0:
+                values.append([DataType.NULL, Null.from_bytes().value])
+
             if 0 < serial_type < 7:
                 values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
 
