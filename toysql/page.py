@@ -1,4 +1,5 @@
 from enum import Enum
+from toysql.record import Record, Integer
 
 class PageType(Enum): 
     leaf = 0
@@ -15,27 +16,39 @@ class FixedInteger():
         return int.from_bytes(data, "big")
 
 
-class Cell():
+class LeafPageCell():
     """
     A cell is a wrapper for the Record format 
     which adds some metadata depending on the surrounding 
+
+    A cell should be sortable by key. (PK)
     """
-    def __init__(self, record) -> None:
-        self.record = record
+    def __init__(self,  payload:Record) -> None:
+        self.record = payload
 
     def to_bytes(self):
         """
         pass
         """
+        data = b""
+        record_bytes = self.record.to_bytes()
+        record_size = Integer(len(record_bytes)).to_bytes()
+        row_id = Integer(self.record.row_id).to_bytes()
+
+        data += row_id
+        data += record_size
+        data += record_bytes
+
         return b""
 
     @staticmethod
-    def from_bytes(data) -> "Cell":
+    def from_bytes(data) -> "LeafPageCell":
         """
         First read the cell header.
         Then read the record.
         """
-        return Cell(123)
+        record = Record.from_bytes(data)
+        return LeafPageCell(record)
 
 
 class Page:
@@ -59,8 +72,19 @@ class Page:
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
         header_data = b"" 
+        cell_offsets = b""
         cell_data = b""
         data = bytearray(b"".ljust(4096, b"\0"))
+
+        for cell in self.cells:
+            cell_bytes = cell.to_bytes()
+            # Add offset for each cell from the cell Content area.
+            offset = FixedInteger.to_bytes(len(cell_bytes), 2)
+            cell_offsets += offset
+            cell_data += cell_bytes
+
+        self.cell_content_offset = len(cell_data)
+        data[:-self.cell_content_offset] = cell_data
 
         # Header type.
         header_data += FixedInteger.to_bytes(1, self.page_type.value)
@@ -72,13 +96,8 @@ class Page:
         header_data += FixedInteger.to_bytes(2, self.cell_content_offset)
         # Right most cell pointer (Not implemented)
         header_data += FixedInteger.to_bytes(4, 0)
+        data[:len(header_data)] = header_data
 
-        for cell in self.cells:
-            cell_data += cell.to_bytes()
-
-        data[:len(header_data)] = header_data 
-        data[:-len(cell_data)] = cell_data
-        
         return bytes(data)
         
     @staticmethod
@@ -100,7 +119,7 @@ class Page:
 
         # Now read cells
         for i, offset in enumerate(cell_offsets):
-            cell_content = bytes(data[offset:cell_offsets[i + 1]])
+            cell_content = bytes(data[offset + cell_content_offset:cell_offsets[i + 1]])
             cells.append(Cell.from_bytes(cell_content))
         
         return Page(page_number, page_type, cells)
