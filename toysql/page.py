@@ -48,9 +48,9 @@ class LeafPageCell():
         Then read the record.
         """
         record_size = Integer.from_bytes(data)
-        data = data[record_size.offset + 1:]
+        data = data[record_size.content_length():]
         row_id = Integer.from_bytes(data)
-        data = data[row_id.offset + 1:]
+        data = data[row_id.content_length():]
         record = Record.from_bytes(data)
 
         return LeafPageCell(record)
