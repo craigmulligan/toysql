@@ -35,8 +35,8 @@ class LeafPageCell():
         record_size = Integer(len(record_bytes)).to_bytes()
         row_id = Integer(self.record.row_id).to_bytes()
 
-        data += row_id
         data += record_size
+        data += row_id
         data += record_bytes
 
         return b""
@@ -47,7 +47,12 @@ class LeafPageCell():
         First read the cell header.
         Then read the record.
         """
+        record_size = Integer.from_bytes(data)
+        data = data[record_size.offset + 1:]
+        row_id = Integer.from_bytes(data)
+        data = data[row_id.offset + 1:]
         record = Record.from_bytes(data)
+
         return LeafPageCell(record)
 
 
@@ -59,9 +64,9 @@ class Page:
     """
     def __init__(self, page_number, page_type, cells) -> None:
         self.page_number = page_number
-        self.page_type = PageType 
+        self.page_type = PageType(page_type) 
         self.cell_content_offset = 65536
-        self.cells = []
+        self.cells = cells or []
         
     def add_cell(self):
         """Write the cell to the beginning of the cell_content area + update the cell_content_offset"""
@@ -120,6 +125,6 @@ class Page:
         # Now read cells
         for i, offset in enumerate(cell_offsets):
             cell_content = bytes(data[offset + cell_content_offset:cell_offsets[i + 1]])
-            cells.append(Cell.from_bytes(cell_content))
+            cells.append(LeafPageCell.from_bytes(cell_content))
         
         return Page(page_number, page_type, cells)
