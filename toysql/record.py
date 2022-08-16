@@ -109,26 +109,27 @@ class Integer():
             towrite = number & 0x7f
             number >>= 7
             if number:
-                buf += bytes((towrite | 0x80))
+                buf += bytes((towrite | 0x80,))
             else:
-                buf += bytes((towrite))
+                buf += bytes((towrite,))
                 break
         return buf
-
+        
     @staticmethod
     def from_bytes(value: bytes):
         """Read a varint from bytes"""
         # result = int.from_bytes(value, "little", signed=True)
         shift = 0
         result = 0
+        i = 0
 
-        for i in value:
-            result |= (i & 0x7f) << shift
+        for i, b in enumerate(value, 1):
+            result |= (b & 0x7f) << shift
             shift += 7
-            if not (i & 0x80):
+            if not (b & 0x80):
                 break
 
-        return Integer(result, offset=shift)
+        return Integer(result, offset=i)
 
 
 class Record:
