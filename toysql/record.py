@@ -123,7 +123,7 @@ class Integer():
         result = 0
         i = 0
 
-        for i, b in enumerate(value, 1):
+        for i, b in enumerate(value):
             result |= (b & 0x7f) << shift
             shift += 7
             if not (b & 0x80):
