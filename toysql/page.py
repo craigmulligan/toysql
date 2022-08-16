@@ -9,7 +9,7 @@ class PageType(Enum):
 class FixedInteger():
     @staticmethod
     def to_bytes(value, length):
-        return int.to_bytes(length, value, "big") 
+        return int.to_bytes(length, value, "big")
 
     @staticmethod
     def from_bytes(data):
@@ -39,7 +39,7 @@ class LeafPageCell():
         data += row_id
         data += record_bytes
 
-        return b""
+        return data 
 
     @staticmethod
     def from_bytes(data) -> "LeafPageCell":
@@ -51,6 +51,7 @@ class LeafPageCell():
         data = data[record_size.content_length():]
         row_id = Integer.from_bytes(data)
         data = data[row_id.content_length():]
+        #data = data[:record_size]
         record = Record.from_bytes(data)
 
         return LeafPageCell(record)
@@ -58,9 +59,7 @@ class LeafPageCell():
 
 class Page:
     """
-
     header is 8 bytes in size for leaf pages and 12 bytes for interior pages (RN we just make em all 12 bytes)
-
     """
     def __init__(self, page_number, page_type, cells) -> None:
         self.page_number = page_number
@@ -112,8 +111,8 @@ class Page:
         page_type = PageType(FixedInteger.from_bytes(data[1]))
         number_of_cells = FixedInteger.from_bytes(data[3:5])
         cell_content_offset = FixedInteger.from_bytes(data[5:7])
-
         cells = []
+
         # Cell pointers
         cell_offsets = []
         cell_offset_index = 12
