@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from typing import cast, Literal
+from io import BytesIO
 
 class DataType(Enum):
     """
@@ -85,8 +86,9 @@ class Integer():
 
     TODO: Should handle big-endian IEEE 754-2008 64-bit floating point number.
     """
-    def __init__(self, value) -> None:
+    def __init__(self, value, offset=0) -> None:
         self.value = value
+        self.offset = offset
 
     def content_length(self) -> IntSizes:
         return cast(IntSizes, len(self.to_bytes()))
@@ -100,18 +102,39 @@ class Integer():
         """
         Pack `value` into varint bytes
         """
-        return self.value.to_bytes(self.value.bit_length()//8 + 1, "little", signed=True)
+        #return self.value.to_bytes(self.value.bit_length()//8 + 1, "little", signed=True)
+        number = self.value
+        buf = b''
+        while True:
+            towrite = number & 0x7f
+            number >>= 7
+            if number:
+                buf += bytes((towrite | 0x80))
+            else:
+                buf += bytes((towrite))
+                break
+        return buf
 
     @staticmethod
-    def from_bytes(value):
+    def from_bytes(value: bytes):
         """Read a varint from bytes"""
-        result = int.from_bytes(value, "little", signed=True)
-        return Integer(result)
+        # result = int.from_bytes(value, "little", signed=True)
+        shift = 0
+        result = 0
+
+        for i in value:
+            result |= (i & 0x7f) << shift
+            shift += 7
+            if not (i & 0x80):
+                break
+
+        return Integer(result, offset=shift)
 
 
 class Record:
     def __init__(self, payload):
         self.values = payload
+        self.row_id = payload[0][0]
 
     def to_bytes(self):
         header_data = b""
@@ -139,6 +162,7 @@ class Record:
 
     @staticmethod
     def from_bytes(data): 
+        # TODO this is a varint so it's not always necesscarily one byte. 
         header_size = Integer.from_bytes(data[0:1]).value
         header_data = data[1:header_size + 1]
         body_data = data[header_size + 1:]
