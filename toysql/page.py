@@ -57,6 +57,49 @@ class LeafPageCell():
         return LeafPageCell(record)
 
 
+class InteriorPageCell():
+    """
+    A cell is a wrapper for the Record format 
+    which adds some metadata depending on the surrounding 
+
+    This is an Interior B+Tree page.
+
+    Contains:
+    A 4-byte big-endian page number which is the left child pointer
+    A varint which is the integer key
+    """
+    def __init__(self, row_id, left_child_page_number, page_numbers) -> None:
+        # row_id is the id where the children are split on either side like a binary tree.
+        self.row_id = row_id 
+        self.left_child_page_number = left_child_page_number
+
+    def to_bytes(self):
+        data = b""
+        record_bytes = self.record.to_bytes()
+        record_size = Integer(len(record_bytes)).to_bytes()
+        row_id = Integer(self.record.row_id).to_bytes()
+
+        data += record_size
+        data += row_id
+        data += record_bytes
+
+        return data 
+
+    @staticmethod
+    def from_bytes(data) -> "InteriorPageCell":
+        """
+        First read the cell header.
+        """
+        record_size = Integer.from_bytes(data)
+        data = data[record_size.content_length():]
+        row_id = Integer.from_bytes(data)
+        data = data[row_id.content_length():]
+        #data = data[:record_size]
+        record = Record.from_bytes(data)
+
+        return InteriorPageCell(record)
+
+
 class Page:
     """
     header is 8 bytes in size for leaf pages and 12 bytes for interior pages (RN we just make em all 12 bytes)

@@ -1,5 +1,5 @@
 from toysql.record import Record, DataType
-from toysql.page import LeafPageCell
+from toysql.page import LeafPageCell, InteriorPageCell
 from unittest import TestCase
 
 class TestCell(TestCase):
@@ -27,3 +27,7 @@ class TestCell(TestCase):
         raw_bytes = cell.to_bytes() + b"x05"
         new_cell = LeafPageCell.from_bytes(raw_bytes)
         assert new_cell.record.values == payload
+
+
+    def test_interior_page_cell(self):
+        pass
