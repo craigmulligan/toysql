@@ -132,7 +132,7 @@ class Integer():
 class Record:
     def __init__(self, payload):
         self.values = payload
-        self.row_id = payload[0][0]
+        self.row_id = payload[0][1] or 0 
 
     def to_bytes(self):
         header_data = b""
@@ -160,10 +160,9 @@ class Record:
 
     @staticmethod
     def from_bytes(data): 
-        # TODO this is a varint so it's not always necesscarily one byte. 
-        header_size = Integer.from_bytes(data[0:1]).value
-        header_data = data[1:header_size + 1]
-        body_data = data[header_size + 1:]
+        header_size = Integer.from_bytes(data[0:1])
+        header_data = data[header_size.content_length():header_size.value + 1]
+        body_data = data[header_size.value + 1:]
         serial_types = []
         values = []
 
@@ -172,17 +171,21 @@ class Record:
             serial_types.append(Integer.from_bytes(b).value)
 
         for serial_type in serial_types:
-            chunk = body_data[:serial_type]
+            content_length = serial_type 
 
             if serial_type == 0:
+                chunk = body_data[:serial_type]
                 values.append([DataType.NULL, Null.from_bytes().value])
 
             if 0 < serial_type < 7:
+                chunk = body_data[:serial_type]
                 values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
 
             if serial_type >= 13 and (serial_type % 2) != 0:
+                content_length = int((serial_type - 13)/2)
+                chunk = body_data[:content_length]
                 values.append([DataType.TEXT, Text.from_bytes(chunk).value])
 
-            body_data =  body_data[serial_type:]
+            body_data =  body_data[content_length:]
 
         return Record(values)

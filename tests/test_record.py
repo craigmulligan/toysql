@@ -14,6 +14,18 @@ class TestRecord(TestCase):
         record = Record.from_bytes(raw_bytes)
         assert record.values == payload
 
+    def test_different_order(self):
+        payload = [
+            [DataType.INTEGER, 124],
+            [DataType.TEXT, "Craig"],
+            [DataType.INTEGER, 3],
+            [DataType.NULL, None]
+        ]
+        raw_bytes = Record(payload).to_bytes()
+        assert raw_bytes
+        record = Record.from_bytes(raw_bytes)
+        assert record.values == payload
+
 
 class TestInteger(TestCase):
     def test_varint(self):
