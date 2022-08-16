@@ -86,9 +86,8 @@ class Integer():
 
     TODO: Should handle big-endian IEEE 754-2008 64-bit floating point number.
     """
-    def __init__(self, value, offset=0) -> None:
+    def __init__(self, value) -> None:
         self.value = value
-        self.offset = offset
 
     def content_length(self) -> IntSizes:
         return cast(IntSizes, len(self.to_bytes()))
@@ -121,15 +120,13 @@ class Integer():
         # result = int.from_bytes(value, "little", signed=True)
         shift = 0
         result = 0
-        i = 0
-
-        for i, b in enumerate(value):
+        for b in value:
             result |= (b & 0x7f) << shift
             shift += 7
             if not (b & 0x80):
                 break
 
-        return Integer(result, offset=i)
+        return Integer(result)
 
 
 class Record:

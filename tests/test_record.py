@@ -35,7 +35,7 @@ class TestInteger(TestCase):
         for value in buf_values:
             result = Integer.from_bytes(buf)
             assert result.value == value
-            buf = buf[result.offset + 1:]
+            buf = buf[result.content_length() + 1:]
 
 
 class TestText(TestCase):
