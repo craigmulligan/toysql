@@ -4,15 +4,15 @@ I work with sql databases everyday but don't have deep understanding of how they
 
 This is a dependency free, minimal clone of sql database written in python. I've intentionally tried to keep the code "simple" ignoring edge cases and optimizations so that anyone can read through and improve their understanding of how databases work.
 
-## Inspiration:
+## Reading:
 
+- https://www.sqlite.org/fileformat.html
 - https://cstack.github.io/db_tutorial/
 - https://github.com/erikgrinaker/toydb
 - https://stackoverflow.com/questions/1108/how-does-database-indexing-work
 - https://github.com/NicolasLM/bplustree
 - https://notes.eatonphil.com/database-basics.html
 - https://jvns.ca/blog/2014/09/27/how-does-sqlite-work-part-1-pages/
-- https://docs.fileformat.com/database/sqlite/
 - https://jvns.ca/blog/2014/10/02/how-does-sqlite-work-part-2-btrees/
 - https://books.google.com.mx/books?id=9Z6IQQnX1JEC&lpg=PP1&pg=PA185#v=onepage&q&f=false
 - https://fly.io/blog/sqlite-internals-btree/
