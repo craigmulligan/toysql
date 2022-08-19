@@ -17,6 +17,9 @@ This is a dependency free, minimal clone of sql database written in python. I've
 - https://books.google.com.mx/books?id=9Z6IQQnX1JEC&lpg=PP1&pg=PA185#v=onepage&q&f=false
 - https://fly.io/blog/sqlite-internals-btree/
 - https://fly.io/blog/sqlite-internals-rollback-journal/
+- https://www.geeksforgeeks.org/introduction-of-b-tree
+- https://www.cs.nmsu.edu/~hcao/teaching/cs582/note/DB2_4_BplusTreeExample.pdf
+- https://www.programiz.com/dsa/b-plus-tree#:~:text=A%20B%2B%20tree%20is%20an,the%20data%20easier%20and%20faster.
 
 ## Current Features
 
