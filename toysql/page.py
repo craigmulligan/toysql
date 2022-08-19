@@ -117,11 +117,11 @@ class InteriorPageCell():
 
 class Page:
     """
-    header is 8 bytes in size for leaf pages and 12 bytes for interior pages (RN we just make em all 12 bytes)
+    header is 8 bytes in size for leaf pages and 12 bytes for interior pages
     """
     def __init__(self, page_number, page_type, cells=None) -> None:
         self.page_number = page_number
-        self.page_type = PageType(page_type) 
+        self.page_type = PageType(page_type)
         self.cell_content_offset = 65536
         self.cells = cells or []
         
@@ -148,6 +148,7 @@ class Page:
         self.cell_content_offset = len(cell_data)
         data[:-self.cell_content_offset] = cell_data
 
+        header_data += FixedInteger.to_bytes(1, self.page_number)
         # Header type.
         header_data += FixedInteger.to_bytes(1, self.page_type.value)
         # Free block pointer. (Not implemented)
@@ -163,10 +164,9 @@ class Page:
         return bytes(data)
         
     @staticmethod
-    def from_bytes(raw_bytes) -> "Page":
-        data = bytearray(raw_bytes)
-        page_number = FixedInteger.from_bytes(data[0])
-        page_type = PageType(FixedInteger.from_bytes(data[1]))
+    def from_bytes(data) -> "Page":
+        page_number = FixedInteger.from_bytes(data[:1])
+        page_type = PageType(FixedInteger.from_bytes(data[1:2]))
         number_of_cells = FixedInteger.from_bytes(data[3:5])
         cell_content_offset = FixedInteger.from_bytes(data[5:7])
         cells = []

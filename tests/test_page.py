@@ -35,3 +35,27 @@ class TestCell(TestCase):
         new_cell = InteriorPageCell.from_bytes(raw_bytes)
         assert new_cell.row_id == 3
         assert new_cell.left_child.page_number == 12
+
+
+class TestPage(TestCase):
+    def test_left_page(self):
+        cells = []
+        page_number = 1
+
+        for n in range(3):
+            payload = [
+                [DataType.INTEGER, n],
+                [DataType.INTEGER, 124],
+                [DataType.TEXT, "Craig"],
+                [DataType.NULL, None]
+            ]
+            record = Record(payload)
+            cells.append(LeafPageCell(record))
+
+        leaf_page = Page(page_number, PageType.leaf, cells)
+        raw_bytes = leaf_page.to_bytes()
+        new_leaf_page = Page.from_bytes(raw_bytes) 
+        assert new_leaf_page.page_number == page_number
+        assert new_leaf_page.page_type == PageType.leaf
+        # assert new_leaf_page.cells == cells
+
