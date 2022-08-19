@@ -61,4 +61,3 @@ class TestPage(TestCase):
 
         for i, cell in enumerate(new_leaf_page.cells):
             assert cell == cells[i] 
-
