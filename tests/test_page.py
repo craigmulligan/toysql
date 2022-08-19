@@ -57,5 +57,8 @@ class TestPage(TestCase):
         new_leaf_page = Page.from_bytes(raw_bytes) 
         assert new_leaf_page.page_number == page_number
         assert new_leaf_page.page_type == PageType.leaf
-        # assert new_leaf_page.cells == cells
+        assert len(new_leaf_page.cells) == len(cells)
+
+        for i, cell in enumerate(new_leaf_page.cells):
+            assert cell == cells[i] 
 

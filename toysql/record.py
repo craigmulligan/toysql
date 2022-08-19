@@ -134,6 +134,13 @@ class Record:
         self.values = payload
         self.row_id = payload[0][1] or 0 
 
+    def __eq__(self, o: "Record") -> bool:
+        for i, v in enumerate(self.values): 
+            if v != o.values[i]: 
+                return False
+
+        return True
+
     def to_bytes(self):
         header_data = b""
         body_data = b""

@@ -1,5 +1,6 @@
 from enum import Enum
 from toysql.record import Record, Integer
+import io
 
 class PageType(Enum): 
     leaf = 0
@@ -25,6 +26,9 @@ class LeafPageCell():
     """
     def __init__(self,  payload:Record) -> None:
         self.record = payload
+
+    def __eq__(self, o: "LeafPageCell") -> bool:
+        return self.record == o.record
 
     def to_bytes(self):
         """
@@ -136,52 +140,69 @@ class Page:
         header_data = b"" 
         cell_offsets = b""
         cell_data = b""
-        data = bytearray(b"".ljust(4096, b"\0"))
+
+        buff = io.BytesIO(b"".ljust(4096, b"\0"))
 
         for cell in self.cells:
             cell_bytes = cell.to_bytes()
             # Add offset for each cell from the cell Content area.
-            offset = FixedInteger.to_bytes(len(cell_bytes), 2)
+            offset = FixedInteger.to_bytes(2, len(cell_bytes))
             cell_offsets += offset
             cell_data += cell_bytes
 
         self.cell_content_offset = len(cell_data)
-        data[:-self.cell_content_offset] = cell_data
 
-        header_data += FixedInteger.to_bytes(1, self.page_number)
+        buff.seek(self.cell_content_offset)
+        buff.write(cell_data)
+
+        buff.seek(0)
+        print(FixedInteger.to_bytes(1, self.page_number))
+        buff.write(FixedInteger.to_bytes(1, self.page_number))
         # Header type.
-        header_data += FixedInteger.to_bytes(1, self.page_type.value)
+        buff.write(FixedInteger.to_bytes(1, self.page_type.value))
         # Free block pointer. (Not implemented)
-        header_data += FixedInteger.to_bytes(2, 0)
+        buff.write(FixedInteger.to_bytes(2, 0))
         # Number of cells. 
-        header_data += FixedInteger.to_bytes(2, len(self.cells))
+        buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset 
-        header_data += FixedInteger.to_bytes(2, self.cell_content_offset)
+        buff.write(FixedInteger.to_bytes(2, self.cell_content_offset))
         # Right most cell pointer (Not implemented)
-        header_data += FixedInteger.to_bytes(4, 0)
-        data[:len(header_data)] = header_data
+        buff.write(FixedInteger.to_bytes(4, 0))
 
-        return bytes(data)
+        # Right after the header we add the cell_offsets
+        buff.write(cell_offsets)
+
+        # Go to the beginning so we can read everything.
+        buff.seek(0)
+
+        return buff.read() 
         
     @staticmethod
     def from_bytes(data) -> "Page":
-        page_number = FixedInteger.from_bytes(data[:1])
-        page_type = PageType(FixedInteger.from_bytes(data[1:2]))
-        number_of_cells = FixedInteger.from_bytes(data[3:5])
-        cell_content_offset = FixedInteger.from_bytes(data[5:7])
+        buffer = io.BytesIO(data)
+        page_number = FixedInteger.from_bytes(buffer.read(1))
+        page_type = PageType(FixedInteger.from_bytes(buffer.read(1)))
+        _free_block_pointer = PageType(FixedInteger.from_bytes(buffer.read(2)))
+        number_of_cells = FixedInteger.from_bytes(buffer.read(2))
+        cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
+        _right_page_number = FixedInteger.from_bytes(buffer.read(4))
+
+        print(page_number, page_type)
         cells = []
 
         # Cell pointers
         cell_offsets = []
-        cell_offset_index = 12
 
         for _ in range(number_of_cells):
-            cell_offsets.append(data[cell_offset_index:2])
-            cell_offset_index += 2
+            cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
 
         # Now read cells
-        for i, offset in enumerate(cell_offsets):
-            cell_content = bytes(data[offset + cell_content_offset:cell_offsets[i + 1]])
+        total_offset = 0
+        buffer.seek(cell_content_offset)
+
+        for offset in cell_offsets:
+            cell_content = buffer.read(offset) 
             cells.append(LeafPageCell.from_bytes(cell_content))
-        
+            total_offset += offset
+
         return Page(page_number, page_type, cells)
