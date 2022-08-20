@@ -1,3 +1,4 @@
+from typing import Optional 
 from enum import Enum
 from toysql.record import Record, Integer
 import io
@@ -93,13 +94,17 @@ class InteriorPageCell():
     A 4-byte big-endian page number which is the left child pointer.
     A varint which is the integer key
     """
-    def __init__(self, row_id, left_child: "Page") -> None:
+    def __init__(self, row_id, left_child: Optional["Page"]=None) -> None:
         self.row_id = row_id
         self.left_child = left_child 
 
     def to_bytes(self):
         data = b""
-        page_number = FixedInteger.to_bytes(4, self.left_child.page_number)
+        left_child_page_number = 0
+        if self.left_child:
+            left_child_page_number = self.left_child.page_number
+
+        page_number = FixedInteger.to_bytes(4, left_child_page_number)
         row_id = Integer(self.row_id).to_bytes()
 
         data += page_number 
