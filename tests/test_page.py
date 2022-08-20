@@ -61,3 +61,20 @@ class TestPage(TestCase):
 
         for i, cell in enumerate(new_leaf_page.cells):
             assert cell == cells[i] 
+
+    def test_interior_page_cell(self):
+        cells = []
+        page_number = 1
+
+        for n in range(3):
+            cells.append(InteriorPageCell(n))
+
+        interior_page = Page(page_number, PageType.interior, cells)
+        raw_bytes = interior_page.to_bytes()
+        new_interior_page = Page.from_bytes(raw_bytes) 
+        assert new_leaf_page.page_number == page_number
+        assert new_leaf_page.page_type == PageType.leaf
+        assert len(new_leaf_page.cells) == len(cells)
+
+        for i, cell in enumerate(new_leaf_page.cells):
+            assert cell == cells[i] 
