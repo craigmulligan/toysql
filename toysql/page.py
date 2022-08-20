@@ -35,29 +35,30 @@ class LeafPageCell():
         """
         pass
         """
-        data = b""
+        buff = io.BytesIO()
         record_bytes = self.record.to_bytes()
         record_size = Integer(len(record_bytes)).to_bytes()
         row_id = Integer(self.record.row_id).to_bytes()
 
-        data += record_size
-        data += row_id
-        data += record_bytes
+        buff.write(record_size)
+        buff.write(row_id)
+        buff.write(record_bytes)
 
-        return data 
+        buff.seek(0)
+        return buff.read() 
 
     @staticmethod
     def from_bytes(data) -> "LeafPageCell":
         """
-        First read the cell header.
-        Then read the record.
+        First read two varints record_size + row_id 
+        Then read the record payload
         """
-        record_size = Integer.from_bytes(data)
-        data = data[record_size.content_length():]
-        row_id = Integer.from_bytes(data)
-        data = data[row_id.content_length():]
-        #data = data[:record_size]
-        record = Record.from_bytes(data)
+        buff = io.BytesIO(data)
+        record_size = Integer.from_bytes(buff.read())
+        buff.seek(record_size.content_length())
+        row_id = Integer.from_bytes(buff.read())
+        buff.seek(record_size.content_length() + row_id.content_length())
+        record = Record.from_bytes(buff.read(record_size.value))
 
         return LeafPageCell(record)
 
@@ -102,7 +103,7 @@ class InteriorPageCell():
         return self.row_id == o.row_id
 
     def to_bytes(self):
-        data = b""
+        buff = io.BytesIO()
         left_child_page_number = 0
         if self.left_child:
             left_child_page_number = self.left_child.page_number
@@ -110,19 +111,21 @@ class InteriorPageCell():
         page_number = FixedInteger.to_bytes(4, left_child_page_number)
         row_id = Integer(self.row_id).to_bytes()
 
-        data += page_number 
-        data += row_id
+        buff.write(page_number)
+        buff.write(row_id)
 
-        return data 
+        buff.seek(0)
+        return buff.read() 
 
     @staticmethod
     def from_bytes(data) -> "InteriorPageCell":
         """
-        First read the cell header.
+        Just reading the left_child_page and the varint.
         """
-        left_child_page_number = FixedInteger.from_bytes(data[:4])
-        data = data[4:]
-        row_id = Integer.from_bytes(data).value
+        buff = io.BytesIO(data) 
+
+        left_child_page_number = FixedInteger.from_bytes(buff.read(4))
+        row_id = Integer.from_bytes(buff.read()).value
 
         return InteriorPageCell(row_id, Page(left_child_page_number, PageType.interior))
 
@@ -211,14 +214,11 @@ class Page:
             cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
 
         # Now read cells
-        total_offset = 0
         buffer.seek(cell_content_offset)
 
         for offset in cell_offsets:
             cell_content = buffer.read(offset) 
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
-
-            total_offset += offset
 
         return Page(page_number, page_type, cells)
