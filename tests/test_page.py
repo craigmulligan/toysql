@@ -34,11 +34,12 @@ class TestCell(TestCase):
         raw_bytes = cell.to_bytes()
         new_cell = InteriorPageCell.from_bytes(raw_bytes)
         assert new_cell.row_id == 3
+        assert new_cell.left_child
         assert new_cell.left_child.page_number == 12
 
 
 class TestPage(TestCase):
-    def test_left_page(self):
+    def test_leaf_page(self):
         cells = []
         page_number = 1
 
@@ -72,9 +73,9 @@ class TestPage(TestCase):
         interior_page = Page(page_number, PageType.interior, cells)
         raw_bytes = interior_page.to_bytes()
         new_interior_page = Page.from_bytes(raw_bytes) 
-        assert new_leaf_page.page_number == page_number
-        assert new_leaf_page.page_type == PageType.leaf
-        assert len(new_leaf_page.cells) == len(cells)
 
-        for i, cell in enumerate(new_leaf_page.cells):
+        assert new_interior_page.page_number == page_number
+        assert new_interior_page.page_type == PageType.interior
+        assert len(new_interior_page.cells) == len(cells)
+        for i, cell in enumerate(new_interior_page.cells):
             assert cell == cells[i] 
