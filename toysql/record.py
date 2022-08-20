@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from typing import cast, Literal
-from io import BytesIO
+import io
 
 class DataType(Enum):
     """
@@ -76,6 +76,7 @@ class Text():
 
 
 IntSizes = Literal[1,2,3,4,6,8]
+IntSerialType = Literal[1,2,3,4,5,6]
 
 class Integer():
     """
@@ -86,6 +87,10 @@ class Integer():
 
     TODO: Should handle big-endian IEEE 754-2008 64-bit floating point number.
     """
+
+    serial_type_map = dict([(1, 1), (2, 2), (3,3), (4,4), (6, 5), (8, 6)])
+    content_length_map = dict([(1, 1), (2, 2), (3,3), (4,4), (5,6), (6, 8)])
+
     def __init__(self, value) -> None:
         self.value = value
 
@@ -93,9 +98,12 @@ class Integer():
         return cast(IntSizes, len(self.to_bytes()))
 
     def serial_type(self):
-        serial_type_map = dict([(1, 1), (2, 2), (3,3), (4,4), (6, 5), (8, 6)])
         content_length = self.content_length()
-        return serial_type_map[content_length]
+        return self.serial_type_map[content_length]
+
+    @staticmethod
+    def content_length_from_serial_type(serial_type: IntSerialType) -> IntSizes:
+        return Integer.content_length_map[serial_type]
 
     def to_bytes(self):
         """
@@ -147,52 +155,54 @@ class Record:
 
         for type, value in self.values: 
             if type == DataType.INTEGER:
-                content_length = Integer(value).serial_type()
-                header_data += Integer(content_length).to_bytes()
+                serial_type = Integer(value).serial_type()
+                header_data += Integer(serial_type).to_bytes()
                 body_data += Integer(value).to_bytes()
 
             if type == DataType.TEXT:
-                content_length = Text(value).serial_type()
-                header_data += Integer(content_length).to_bytes()
+                serial_type = Text(value).serial_type()
+                header_data += Integer(serial_type).to_bytes()
                 body_data += Text(value).to_bytes()
 
             if type == DataType.NULL:
-                content_length = Null().serial_type()
-                header_data += Integer(content_length).to_bytes()
+                serial_type = Null().serial_type()
+                header_data += Integer(serial_type).to_bytes()
                 body_data += Null().to_bytes()
 
-        header_length = len(header_data)
-
-        return Integer(header_length).to_bytes() + header_data + body_data
+        return Integer(len(header_data)).to_bytes() + header_data + body_data
 
     @staticmethod
     def from_bytes(data): 
-        header_size = Integer.from_bytes(data[0:1])
-        header_data = data[header_size.content_length():header_size.value + 1]
-        body_data = data[header_size.value + 1:]
+        buff = io.BytesIO(data) 
+        header_size = Integer.from_bytes(buff.read())
+
+        # seek to after header_size varint inorder 
+        # to read the rest of the header varints 
+        buff.seek(header_size.content_length())
+
         serial_types = []
         values = []
 
-        for i in range(len(header_data)):
-            b = header_data[i:i+1]
-            serial_types.append(Integer.from_bytes(b).value)
+        while True: 
+            cursor = buff.tell()
+            serial_type = Integer.from_bytes(buff.read())
+            serial_types.append(serial_type.value)
+            cursor += serial_type.content_length()
+            buff.seek(cursor)
+
+            if cursor == header_size.value + 1: 
+                break
 
         for serial_type in serial_types:
-            content_length = serial_type 
-
             if serial_type == 0:
-                chunk = body_data[:serial_type]
                 values.append([DataType.NULL, Null.from_bytes().value])
 
             if 0 < serial_type < 7:
-                chunk = body_data[:serial_type]
-                values.append([DataType.INTEGER, Integer.from_bytes(chunk).value])
+                content_length = Integer.content_length_from_serial_type(serial_type)
+                values.append([DataType.INTEGER, Integer.from_bytes(buff.read(content_length)).value])
 
             if serial_type >= 13 and (serial_type % 2) != 0:
                 content_length = int((serial_type - 13)/2)
-                chunk = body_data[:content_length]
-                values.append([DataType.TEXT, Text.from_bytes(chunk).value])
-
-            body_data =  body_data[content_length:]
+                values.append([DataType.TEXT, Text.from_bytes(buff.read(content_length)).value])
 
         return Record(values)
