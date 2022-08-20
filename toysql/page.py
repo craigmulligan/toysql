@@ -98,6 +98,9 @@ class InteriorPageCell():
         self.row_id = row_id
         self.left_child = left_child 
 
+    def __eq__(self, o: "InteriorPageCell") -> bool:
+        return self.row_id == o.row_id
+
     def to_bytes(self):
         data = b""
         left_child_page_number = 0
@@ -142,7 +145,6 @@ class Page:
         """
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
-        header_data = b"" 
         cell_offsets = b""
         cell_data = b""
 
@@ -161,7 +163,6 @@ class Page:
         buff.write(cell_data)
 
         buff.seek(0)
-        print(FixedInteger.to_bytes(1, self.page_number))
         buff.write(FixedInteger.to_bytes(1, self.page_number))
         # Header type.
         buff.write(FixedInteger.to_bytes(1, self.page_type.value))
@@ -181,6 +182,15 @@ class Page:
         buff.seek(0)
 
         return buff.read() 
+
+    @staticmethod
+    def cell_from_bytes(page_type, raw_bytes):
+        if page_type == PageType.leaf:
+            return LeafPageCell.from_bytes(raw_bytes)
+        if page_type == PageType.interior:
+            return InteriorPageCell.from_bytes(raw_bytes)
+
+        raise Exception(f"Unknown page type {page_type}")
         
     @staticmethod
     def from_bytes(data) -> "Page":
@@ -192,7 +202,6 @@ class Page:
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
         _right_page_number = FixedInteger.from_bytes(buffer.read(4))
 
-        print(page_number, page_type)
         cells = []
 
         # Cell pointers
@@ -207,7 +216,9 @@ class Page:
 
         for offset in cell_offsets:
             cell_content = buffer.read(offset) 
-            cells.append(LeafPageCell.from_bytes(cell_content))
+            cell = Page.cell_from_bytes(page_type, cell_content)
+            cells.append(cell)
+
             total_offset += offset
 
         return Page(page_number, page_type, cells)
