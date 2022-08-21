@@ -1,7 +1,7 @@
 from toysql.record import Record, DataType
 from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType
 from unittest import TestCase
-from toysql.exceptions import PageFullException
+from toysql.exceptions import PageFullException, DuplicateKeyException
 
 class TestCell(TestCase):
     def test_leaf_page_cell(self):
@@ -116,3 +116,14 @@ class TestPage(TestCase):
         # leaf_page.cells.reverse()
         assert sorted(cells) == leaf_page.cells 
                 
+    def test_duplicate_row_id(self):
+        leaf_page = Page(1, PageType.leaf)
+        payload = [
+            [DataType.INTEGER, 3],
+        ]
+            
+        # Should work fine.
+        leaf_page.add(payload)
+        
+        with self.assertRaises(DuplicateKeyException):
+            leaf_page.add(payload)

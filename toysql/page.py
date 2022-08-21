@@ -1,7 +1,7 @@
 from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
-from toysql.exceptions import CellNotFoundException, PageFullException
+from toysql.exceptions import CellNotFoundException, PageFullException, DuplicateKeyException
 import bisect
 import io
 
@@ -21,6 +21,9 @@ class FixedInteger():
 
 
 class Cell:
+    """
+    Cell interface
+    """
     row_id = 0
 
     def to_bytes(self):
@@ -165,6 +168,7 @@ class Page:
             First we need to see if there is space to write the new values. 
             if there is we add it if not we raise PageFullException
         """
+        # First check the key doesnt exist.
         remaining_space = 4096 - len(self)
         cell = None
 
@@ -181,6 +185,14 @@ class Page:
         if len(cell) > remaining_space:
             raise PageFullException(f"No space left in page: {self.page_number}")
 
+
+        # now check the key doesnt exist. 
+        try:
+            self.search(cell.row_id)
+        except CellNotFoundException:
+            pass
+        else:
+            raise DuplicateKeyException(f"key already exists {cell.row_id} in page")
 
         # Use bisect here to maintain order of cells.
         # See: https://www.tutorialspoint.com/python-inserting-item-in-sorted-list-maintaining-order
