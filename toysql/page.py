@@ -277,4 +277,4 @@ class Page:
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
 
-        return Page(page_number, page_type, cells)
+        return Page(page_number, page_type, cells=cells)
