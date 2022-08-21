@@ -1,7 +1,7 @@
-from typing import Optional 
+from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
-from toysql.exceptions import CellNotFoundException
+from toysql.exceptions import CellNotFoundException, PageFullException
 import io
 
 class PageType(Enum): 
@@ -19,7 +19,15 @@ class FixedInteger():
         return int.from_bytes(data, "big")
 
 
-class LeafPageCell():
+class Cell:
+    def to_bytes(self):
+        return b"" 
+
+    def __len__(self):
+        return len(self.to_bytes())
+
+
+class LeafPageCell(Cell):
     """
     A cell is a wrapper for the Record format 
     which adds some metadata depending on the surrounding 
@@ -68,7 +76,7 @@ class LeafPageCell():
         return LeafPageCell(record)
 
 
-class InteriorPageCell():
+class InteriorPageCell(Cell):
     """
     A cell is a wrapper for the Record format 
     which adds some metadata depending on the surrounding 
@@ -144,21 +152,30 @@ class Page:
         self.page_type = PageType(page_type)
         self.cell_content_offset = 65536
         self.cells = cells or []
-        
+
     def add(self, *args, **kwargs):
-        """Write the cell to the beginning of the cell_content area + update the cell_content_offset"""
+        """
+            First we need to see if there is space to write the new values. 
+            if there is we add it if not we raise PageFullException
+        """
+        remaining_space = 4096 - len(self)
+        cell = None
+
         if self.page_type == PageType.leaf:
             record = Record(*args, **kwargs)
             cell = LeafPageCell(record)
-            self.cells.append(cell)
-            return cell
 
         if self.page_type == PageType.interior:
             cell = InteriorPageCell(*args, **kwargs)
-            self.cells.append(cell)
-            return cell
 
-        raise Exception("Unknown Page Type")
+        if cell is None:
+            raise Exception(f"Unknown page_type {self.page_type}")
+
+        if len(cell) > remaining_space:
+            raise PageFullException(f"No space left in page: {self.page_number}")
+
+        self.cells.append(cell)
+        return cell
 
     def search(self, row_id):
         for cell in self.cells:
@@ -168,15 +185,20 @@ class Page:
         raise CellNotFoundException(f"Could not find cell with row_id {row_id}")
 
 
-    def to_bytes(self) -> bytes:
+    def __len__(self):
         """
-        Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
+        header size is 12
+        """
+        [cell_offsets, cell_data] = self.cells_to_bytes()
+        return 12 + len(cell_offsets) + len(cell_data)
+
+
+    def cells_to_bytes(self) -> List[bytes]:
+        """
+        Returns the body as bytes 
         """
         cell_offsets = b""
         cell_data = b""
-
-        # TODO make page size dynamic.
-        buff = io.BytesIO(b"".ljust(4096, b"\0"))
 
         for cell in self.cells:
             cell_bytes = cell.to_bytes()
@@ -184,6 +206,15 @@ class Page:
             offset = FixedInteger.to_bytes(2, len(cell_bytes))
             cell_offsets += offset
             cell_data += cell_bytes
+
+        return [cell_offsets, cell_data]
+    
+    def to_bytes(self) -> bytes:
+        """
+        Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
+        """
+        buff = io.BytesIO(b"".ljust(4096, b"\0"))
+        [cell_offsets, cell_data] = self.cells_to_bytes()
 
         self.cell_content_offset = len(cell_data)
 
