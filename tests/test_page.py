@@ -1,6 +1,7 @@
 from toysql.record import Record, DataType
 from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType
 from unittest import TestCase
+from toysql.exceptions import PageFullException
 
 class TestCell(TestCase):
     def test_leaf_page_cell(self):
@@ -82,3 +83,17 @@ class TestPage(TestCase):
 
         for i, cell in enumerate(new_interior_page.cells):
             assert cell == cells[i] 
+
+
+    def test_page_full(self):
+        leaf_page = Page(1, PageType.leaf)
+
+        with self.assertRaises(PageFullException):
+            for n in range(242):
+                payload = [
+                    [DataType.INTEGER, n],
+                    [DataType.INTEGER, 124],
+                    [DataType.TEXT, "Craig"],
+                    [DataType.NULL, None]
+                ]
+                leaf_page.add(payload)

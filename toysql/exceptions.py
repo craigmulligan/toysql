@@ -17,3 +17,7 @@ class LexingException(Exception):
 
 class ParsingException(Exception):
     pass
+
+
+class PageFullException(Exception):
+    pass
