@@ -43,6 +43,8 @@ class TestPage(TestCase):
         cells = []
         page_number = 1
 
+        leaf_page = Page(page_number, PageType.leaf)
+
         for n in range(3):
             payload = [
                 [DataType.INTEGER, n],
@@ -50,10 +52,8 @@ class TestPage(TestCase):
                 [DataType.TEXT, "Craig"],
                 [DataType.NULL, None]
             ]
-            record = Record(payload)
-            cells.append(LeafPageCell(record))
+            cells.append(leaf_page.add(payload))
 
-        leaf_page = Page(page_number, PageType.leaf, cells)
         raw_bytes = leaf_page.to_bytes()
         new_leaf_page = Page.from_bytes(raw_bytes) 
         assert new_leaf_page.page_number == page_number
@@ -67,15 +67,18 @@ class TestPage(TestCase):
         cells = []
         page_number = 1
 
-        for n in range(3):
-            cells.append(InteriorPageCell(n))
+        interior_page = Page(page_number, PageType.interior)
 
-        interior_page = Page(page_number, PageType.interior, cells)
+        for n in range(3):
+            cells.append(interior_page.add(n))
+
+        assert len(interior_page.cells) == 3
         raw_bytes = interior_page.to_bytes()
         new_interior_page = Page.from_bytes(raw_bytes) 
 
         assert new_interior_page.page_number == page_number
         assert new_interior_page.page_type == PageType.interior
         assert len(new_interior_page.cells) == len(cells)
+
         for i, cell in enumerate(new_interior_page.cells):
             assert cell == cells[i] 

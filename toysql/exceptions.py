@@ -1,8 +1,13 @@
 class DuplicateKeyException(Exception):
     pass
 
+class NotFoundException(Exception):
+    pass
 
-class PageNotFoundException(Exception):
+class CellNotFoundException(NotFoundException):
+    pass
+
+class PageNotFoundException(NotFoundException):
     pass
 
 

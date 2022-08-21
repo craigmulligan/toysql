@@ -1,6 +1,7 @@
 from typing import Optional 
 from enum import Enum
 from toysql.record import Record, Integer
+from toysql.exceptions import CellNotFoundException
 import io
 
 class PageType(Enum): 
@@ -27,6 +28,10 @@ class LeafPageCell():
     """
     def __init__(self,  payload:Record) -> None:
         self.record = payload
+
+    @property
+    def row_id(self):
+        return self.record.row_id
 
     def __eq__(self, o: "LeafPageCell") -> bool:
         return self.record == o.record
@@ -140,9 +145,28 @@ class Page:
         self.cell_content_offset = 65536
         self.cells = cells or []
         
-    def add_cell(self):
+    def add(self, *args, **kwargs):
         """Write the cell to the beginning of the cell_content area + update the cell_content_offset"""
-        pass
+        if self.page_type == PageType.leaf:
+            record = Record(*args, **kwargs)
+            cell = LeafPageCell(record)
+            self.cells.append(cell)
+            return cell
+
+        if self.page_type == PageType.interior:
+            cell = InteriorPageCell(*args, **kwargs)
+            self.cells.append(cell)
+            return cell
+
+        raise Exception("Unknown Page Type")
+
+    def search(self, row_id):
+        for cell in self.cells:
+            if cell.row_id == row_id:
+                return cell
+
+        raise CellNotFoundException(f"Could not find cell with row_id {row_id}")
+
 
     def to_bytes(self) -> bytes:
         """
@@ -151,6 +175,7 @@ class Page:
         cell_offsets = b""
         cell_data = b""
 
+        # TODO make page size dynamic.
         buff = io.BytesIO(b"".ljust(4096, b"\0"))
 
         for cell in self.cells:
