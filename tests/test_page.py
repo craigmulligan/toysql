@@ -97,3 +97,22 @@ class TestPage(TestCase):
                     [DataType.NULL, None]
                 ]
                 leaf_page.add(payload)
+
+
+    def test_page_order(self):
+        leaf_page = Page(1, PageType.leaf)
+        cells = []
+
+        # Add cells in reverse order by PK
+        for n in range(5, 0, -1):
+            payload = [
+                [DataType.INTEGER, n],
+                [DataType.INTEGER, 124],
+                [DataType.TEXT, "Craig"],
+                [DataType.NULL, None]
+            ]
+            cells.append(leaf_page.add(payload))
+        
+        # leaf_page.cells.reverse()
+        assert sorted(cells) == leaf_page.cells 
+                

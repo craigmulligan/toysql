@@ -2,6 +2,7 @@ from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
 from toysql.exceptions import CellNotFoundException, PageFullException
+import bisect
 import io
 
 class PageType(Enum): 
@@ -20,8 +21,14 @@ class FixedInteger():
 
 
 class Cell:
+    row_id = 0
+
     def to_bytes(self):
         return b"" 
+
+
+    def __lt__(self, other):
+         return self.row_id < other.row_id
 
     def __len__(self):
         return len(self.to_bytes())
@@ -174,7 +181,10 @@ class Page:
         if len(cell) > remaining_space:
             raise PageFullException(f"No space left in page: {self.page_number}")
 
-        self.cells.append(cell)
+
+        # Use bisect here to maintain order of cells.
+        # See: https://www.tutorialspoint.com/python-inserting-item-in-sorted-list-maintaining-order
+        bisect.insort(self.cells, cell)
         return cell
 
     def search(self, row_id):
