@@ -3,10 +3,13 @@ from toysql.exceptions import PageFullException
 
 class BPlusTree:
     """
-    Balanced Tree
-    Each node can have at most m keys and m + 1 pointer fields.
+    All leaves are at the same level.
 
-    B-tree has a height of log(M*N) (Where ‘M’ is the order of tree and N is the number of nodes).
+    The root has at least two children.
+
+    Each node except root can have a maximum of m children and at least m/2 children.
+
+    Each node can contain a maximum of m - 1 keys and a minimum of ⌈m/2⌉ - 1 keys.
     """
     def __init__(self, page_number, page_size=None) -> None:
         self.page_size = page_size or 4096

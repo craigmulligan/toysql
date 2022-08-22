@@ -31,12 +31,11 @@ class TestCell(TestCase):
 
 
     def test_interior_page_cell(self):
-        cell = InteriorPageCell(3, Page(12, PageType.interior)) 
+        cell = InteriorPageCell(3, 12) 
         raw_bytes = cell.to_bytes()
         new_cell = InteriorPageCell.from_bytes(raw_bytes)
         assert new_cell.row_id == 3
-        assert new_cell.left_child
-        assert new_cell.left_child.page_number == 12
+        assert new_cell.left_child_page_number == 12
 
 
 class TestPage(TestCase):
@@ -71,7 +70,7 @@ class TestPage(TestCase):
         interior_page = Page(page_number, PageType.interior)
 
         for n in range(3):
-            cells.append(interior_page.add(n))
+            cells.append(interior_page.add(n, n+1))
 
         assert len(interior_page.cells) == 3
         raw_bytes = interior_page.to_bytes()

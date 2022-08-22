@@ -118,9 +118,9 @@ class InteriorPageCell(Cell):
     A 4-byte big-endian page number which is the left child pointer.
     A varint which is the integer key
     """
-    def __init__(self, row_id, left_child: Optional["Page"]=None) -> None:
+    def __init__(self, row_id, left_child_page_number) -> None:
         self.row_id = row_id
-        self.left_child = left_child 
+        self.left_child_page_number = left_child_page_number
 
     def __eq__(self, o: "InteriorPageCell") -> bool:
         return self.row_id == o.row_id
@@ -128,8 +128,8 @@ class InteriorPageCell(Cell):
     def to_bytes(self):
         buff = io.BytesIO()
         left_child_page_number = 0
-        if self.left_child:
-            left_child_page_number = self.left_child.page_number
+        if self.left_child_page_number:
+            left_child_page_number = self.left_child_page_number
 
         page_number = FixedInteger.to_bytes(4, left_child_page_number)
         row_id = Integer(self.row_id).to_bytes()
@@ -150,7 +150,7 @@ class InteriorPageCell(Cell):
         left_child_page_number = FixedInteger.from_bytes(buff.read(4))
         row_id = Integer.from_bytes(buff.read()).value
 
-        return InteriorPageCell(row_id, Page(left_child_page_number, PageType.interior))
+        return InteriorPageCell(row_id, left_child_page_number)
 
 
 class Page:
@@ -205,6 +205,13 @@ class Page:
                 return cell
 
         raise CellNotFoundException(f"Could not find cell with row_id {row_id}")
+
+
+    def split(self):
+        """
+        Splits a leaf node into an interior node + children.
+        """
+        pass
 
 
     def __len__(self):
