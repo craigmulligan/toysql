@@ -25,6 +25,7 @@ class BPlusTree:
         assert page is not None
 
         if self.pager.page_size - len(page) < len(cell):
+            # Page is full.
            [left, right] = self._split(page)
 
         self.root.add_cell(cell)
