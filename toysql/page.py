@@ -1,7 +1,7 @@
 from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
-from toysql.exceptions import CellNotFoundException, PageFullException, DuplicateKeyException
+from toysql.exceptions import DuplicateKeyException
 import bisect
 import io
 
@@ -137,11 +137,14 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
-    def __init__(self, page_number, page_type, cells=None) -> None:
+    def __init__(self, page_number, page_type, cells=None, right_page_number=None) -> None:
         self.page_number = page_number
         self.page_type = PageType(page_type)
         self.cell_content_offset = 65536
         self.cells = cells or []
+
+        # Only for Interior Pages
+        self.right_page_number = right_page_number 
 
     def add(self, *args, **kwargs):
         """
@@ -180,13 +183,18 @@ class Page:
 
         return None
 
+    def header_size(self):
+        if self.page_type == PageType.leaf:
+            return 8
+
+        return 12
+
 
     def __len__(self):
-        """
-        header size is 12
-        """
+        header_size = self.header_size() 
+
         [cell_offsets, cell_data] = self.cells_to_bytes()
-        return 12 + len(cell_offsets) + len(cell_data)
+        return header_size + len(cell_offsets) + len(cell_data)
 
 
     def cells_to_bytes(self) -> List[bytes]:
@@ -228,7 +236,8 @@ class Page:
         # Cell Content Offset 
         buff.write(FixedInteger.to_bytes(2, self.cell_content_offset))
         # Right most cell pointer (Not implemented)
-        buff.write(FixedInteger.to_bytes(4, 0))
+        if self.page_type == PageType.interior:
+            buff.write(FixedInteger.to_bytes(4, 0))
 
         # Right after the header we add the cell_offsets
         buff.write(cell_offsets)
@@ -255,7 +264,14 @@ class Page:
         _free_block_pointer = PageType(FixedInteger.from_bytes(buffer.read(2)))
         number_of_cells = FixedInteger.from_bytes(buffer.read(2))
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
-        _right_page_number = FixedInteger.from_bytes(buffer.read(4))
+
+        right_page_number = None
+
+        # This is the right most pointer. All the other pointers 
+        # are in an InteriorPageCell[key, pointer] but the right most 
+        # one is stored seperately.
+        if page_type == PageType.interior:
+            right_page_number = FixedInteger.from_bytes(buffer.read(4))
 
         cells = []
 
@@ -273,4 +289,4 @@ class Page:
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
 
-        return Page(page_number, page_type, cells=cells)
+        return Page(page_number, page_type, cells=cells, right_page_number=right_page_number)
