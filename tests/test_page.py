@@ -84,18 +84,18 @@ class TestPage(TestCase):
             assert cell == cells[i] 
 
 
-    def test_page_full(self):
-        leaf_page = Page(1, PageType.leaf)
+    # def test_page_full(self):
+    #     leaf_page = Page(1, PageType.leaf)
 
-        with self.assertRaises(PageFullException):
-            for n in range(242):
-                payload = [
-                    [DataType.INTEGER, n],
-                    [DataType.INTEGER, 124],
-                    [DataType.TEXT, "Craig"],
-                    [DataType.NULL, None]
-                ]
-                leaf_page.add(payload)
+    #     with self.assertRaises(PageFullException):
+    #         for n in range(242):
+    #             payload = [
+    #                 [DataType.INTEGER, n],
+    #                 [DataType.INTEGER, 124],
+    #                 [DataType.TEXT, "Craig"],
+    #                 [DataType.NULL, None]
+    #             ]
+    #             leaf_page.add(payload)
 
 
     def test_page_order(self):
