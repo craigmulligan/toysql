@@ -1,9 +1,10 @@
 from pathlib import Path
 import os
+from toysql.page import Page
 from toysql.exceptions import PageNotFoundException
 
 PageNumber = int
-Page = bytearray
+Pageb = bytearray
 
 
 class Pager:
@@ -30,7 +31,7 @@ class Pager:
 
         return page_number
 
-    def read(self, page_number: PageNumber) -> Page:
+    def read(self, page_number: PageNumber) -> Pageb:
         if page_number is None or page_number >= len(self):
             raise PageNotFoundException(f"page_number: {page_number} not found")
 
@@ -39,7 +40,11 @@ class Pager:
 
         return page
 
-    def write(self, page_number: PageNumber, page: Page):
+    def read_page(self, page_number: PageNumber) -> Page:
+        raw_bytes = self.read(page_number)
+        return Page.from_bytes(raw_bytes)
+
+    def write(self, page_number: PageNumber, page: Pageb):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)
         self.f.flush()
