@@ -10,6 +10,10 @@ class BPlusTree:
     Each node except root can have a maximum of m children and at least m/2 children.
 
     Each node can contain a maximum of m - 1 keys and a minimum of ⌈m/2⌉ - 1 keys.
+
+    btree degree: represents the lower bound on the number of children a node in the B Tree can have (except for the root). i.e the minimum number of children possible.
+
+    btree order: represents the upper bound on the number of children. ie. the maximum number possible.
     """
     def __init__(self, page_number, pager, order=4) -> None:
         self.pager = pager 
@@ -41,12 +45,14 @@ class BPlusTree:
             raise NotFoundException
 
     def _split(self, page):
+
+        #[left_cells, right_cells] =   
         return []
 
     def _search(self, key, page: Page):
         if page.page_type == PageType.leaf:
             return page
 
-        for cell in page.cells:
-            if key < cell.row_id:
+        for i, cell in enumerate(page.cells):
+            if cell[] > cell.row_id:
                 return self._search(self.pager.read_page(cell.left_child_page_number), cell.row_id)

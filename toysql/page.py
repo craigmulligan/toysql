@@ -140,7 +140,6 @@ class Page:
     def __init__(self, page_number, page_type, cells=None, right_page_number=None) -> None:
         self.page_number = page_number
         self.page_type = PageType(page_type)
-        self.cell_content_offset = 65536
         self.cells = cells or []
 
         # Only for Interior Pages
@@ -161,6 +160,14 @@ class Page:
             self.add_cell(cell)
             return cell
 
+    def split_cells(self):
+        """Split the cells in half.
+        Keep the lower part in the node and return the upper one.
+        """
+        len_cells = len(self.cells)
+        rv = self.cells[len_cells//2:]
+        self.cells = self.cells[:len_cells//2]
+        return rv
 
     def add_cell(self, cell):
         """
@@ -220,9 +227,9 @@ class Page:
         buff = io.BytesIO(b"".ljust(4096, b"\0"))
         [cell_offsets, cell_data] = self.cells_to_bytes()
 
-        self.cell_content_offset = len(cell_data)
+        cell_content_offset = len(cell_data)
 
-        buff.seek(self.cell_content_offset)
+        buff.seek(cell_content_offset)
         buff.write(cell_data)
 
         buff.seek(0)
@@ -234,7 +241,7 @@ class Page:
         # Number of cells. 
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset 
-        buff.write(FixedInteger.to_bytes(2, self.cell_content_offset))
+        buff.write(FixedInteger.to_bytes(2, cell_content_offset))
         # Right most cell pointer (Not implemented)
         if self.page_type == PageType.interior:
             buff.write(FixedInteger.to_bytes(4, 0))
