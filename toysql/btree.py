@@ -1,5 +1,5 @@
-from toysql.page import Page, PageType
-from toysql.exceptions import PageFullException
+from toysql.page import Page, PageType, LeafPageCell
+from toysql.exceptions import PageFullException, PageNotFoundException, NotFoundException
 
 class BPlusTree:
     """
@@ -11,36 +11,41 @@ class BPlusTree:
 
     Each node can contain a maximum of m - 1 keys and a minimum of ⌈m/2⌉ - 1 keys.
     """
-    def __init__(self, page_number, pager) -> None:
-        self.page_size = pager.page_size 
+    def __init__(self, page_number, pager, order=4) -> None:
         self.pager = pager 
-        # TODO should read from pager.read_page(page_number)
-        self.root = Page(page_number, PageType.leaf) 
+        self.root = pager.read_page(page_number)
+        self.order = order 
 
     def add(self, values) -> None:
         """
         This adds a tuple value to the tree. 
         """
-        try:
-            self.root.add(values)
-        except PageFullException:
-            # TODO split node.
-            pass
+        cell = LeafPageCell(values)
+        page = self._search(cell.row_id, self.root)
+        assert page is not None
+
+        if self.pager.page_size - len(page) < len(cell):
+           [left, right] = self._split(page)
+
+        self.root.add_cell(cell)
 
     def search(self, key):
-        return self.root.search(key)
+        page = self._search(key, self.root)
+        if page:
+            cell = page.find_cell(key)
+            if not cell:
+                raise NotFoundException
+            return cell
+        else:
+            raise NotFoundException
 
-    def search_node(self, node,  row_id):
-        if self.page_type == PageType.leaf:
-            for cell in self.cells:
-                if cell.row_id == row_id:
-                    return cell
+    def _split(self, page):
+        return []
 
-            raise CellNotFoundException(f"Could not find cell with row_id {row_id}")
+    def _search(self, key, page: Page):
+        if page.page_type == PageType.leaf:
+            return page
 
-
-        if self.page_type == PageType.interior:
-            for cell in self.cells:
-                if row_id <= cell.row_id:
-                   Page 
-
+        for cell in page.cells:
+            if key < cell.row_id:
+                return self._search(self.pager.read_page(cell.left_child_page_number), cell.row_id)

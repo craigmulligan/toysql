@@ -44,8 +44,11 @@ class LeafPageCell(Cell):
 
     A cell should be sortable by key. (PK)
     """
-    def __init__(self,  payload:Record) -> None:
-        self.record = payload
+    def __init__(self,  payload: Record) -> None:
+        if isinstance(payload, Record):
+            self.record = payload
+        else:
+            self.record = Record(payload)
 
     @property
     def row_id(self):
@@ -87,36 +90,11 @@ class LeafPageCell(Cell):
 
 
 class InteriorPageCell(Cell):
-    """
-    A cell is a wrapper for the Record format 
-    which adds some metadata depending on the surrounding 
-
-    This is an Interior B+Tree page.
-
-    Contains:
-    A 4-byte big-endian page number which is the left child pointer
-    A varint which is the integer key
-    
-    https://sqlite.org/src4/doc/trunk/www/bt.wiki#cell_formats:~:text=Number%20of%20bytes%20in,prefix%20as%20a%20varint.
-    Number of bytes in the key-prefix (nKey), as a varint. Or, if the key-prefix for this cell is too large to be stored on an internal node (see above), zero.
-    nKey bytes of key data.
-    Page number of b-tree page containing keys equal to or smaller than the key-prefix as a varint.
-
-    For internal pages, each cell contains a 4-byte child pointer; 
-
-    The internal nodes store search navigational information and leaf nodes tuples. There is an upper and a lower bound on the number of entries an internal node can have. This chapter gives an overview of how point lookup, search next, insert, and delete operations are performed on B+-trees. 
-    
-
-    stores keys and pointers to children
-    
-    Number of keys: up to m-1
-
-    Number of pointers: number of keys + 1
-
+    """   
     Table B-Tree Interior Cell (header 0x05):
 
     A 4-byte big-endian page number which is the left child pointer.
-    A varint which is the integer key
+    A varint which is the integer key.
     """
     def __init__(self, row_id, left_child_page_number) -> None:
         self.row_id = row_id
@@ -156,6 +134,8 @@ class InteriorPageCell(Cell):
 class Page:
     """
     header is 8 bytes in size for leaf pages and 12 bytes for interior pages
+
+    Cells are expected to be sorted before hand useing cells.sort()
     """
     def __init__(self, page_number, page_type, cells=None) -> None:
         self.page_number = page_number
@@ -165,53 +145,40 @@ class Page:
 
     def add(self, *args, **kwargs):
         """
-            First we need to see if there is space to write the new values. 
-            if there is we add it if not we raise PageFullException
+        convencience wrapper for add_cell
         """
-        # First check the key doesnt exist.
-        remaining_space = 4096 - len(self)
-        cell = None
-
         if self.page_type == PageType.leaf:
-            record = Record(*args, **kwargs)
+            record = Record(*args, **kwargs) 
             cell = LeafPageCell(record)
+            self.add_cell(cell)
+            return cell
 
         if self.page_type == PageType.interior:
             cell = InteriorPageCell(*args, **kwargs)
-
-        if cell is None:
-            raise Exception(f"Unknown page_type {self.page_type}")
-
-        if len(cell) > remaining_space:
-            raise PageFullException(f"No space left in page: {self.page_number}")
+            self.add_cell(cell)
+            return cell
 
 
+    def add_cell(self, cell):
+        """
+            First we need to see if there is space to write the new values. 
+            if there is we add it if not we raise PageFullException
+        """
         # now check the key doesnt exist. 
-        try:
-            self.search(cell.row_id)
-        except CellNotFoundException:
-            pass
-        else:
+        exists = self.find_cell(cell.row_id)
+
+        if exists:
             raise DuplicateKeyException(f"key already exists {cell.row_id} in page")
 
-        # Use bisect here to maintain order of cells.
-        # See: https://www.tutorialspoint.com/python-inserting-item-in-sorted-list-maintaining-order
         bisect.insort(self.cells, cell)
         return cell
 
-    def search(self, row_id):
+    def find_cell(self, row_id):
         for cell in self.cells:
             if cell.row_id == row_id:
                 return cell
 
-        raise CellNotFoundException(f"Could not find cell with row_id {row_id}")
-
-
-    def split(self):
-        """
-        Splits a leaf node into an interior node + children.
-        """
-        pass
+        return None
 
 
     def __len__(self):
