@@ -1,7 +1,7 @@
 # Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
-from toysql.page import PageType
+from toysql.page import PageType, LeafPageCell, InteriorPageCell
 
 class Page:
   def __init__(self, page_type=PageType.leaf):
