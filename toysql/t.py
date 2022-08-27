@@ -1,12 +1,16 @@
 # Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
+from toysql.page import PageType
 
 class Page:
-  def __init__(self, leaf=False):
-    self.leaf = leaf
+  def __init__(self, page_type=PageType.leaf):
+    self.page_type = page_type 
     self.keys = []
     self.children = []
+
+  def is_leaf(self):
+      return self.page_type == PageType.leaf
 
   def add(self, key, val):
     if key not in self.keys:
@@ -18,7 +22,7 @@ class Page:
    
 
   def find(self, key):
-    if self.leaf:
+    if self.is_leaf():
         for i, v in enumerate(self.keys):
             if key == v:
                 return self.children[i]
@@ -37,7 +41,7 @@ class Page:
     output = counter * "\t" + str(self.keys)
 
 # Recursively print the key of child pages (if these exist).
-    if not self.leaf:
+    if not self.is_leaf():
         for item in self.children:
             output += item.show(counter + 1)
     else:
@@ -55,7 +59,7 @@ class BTree():
     root: Page
 
     def __init__(self, order) -> None:
-        self.root = Page(True)
+        self.root = Page(PageType.leaf)
         self.order = order
 
     def is_full(self, page):
@@ -68,8 +72,8 @@ class BTree():
     def split(self, page):
         index = (self.order)//2
 
-        left = Page(page.leaf)
-        right = Page(page.leaf)
+        left = Page(PageType.leaf)
+        right = Page(PageType.leaf)
 
         left.keys = page.keys[:index]
         left.children = page.children[:index]
@@ -84,7 +88,7 @@ class BTree():
         child = self.root
 
         # Traverse tree until leaf page is reached.
-        while not child.leaf:
+        while not child.is_leaf():
             parent = child
             child = child.find(key)
 
@@ -109,7 +113,7 @@ class BTree():
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""
         child = self.root
-        while not child.leaf:
+        while not child.is_leaf():
             child = child.find(key)
 
         return child.find(key) 
