@@ -1,6 +1,6 @@
 from unittest import TestCase
 import random
-from toysql.t import BTree, Page
+from toysql.t import BTree, Page, PageType
 
 class TestBTree(TestCase):
     def test_btree(self):
@@ -29,9 +29,9 @@ class TestBTree(TestCase):
 
 
     def test_page(self):
-        n = Page(False)
-        left = Page(True)
-        right = Page(True)
+        n = Page(PageType.interior)
+        left = Page(PageType.leaf)
+        right = Page(PageType.leaf)
         n.keys = [16]
         n.children = [left, right] 
         x = n.find(16)
