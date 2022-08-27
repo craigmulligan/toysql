@@ -1,46 +1,44 @@
-from toysql.record import DataType
-from toysql.btree import BPlusTree 
-from toysql.page import LeafPageCell
-from toysql.exceptions import NotFoundException
-from toysql.pager import Pager
 from unittest import TestCase
-import tempfile
+import random
+from toysql.t import BTree, Page
 
 class TestBTree(TestCase):
-    def setUp(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.db_file_path = self.temp_dir.name + "/__testdb__.db"
+    def test_btree(self):
+        order = 3
+        btree = BTree(order)
+        inputs = [6, 16, 26, 36, 46]
 
-        def create_pager(page_size):
-            return Pager(self.db_file_path, page_size=page_size)
+        for n in inputs:
+            btree.add(n, f'hello-{n}')
 
-        self.create_pager = create_pager
-
-        return super().setUp()
-
-    def cleanUp(self) -> None:
-        self.temp_dir.cleanup()
+        # Basic search
+        key = 36
+        x = btree.find(key)
+        assert x == f"hello-{key}"
 
 
-    def test_root_node(self):
-        pager = self.create_pager(100)
-        page_number = pager.new()
-        tree = BPlusTree(page_number, pager)
+    def test_max(self):
+        order = 3
+        btree = BTree(order)
 
-        for n in range(3):
-            payload = [
-                [DataType.INTEGER, n],
-                [DataType.INTEGER, 124],
-                [DataType.TEXT, "Craig"],
-                [DataType.NULL, None]
-            ]
-            tree.add(payload)
+        for n in range(1000): 
+            key = random.randint(0, 1000)
+            btree.add(n, f'hello-{key}')
 
-        # get the record with
-        cell = tree.search(1)
-        assert isinstance(cell, LeafPageCell)
-        assert cell.record.row_id == 1
-        assert cell.record.values[0][1] == 1
+        btree.show()  
 
-        with self.assertRaises(NotFoundException):
-            tree.search(22)
+
+    def test_page(self):
+        n = Page(False)
+        left = Page(True)
+        right = Page(True)
+        n.keys = [16]
+        n.children = [left, right] 
+        x = n.find(16)
+        assert x == left 
+
+        x = n.find(18)
+        assert x == right
+
+        x = n.find(14)
+        assert x == left 
