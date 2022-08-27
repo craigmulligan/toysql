@@ -1,9 +1,8 @@
-from math import ceil
-# Create a node
+# Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
 
-class Node:
+class Page:
   def __init__(self, leaf=False):
     self.leaf = leaf
     self.keys = []
@@ -35,41 +34,48 @@ class Node:
 
   def show(self, counter=0):
     """Prints the keys at each level."""
-    print(counter * "\t", str(self.keys))
+    output = counter * "\t" + str(self.keys)
 
-# Recursively print the key of child nodes (if these exist).
+# Recursively print the key of child pages (if these exist).
     if not self.leaf:
         for item in self.children:
-            item.show(counter + 1)
+            output += item.show(counter + 1)
     else:
-        print(self.children)
+        pass
+        #output += "\n" + str(self.children)
+
+    return output
 
 
 
 class BTree():
-    root: Node
+    """
+        https://www.sqlite.org/fileformat.html#b_tree_pages
+    """
+    root: Page
 
     def __init__(self, order) -> None:
-        self.root = Node(True)
+        self.root = Page(True)
         self.order = order
 
-    def is_full(self, node):
-      if len(node.keys) >= self.order: 
+    def is_full(self, page):
+
+      if len(page.keys) >= self.order: 
           return True 
 
       return False 
 
-    def split(self, node):
-        index = ceil((self.order)/2)
+    def split(self, page):
+        index = (self.order)//2
 
-        left = Node(node.leaf)
-        right = Node(node.leaf)
+        left = Page(page.leaf)
+        right = Page(page.leaf)
 
-        left.keys = node.keys[:index]
-        left.children = node.children[:index]
+        left.keys = page.keys[:index]
+        left.children = page.children[:index]
         
-        right.keys = node.keys[index:]
-        right.children = node.children[index:]
+        right.keys = page.keys[index:]
+        right.children = page.children[index:]
 
         return [left, right]
 
@@ -77,7 +83,7 @@ class BTree():
         parent = None
         child = self.root
 
-        # Traverse tree until leaf node is reached.
+        # Traverse tree until leaf page is reached.
         while not child.leaf:
             parent = child
             child = child.find(key)
@@ -90,12 +96,15 @@ class BTree():
             key = left.keys[-1]
 
             if parent is None: 
-                parent = Node(False)
+                parent = Page(False)
                 self.root = parent
 
             if not self.is_full(parent):
                 parent.add(key, right)
                 parent.add(key, left)
+            else:
+                # This shouldn't ever happen.
+                raise Exception("Parent full.")
 
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""
@@ -107,4 +116,4 @@ class BTree():
 
     def show(self):
         """Prints the keys at each level."""
-        self.root.show()
+        return self.root.show()
