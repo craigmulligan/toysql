@@ -3,6 +3,7 @@
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
 from toysql.page import PageType, LeafPageCell, Cell
 from toysql.record import Record, DataType
+import math
 
 class InteriorPageCell(Cell):
     """   
@@ -36,6 +37,19 @@ class Page:
     self.cells.append(cell)
     self.cells.sort()
 
+  def merge(self, key, left, right):
+      """
+         Need to first add the left key.
+         Then bump things along if they need to be on the right page.
+      """
+      self.add(InteriorPageCell(key, left))
+      self.right_child = right
+
+      for cell in self.cells:
+          if cell.row_id > key: 
+              breakpoint()
+
+
   def find(self, key):
     if self.is_leaf():
         for cell in self.cells:
@@ -51,15 +65,18 @@ class Page:
         return self.right_child
 
 
-  def show(self, counter=0):
+  def show(self, counter):
     """Prints the keys at each level."""
     output = counter * "\t"
+    print(counter)
+    if counter == 0:
+        output += "root: "
+
     # Recursively print the key of child pages (if these exist).
     if not self.is_leaf():
         for cell in self.cells:
             output += str(cell.row_id)
             output += str(cell.left_child.show(counter + 1))
-        
         if self.right_child:
             output += self.right_child.show(counter + 1)
     else:
@@ -88,7 +105,7 @@ class BTree():
       return False 
 
     def split(self, page):
-        index = (self.order)//2
+        index = math.ceil(self.order / 2)
 
         left = Page(PageType.leaf)
         right = Page(PageType.leaf)
@@ -123,14 +140,13 @@ class BTree():
             key = left.cells[-1].row_id
 
             if parent is None: 
-                parent = Page(False)
+                parent = Page(PageType.interior)
                 self.root = parent
 
             if not self.is_full(parent):
                 parent.add(InteriorPageCell(key, left))
                 parent.right_child = right
             else:
-                # This shouldn't ever happen.
                 raise Exception("Parent full.")
 
     def find(self, key):
@@ -142,4 +158,4 @@ class BTree():
         return child.find(key)
 
     def show(self):
-        return self.root.show()
+        return self.root.show(0)
