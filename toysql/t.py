@@ -1,53 +1,71 @@
 # Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
-from toysql.page import PageType, LeafPageCell, InteriorPageCell
+from toysql.page import PageType, LeafPageCell, Cell
+from toysql.record import Record, DataType
+
+class InteriorPageCell(Cell):
+    """   
+    Table B-Tree Interior Cell (header 0x05):
+
+    A 4-byte big-endian page number which is the left child pointer.
+    A varint which is the integer key.
+    """
+    def __init__(self, row_id, left_child) -> None:
+        self.row_id = row_id
+        self.left_child = left_child
+
+    def __eq__(self, o: "InteriorPageCell") -> bool:
+        return self.row_id == o.row_id
+
 
 class Page:
-  def __init__(self, page_type=PageType.leaf):
+  def __init__(self, page_type=PageType.leaf, right_child=None):
     self.page_type = page_type 
-    self.keys = []
-    self.children = []
+    self.right_child = right_child
+    self.cells = []
 
   def is_leaf(self):
       return self.page_type == PageType.leaf
 
-  def add(self, key, val):
-    if key not in self.keys:
-        self.keys.append(key)
+  def add(self, cell):
+    for c in self.cells:
+        if c.row_id == cell.row_id:
+            raise Exception("key exists!")
 
-    self.keys.sort()
-    index = self.keys.index(key)
-    self.children.insert(index, val)
-   
+    self.cells.append(cell)
+    self.cells.sort()
 
   def find(self, key):
     if self.is_leaf():
-        for i, v in enumerate(self.keys):
-            if key == v:
-                return self.children[i]
+        for cell in self.cells:
+            if key == cell.row_id:
+                return cell.record
 
         return None 
     else:
-        for i, k in enumerate(self.keys):
-            if key <= k:
-                return self.children[i]
+        for cell in self.cells:
+            if key <= cell.row_id:
+                return cell.left_child
 
-        return self.children[-1]
+        return self.right_child
 
 
   def show(self, counter=0):
     """Prints the keys at each level."""
-    output = counter * "\t" + str(self.keys)
-
-# Recursively print the key of child pages (if these exist).
+    output = counter * "\t"
+    # Recursively print the key of child pages (if these exist).
     if not self.is_leaf():
-        for item in self.children:
-            output += item.show(counter + 1)
+        for cell in self.cells:
+            output += str(cell.row_id)
+            output += str(cell.left_child.show(counter + 1))
+        
+        if self.right_child:
+            output += self.right_child.show(counter + 1)
     else:
-        pass
-        #output += "\n" + str(self.children)
+        output += str([c.row_id for c in self.cells])
 
+    output += "\n"
     return output
 
 
@@ -64,7 +82,7 @@ class BTree():
 
     def is_full(self, page):
 
-      if len(page.keys) >= self.order: 
+      if len(page.cells) >= self.order: 
           return True 
 
       return False 
@@ -75,17 +93,21 @@ class BTree():
         left = Page(PageType.leaf)
         right = Page(PageType.leaf)
 
-        left.keys = page.keys[:index]
-        left.children = page.children[:index]
-        
-        right.keys = page.keys[index:]
-        right.children = page.children[index:]
+        left.cells = page.cells[:index]
+        right.cells = page.cells[index:]
 
         return [left, right]
+
+    def keyval_to_cell(self, key, val):
+        return LeafPageCell(Record([
+           [DataType.INTEGER, key],
+           [DataType.TEXT, val],
+        ]))
 
     def add(self, key, val):
         parent = None
         child = self.root
+        cell = self.keyval_to_cell(key, val)
 
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
@@ -93,19 +115,21 @@ class BTree():
             child = child.find(key)
 
         if not self.is_full(child):
-            child.add(key, val)
+            child.add(cell)
         else:
-            child.add(key, val)
+            self.show()
+            # TODO dont want to add it to full page here..
+            child.add(cell)
             [left, right] = self.split(child)
-            key = left.keys[-1]
+            key = left.cells[-1].row_id
 
             if parent is None: 
                 parent = Page(False)
                 self.root = parent
 
             if not self.is_full(parent):
-                parent.add(key, right)
-                parent.add(key, left)
+                parent.add(InteriorPageCell(key, left))
+                parent.right_child = right
             else:
                 # This shouldn't ever happen.
                 raise Exception("Parent full.")
@@ -116,8 +140,7 @@ class BTree():
         while not child.is_leaf():
             child = child.find(key)
 
-        return child.find(key) 
+        return child.find(key)
 
     def show(self):
-        """Prints the keys at each level."""
         return self.root.show()
