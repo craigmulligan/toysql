@@ -16,18 +16,18 @@ class TestBTree(TestCase):
         key = 36
         x = btree.find(key)
         assert x.values[1][1] == f"hello-{key}"
-        assert False
 
 
     def test_max(self):
         order = 3
         btree = BTree(order)
 
-        for n in range(1000): 
-            key = random.randint(0, 1000)
-            btree.add(n, f'hello-{key}')
+        for n in range(10): 
+            key = random.randint(0, 100)
+            btree.add(key, f'hello-{key}')
 
-        btree.show()  
+        print(btree.show())
+        assert False 
 
 
     def test_page(self):
