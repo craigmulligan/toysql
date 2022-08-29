@@ -117,7 +117,6 @@ class BTree():
         if not self.is_full(child):
             child.add(cell)
         else:
-            self.show()
             # TODO dont want to add it to full page here..
             child.add(cell)
             [left, right] = self.split(child)
