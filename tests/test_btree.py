@@ -32,3 +32,6 @@ class TestBTree(TestCase):
         key = random.choice(keys)
         x = btree.find(key)
         assert x.values[1][1] == f"hello-{key}"
+
+        print(btree.show())
+        assert False
