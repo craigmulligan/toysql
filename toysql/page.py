@@ -150,7 +150,7 @@ class Page:
         return ",".join(cell_ids)
 
 
-    def show(self, counter):
+    def show(self, counter, read_page):
         """Prints the keys at each level."""
         output = counter * "\t" 
 
@@ -159,9 +159,9 @@ class Page:
             output += "\n"
             counter += 1 
             for cell in self.cells:
-                output += cell.left_child.show(counter)
+                output += read_page(cell.left_child_page_number).show(counter, read_page)
             
-            output += self.right_child.show(counter)
+            output += read_page(self.right_page_number).show(counter, read_page)
 
         else:
             # Green is the leaf values
