@@ -79,14 +79,14 @@ class Page:
         output += str(self)
         for cell in self.cells:
             output += cell.left_child.show(counter + 1)
-            output += self.right_child.show(counter + 1)
+        
+        output += self.right_child.show(counter + 1)
+
     else:
-        output += "\n"
-        for cell in self.cells:
-            output += str(self) 
-
+        output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
+        
+    output += "\n"
     return output
-
 
 
 class BTree():
@@ -167,10 +167,14 @@ class BTree():
             # Now add left and right to parent
             parent = [<a> 19, <left> 20, <right> 22, <b> 46, <c>]
         """
+        index = self.order // 2
 
- 
-        left = self.__split(page)
-        key = left.cells[-1].row_id
+        left = Page(PageType.interior)
+        left.cells = page.cells[:index]
+        page.cells = page.cells[index:]
+        middle = page.cells.pop(0)
+        left.right_child = middle.left_child 
+        key = middle.row_id
 
         parent = page.parent
         if parent is None:
@@ -182,7 +186,6 @@ class BTree():
 
         if self.is_full(parent):
             self._split_internal(parent)
-
 
     def keyval_to_cell(self, key, val):
         return LeafPageCell(Record([
