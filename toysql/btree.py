@@ -35,9 +35,10 @@ class BTree():
     """
     root: Page
 
-    def __init__(self, order) -> None:
+    def __init__(self, order, pager) -> None:
         self.root = Page(PageType.leaf)
         self.order = order
+        self.pager = pager
 
     def is_full(self, page):
       if len(page.cells) >= self.order: 
