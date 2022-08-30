@@ -35,40 +35,13 @@ class Page:
   def is_leaf(self):
       return self.page_type == PageType.leaf
 
-
   def add(self, cell):
-    if self.is_leaf():
-        for c in self.cells:
-            if c.row_id == cell.row_id:
-                raise Exception("key exists!")
+    for c in self.cells:
+        if c.row_id == cell.row_id:
+            raise Exception("key exists!")
 
-        self.cells.append(cell)
-        self.cells.sort()
-    else:
-        # TODO I don't think we should
-        # Need to handle dupe keys for internal pages
-        # might be an issue with page merging.
-        for i, c in enumerate(self.cells):
-            if c.row_id == cell.row_id:
-               del self.cells[i]
-        
-        self.cells.append(cell)
-        self.cells.sort()
-
-
-  def find(self, key):
-    if self.is_leaf():
-        for cell in self.cells:
-            if key == cell.row_id:
-                return cell.record
-
-        return None 
-    else:
-        for cell in self.cells:
-            if key < cell.row_id:
-                return cell.left_child
-
-        return self.right_child
+    self.cells.append(cell)
+    self.cells.sort()
 
 
   def show(self, counter):
@@ -119,13 +92,20 @@ class BTree():
       return False 
 
     def _split_leaf(self, page):
+        """
+            Given a full leaf page.
+            1. Splits it into two leaf pages.
+            2. If there is no parent it creates a new InteriorPage.
+            3. It then takes the left most key of the right split page.
+            4. Inserts that key into the parent.
+            5. If the parent is full it splits that. 
+        """
         index = self.order // 2
         left = Page(PageType.leaf)
 
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
         key = page.cells[0].row_id
-
 
         parent = page.parent
         if parent is None: 
@@ -138,43 +118,21 @@ class BTree():
         if self.is_full(parent):
             self._split_internal(parent)
 
-    def __split(self, page):
-        """
-        before:
-        keys = [1, 7, 9]
-        children = [a, b, c, d]
-
-        left = [1]
-        right = [9]
-        """
-        index = math.ceil(self.order / 2)
-
-        left = Page(PageType.interior)
-        left.cells = page.cells[:index]
-        left.right_child = left.cells.pop()
-
-        page.cells = page.cells[index:]
-        return left
-
     def _split_internal(self, page):
         """
-            Letters are pointers, numbers are keys:
+           Given a full InteriorPage 
 
-            parent = [<a> 19, <b> 46, <c>]
-            page = [<d> 20, <e> 31, <f> 22, <g>]
-            
-            # Now split the page:
-            left = [<d> 20, <e>]
-            right = [<f> 22, <g>]
-
-            # Now add left and right to parent
-            parent = [<a> 19, <left> 20, <right> 22, <b> 46, <c>]
+           1. Splits the page in half
+           2. Takes the left most cell of the right page (middle cell)
+           3. It makes the left_page.right_child = middle_cell.left_child 
+           4. It adds the middle_cell.row_id to the parent which points the the left child.
         """
         index = self.order // 2
 
         left = Page(PageType.interior)
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
+
         middle = page.cells.pop(0)
         left.right_child = middle.left_child 
         key = middle.row_id
@@ -213,7 +171,7 @@ class BTree():
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
             parent = child
-            child = child.find(key)
+            child = self.find_in_interior(key, child)
             child.parent = parent
 
         child.add(cell)
@@ -221,13 +179,27 @@ class BTree():
         if self.is_full(child):
             self._split_leaf(child)
 
+
+    def find_in_leaf(self, key, page):
+        for cell in page.cells:
+            if key == cell.row_id:
+                return cell.record
+
+        return None 
+
+    def find_in_interior(self, key, page):
+        for cell in page.cells:
+            if key < cell.row_id:
+                return cell.left_child
+        return page.right_child
+
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""
         child = self.root
         while not child.is_leaf():
-            child = child.find(key)
+            child = self.find_in_interior(key, child)
 
-        return child.find(key)
+        return self.find_in_leaf(key, child)
 
     def show(self):
         return self.root.show(0)
