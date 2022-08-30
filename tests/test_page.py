@@ -43,7 +43,7 @@ class TestPage(TestCase):
         cells = []
         page_number = 1
 
-        leaf_page = Page(page_number, PageType.leaf)
+        leaf_page = Page(PageType.leaf, page_number)
 
         for n in range(3):
             payload = [
@@ -67,7 +67,7 @@ class TestPage(TestCase):
         cells = []
         page_number = 1
 
-        interior_page = Page(page_number, PageType.interior)
+        interior_page = Page(PageType.interior, page_number)
 
         for n in range(3):
             cells.append(interior_page.add(n, n+1))
@@ -99,7 +99,7 @@ class TestPage(TestCase):
 
 
     def test_page_order(self):
-        leaf_page = Page(1, PageType.leaf)
+        leaf_page = Page(PageType.leaf)
         cells = []
 
         # Add cells in reverse order by PK
@@ -116,7 +116,7 @@ class TestPage(TestCase):
         assert sorted(cells) == leaf_page.cells 
                 
     def test_duplicate_row_id(self):
-        leaf_page = Page(1, PageType.leaf)
+        leaf_page = Page(PageType.leaf, 1)
         payload = [
             [DataType.INTEGER, 3],
         ]

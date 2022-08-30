@@ -1,9 +1,8 @@
 # Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
-from toysql.page import PageType, LeafPageCell, Cell
+from toysql.page import PageType, LeafPageCell, Cell, Page
 from toysql.record import Record, DataType
-import math
 
 class InteriorPageCell(Cell):
     """   
@@ -18,51 +17,6 @@ class InteriorPageCell(Cell):
 
     def __eq__(self, o: "InteriorPageCell") -> bool:
         return self.row_id == o.row_id
-
-
-class Page:
-  def __init__(self, page_type=PageType.leaf, right_child=None):
-    self.parent = None
-    self.page_type = page_type 
-    self.right_child = right_child
-    self.cells = []
-
-  def __repr__(self):
-    cell_ids = [str(cell.row_id) for cell in self.cells]
-
-    return ",".join(cell_ids)
-
-  def is_leaf(self):
-      return self.page_type == PageType.leaf
-
-  def add(self, cell):
-    for c in self.cells:
-        if c.row_id == cell.row_id:
-            raise Exception("key exists!")
-
-    self.cells.append(cell)
-    self.cells.sort()
-
-
-  def show(self, counter):
-    """Prints the keys at each level."""
-    output = counter * "\t" 
-
-    if not self.is_leaf():
-        output += str(self)
-        output += "\n"
-        counter += 1 
-        for cell in self.cells:
-            output += cell.left_child.show(counter)
-        
-        output += self.right_child.show(counter)
-
-    else:
-        # Green is the leaf values
-        output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
-        
-    output += "\n"
-    return output
 
 
 class BTree():
@@ -113,7 +67,7 @@ class BTree():
            self.root = parent
            self.root.right_child = page 
 
-        parent.add(InteriorPageCell(key, left))
+        parent.add_cell(InteriorPageCell(key, left))
 
         if self.is_full(parent):
             self._split_internal(parent)
@@ -143,7 +97,7 @@ class BTree():
            self.root = parent
            self.root.right_child = page
 
-        parent.add(InteriorPageCell(key, left))
+        parent.add_cell(InteriorPageCell(key, left))
 
         if self.is_full(parent):
             self._split_internal(parent)
@@ -174,7 +128,7 @@ class BTree():
             child = self.find_in_interior(key, child)
             child.parent = parent
 
-        child.add(cell)
+        child.add_cell(cell)
 
         if self.is_full(child):
             self._split_leaf(child)
