@@ -77,12 +77,15 @@ class Page:
 
     if not self.is_leaf():
         output += str(self)
+        output += "\n"
+        counter += 1 
         for cell in self.cells:
-            output += cell.left_child.show(counter + 1)
+            output += cell.left_child.show(counter)
         
-        output += self.right_child.show(counter + 1)
+        output += self.right_child.show(counter)
 
     else:
+        # Green is the leaf values
         output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
         
     output += "\n"
