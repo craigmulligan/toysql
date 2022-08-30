@@ -47,7 +47,6 @@ class TestBTree(TestCase):
             btree.add(key, f'hello-{key}')
         
         print(btree.show())
-        # key = random.choice(keys)
-        key = 94
+        key = random.choice(keys)
         x = btree.find(key)
         assert x.values[1][1] == f"hello-{key}"
