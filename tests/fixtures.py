@@ -1,8 +1,5 @@
 from unittest import TestCase
 from toysql.vm import VM
-from toysql.table import Table
-import toysql.datatypes as datatypes
-from toysql.constants import USERNAME_SIZE, EMAIL_SIZE
 import tempfile
 
 
