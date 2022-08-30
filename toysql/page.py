@@ -136,13 +136,42 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
-    def __init__(self, page_number, page_type, cells=None, right_page_number=None) -> None:
-        self.page_number = page_number
+    def __init__(self, page_type, page_number=None, cells=None, right_page_number=None) -> None:
         self.page_type = PageType(page_type)
+        self.page_number = page_number
         self.cells = cells or []
 
+        self.parent = None
         # Only for Interior Pages
         self.right_page_number = right_page_number 
+
+    def __repr__(self):
+        cell_ids = [str(cell.row_id) for cell in self.cells]
+        return ",".join(cell_ids)
+
+
+    def show(self, counter):
+        """Prints the keys at each level."""
+        output = counter * "\t" 
+
+        if not self.is_leaf():
+            output += str(self)
+            output += "\n"
+            counter += 1 
+            for cell in self.cells:
+                output += cell.left_child.show(counter)
+            
+            output += self.right_child.show(counter)
+
+        else:
+            # Green is the leaf values
+            output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
+            
+        output += "\n"
+        return output
+
+    def is_leaf(self):
+      return self.page_type == PageType.leaf
 
     def add(self, *args, **kwargs):
         """
@@ -158,15 +187,6 @@ class Page:
             cell = InteriorPageCell(*args, **kwargs)
             self.add_cell(cell)
             return cell
-
-    def split_cells(self):
-        """Split the cells in half.
-        Keep the lower part in the node and return the upper one.
-        """
-        len_cells = len(self.cells)
-        rv = self.cells[len_cells//2:]
-        self.cells = self.cells[:len_cells//2]
-        return rv
 
     def add_cell(self, cell):
         """
@@ -295,4 +315,4 @@ class Page:
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
 
-        return Page(page_number, page_type, cells=cells, right_page_number=right_page_number)
+        return Page(page_type, page_number, cells=cells, right_page_number=right_page_number)
