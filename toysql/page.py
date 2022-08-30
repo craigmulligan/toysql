@@ -29,10 +29,6 @@ class Cell:
     def to_bytes(self):
         return b"" 
 
-    def __repr__(self) -> str:
-        return str(self.row_id)
-
-
     def __lt__(self, other):
          return self.row_id < other.row_id
 
