@@ -1,6 +1,6 @@
 from snapshottest import TestCase
 import random
-from toysql.t import BTree, Page, PageType, InteriorPageCell, LeafPageCell
+from toysql.t import BTree
 
 class TestBTree(TestCase):
     def test_btree(self):
@@ -26,9 +26,10 @@ class TestBTree(TestCase):
         keys = [n for n in range(100)]
         random.shuffle(keys)
 
+        # insert in random order.
         for key in keys: 
             btree.add(key, f'hello-{key}')
         
-        key = random.choice(keys)
-        x = btree.find(key)
-        assert x.values[1][1] == f"hello-{key}"
+        for key in keys:
+            x = btree.find(key)
+            assert x.values[1][1] == f"hello-{key}"
