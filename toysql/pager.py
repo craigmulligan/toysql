@@ -40,10 +40,6 @@ class Pager:
 
         return page
 
-    def read_page(self, page_number: PageNumber) -> Page:
-        raw_bytes = self.read(page_number)
-        return Page.from_bytes(raw_bytes)
-
     def write(self, page_number: PageNumber, page: Pageb):
         self.f.seek(page_number * self.page_size)
         self.f.write(page)

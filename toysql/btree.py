@@ -1,22 +1,22 @@
 # Create a page
 # https://www.programiz.com/dsa/b-plus-tree
 # https://gist.github.com/savarin/69acd246302567395f65ad6b97ee503d
-from toysql.page import PageType, LeafPageCell, Cell, Page
+from toysql.page import PageType, LeafPageCell, Cell, Page, InteriorPageCell
 from toysql.record import Record, DataType
 
-class InteriorPageCell(Cell):
-    """   
-    Table B-Tree Interior Cell (header 0x05):
+# class InteriorPageCell(Cell):
+#     """   
+#     Table B-Tree Interior Cell (header 0x05):
 
-    A 4-byte big-endian page number which is the left child pointer.
-    A varint which is the integer key.
-    """
-    def __init__(self, row_id, left_child) -> None:
-        self.row_id = row_id
-        self.left_child = left_child
+#     A 4-byte big-endian page number which is the left child pointer.
+#     A varint which is the integer key.
+#     """
+#     def __init__(self, row_id, left_child) -> None:
+#         self.row_id = row_id
+#         self.left_child = left_child
 
-    def __eq__(self, o: "InteriorPageCell") -> bool:
-        return self.row_id == o.row_id
+#     def __eq__(self, o: "InteriorPageCell") -> bool:
+#         return self.row_id == o.row_id
 
 
 class BTree():
@@ -36,9 +36,20 @@ class BTree():
     root: Page
 
     def __init__(self, order, pager) -> None:
-        self.root = Page(PageType.leaf)
         self.order = order
         self.pager = pager
+        self.root = self.new_page(PageType.leaf)
+
+    def read_page(self, page_number: int) -> Page:
+        raw_bytes = self.pager.read(page_number)
+        return Page.from_bytes(raw_bytes)
+
+    def write_page(self, page):
+        self.pager.write(page.page_number, page.to_bytes())
+
+    def new_page(self, page_type) -> Page:
+        page_number = self.pager.new() 
+        return Page(page_type, page_number)
 
     def is_full(self, page):
       if len(page.cells) >= self.order: 
@@ -56,24 +67,28 @@ class BTree():
             5. If the parent is full it splits that. 
         """
         index = self.order // 2
-        left = Page(PageType.leaf)
+        left = self.new_page(PageType.leaf)
 
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
         key = page.cells[0].row_id
 
         parent = page.parent
-        if parent is None: 
-           parent = Page(PageType.interior)
+        if parent is None:
+           parent = self.new_page(PageType.interior)
            self.root = parent
-           self.root.right_child = page 
+           self.root.right_page_number = page.page_number
 
-        parent.add_cell(InteriorPageCell(key, left))
+        parent.add_cell(InteriorPageCell(key, left.page_number))
+
+        for p in [left, page, parent]:
+            self.write_page(p)
 
         if self.is_full(parent):
             self._split_internal(parent)
 
-    def _split_internal(self, page):
+
+    def _split_internal(self, page: Page):
         """
            Given a full InteriorPage 
 
@@ -84,21 +99,25 @@ class BTree():
         """
         index = self.order // 2
 
-        left = Page(PageType.interior)
+        left = self.new_page(PageType.interior)
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
 
         middle = page.cells.pop(0)
-        left.right_child = middle.left_child 
+        middle_page = self.read_page(middle.left_child_page_number)
+        left.right_page_number = middle_page.page_number
         key = middle.row_id
 
         parent = page.parent
         if parent is None:
-           parent = Page(PageType.interior)
+           parent = self.new_page(PageType.interior)
            self.root = parent
-           self.root.right_child = page
+           self.root.right_page_number = page.page_number
 
-        parent.add_cell(InteriorPageCell(key, left))
+        parent.add_cell(InteriorPageCell(key, left.page_number))
+
+        for p in [left, page, parent]:
+            self.write_page(p)
 
         if self.is_full(parent):
             self._split_internal(parent)
@@ -125,7 +144,6 @@ class BTree():
 
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
-            parent = child
             child = self.find_in_interior(key, child)
             child.parent = parent
 
@@ -133,20 +151,14 @@ class BTree():
 
         if self.is_full(child):
             self._split_leaf(child)
+        else:
+            self.write_page(child)
 
-
-    def find_in_leaf(self, key, page):
-        for cell in page.cells:
-            if key == cell.row_id:
-                return cell.record
-
-        return None 
-
-    def find_in_interior(self, key, page):
+    def find_in_interior(self, key, page: Page) -> Page:
         for cell in page.cells:
             if key < cell.row_id:
-                return cell.left_child
-        return page.right_child
+                return self.read_page(cell.left_child_page_number)
+        return self.read_page(page.right_page_number)
 
     def find(self, key):
         """Returns a value for a given key, and None if the key does not exist."""
@@ -154,7 +166,12 @@ class BTree():
         while not child.is_leaf():
             child = self.find_in_interior(key, child)
 
-        return self.find_in_leaf(key, child)
+        if child is None:
+            return child 
+
+        cell = child.find_cell(key)
+        if cell:
+            return cell.record
 
     def show(self):
-        return self.root.show(0)
+        return self.root.show(0, self.read_page)
