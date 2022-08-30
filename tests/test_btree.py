@@ -1,6 +1,6 @@
 from snapshottest import TestCase
 import random
-from toysql.t import BTree
+from toysql.btree import BTree
 
 class TestBTree(TestCase):
     def test_btree(self):
