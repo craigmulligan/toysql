@@ -26,7 +26,7 @@ class TestBTree(TestCase):
             btree.add(n, f'hello-{n}')
 
         # self.assertMatchSnapshot(btree.show())       
-        print(btree.show())
+        # print(btree.show())
         
         for key in inputs:
             record = btree.find(key)

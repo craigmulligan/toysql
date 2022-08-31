@@ -45,61 +45,42 @@ class TestPage(TestCase):
 
         leaf_page = Page(PageType.leaf, page_number)
 
-        for n in range(3):
+        for n in range(3, 1, -1):
             payload = [
                 [DataType.INTEGER, n],
                 [DataType.INTEGER, 124],
                 [DataType.TEXT, "Craig"],
                 [DataType.NULL, None]
             ]
-            cells.append(leaf_page.add(payload))
+            leaf_page.add_cell(LeafPageCell(Record(payload)))
 
         raw_bytes = leaf_page.to_bytes()
-        new_leaf_page = Page.from_bytes(raw_bytes) 
+        new_leaf_page = Page.from_bytes(raw_bytes)
         assert new_leaf_page.page_number == page_number
         assert new_leaf_page.page_type == PageType.leaf
-        assert len(new_leaf_page.cells) == len(cells)
+        assert len(new_leaf_page.cells) == len(leaf_page.cells)
 
         for i, cell in enumerate(new_leaf_page.cells):
-            assert cell == cells[i] 
+            assert cell == leaf_page.cells[i] 
 
-    def test_interior_page_cell(self):
+    def test_interior_page(self):
+        """
+        Bug where only adding one cell caused issues.
+        """
+        interior_page = Page(PageType.interior, 2, right_page_number=3)
         cells = []
-        page_number = 1
 
-        interior_page = Page(PageType.interior, page_number)
+        for n in [5, 3, 1]:
+            interior_page.add_cell(InteriorPageCell(n, n+1))
 
-        for n in range(3):
-            cells.append(interior_page.add(n, n+1))
-
-        assert len(interior_page.cells) == 3
         raw_bytes = interior_page.to_bytes()
         new_interior_page = Page.from_bytes(raw_bytes) 
-
-        assert new_interior_page.page_number == page_number
-        assert new_interior_page.page_type == PageType.interior
-        assert len(new_interior_page.cells) == len(cells)
-
+        
         for i, cell in enumerate(new_interior_page.cells):
-            assert cell == cells[i] 
-
-
-    # def test_page_full(self):
-    #     leaf_page = Page(1, PageType.leaf)
-
-    #     with self.assertRaises(PageFullException):
-    #         for n in range(242):
-    #             payload = [
-    #                 [DataType.INTEGER, n],
-    #                 [DataType.INTEGER, 124],
-    #                 [DataType.TEXT, "Craig"],
-    #                 [DataType.NULL, None]
-    #             ]
-    #             leaf_page.add(payload)
-
-
+            assert cell == interior_page.cells[i] 
+        
     def test_page_order(self):
-        leaf_page = Page(PageType.leaf)
+        leaf_page = Page(PageType.leaf, 0)
         cells = []
 
         # Add cells in reverse order by PK
@@ -112,7 +93,6 @@ class TestPage(TestCase):
             ]
             cells.append(leaf_page.add(payload))
         
-        # leaf_page.cells.reverse()
         assert sorted(cells) == leaf_page.cells 
                 
     def test_duplicate_row_id(self):
@@ -121,7 +101,6 @@ class TestPage(TestCase):
             [DataType.INTEGER, 3],
         ]
             
-        # Should work fine.
         leaf_page.add(payload)
         
         with self.assertRaises(DuplicateKeyException):
