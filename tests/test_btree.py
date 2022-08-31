@@ -14,7 +14,7 @@ class TestBTree(TestCase):
     def cleanUp(self) -> None:
         self.temp_dir.cleanup()
 
-    def test_btree_x(self):
+    def test_btree(self):
         """
         Given and ordered set of data 
         Ensure the tree is the same.
@@ -25,8 +25,7 @@ class TestBTree(TestCase):
         for n in inputs:
             btree.add(n, f'hello-{n}')
 
-        #self.assertMatchSnapshot(btree.show())       
-        print(btree.show())
+        self.assertMatchSnapshot(btree.show())       
         
         for key in inputs:
             record = btree.find(key)
