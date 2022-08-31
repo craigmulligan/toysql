@@ -163,6 +163,7 @@ class Page:
             output += read_page(self.right_page_number).show(counter, read_page)
 
         else:
+            output += f"page_number: {self.page_number}"
             # Green is the leaf values
             output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
             
@@ -266,7 +267,7 @@ class Page:
         buff.write(FixedInteger.to_bytes(2, cell_content_offset))
 
         if self.page_type == PageType.interior:
-            buff.write(FixedInteger.to_bytes(4, 0))
+            buff.write(FixedInteger.to_bytes(4, self.right_page_number))
 
         # Right after the header we add the cell_offsets
         buff.write(cell_offsets)
@@ -296,7 +297,7 @@ class Page:
 
         right_page_number = None
 
-        # This is the right most pointer. All the other pointers 
+        # This is the right most child pointer. All the other pointers 
         # are in an InteriorPageCell[key, pointer] but the right most 
         # one is stored seperately.
         if page_type == PageType.interior:

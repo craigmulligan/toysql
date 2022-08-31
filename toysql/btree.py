@@ -104,9 +104,7 @@ class BTree():
         page.cells = page.cells[index:]
 
         middle = page.cells.pop(0)
-        middle_page = self.read_page(middle.left_child_page_number)
-        left.right_page_number = middle_page.page_number
-        key = middle.row_id
+        left.right_page_number = middle.left_child_page_number
 
         parent = page.parent
         if parent is None:
@@ -114,7 +112,7 @@ class BTree():
            self.root = parent
            self.root.right_page_number = page.page_number
 
-        parent.add_cell(InteriorPageCell(key, left.page_number))
+        parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
 
         for p in [left, page, parent]:
             self.write_page(p)
