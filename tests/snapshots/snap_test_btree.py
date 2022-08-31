@@ -18,9 +18,3 @@ snapshots['TestBTree::test_btree 1'] = '''25
 
 
 '''
-
-snapshots['TestBTree::test_btree_x 1'] = '''15
-\t\x1b[1;32m \x1b[0m
-\t\x1b[1;32m \x1b[0m
-
-'''

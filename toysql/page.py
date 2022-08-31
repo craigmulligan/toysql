@@ -163,7 +163,6 @@ class Page:
             output += read_page(self.right_page_number).show(counter, read_page)
 
         else:
-            output += f"page_number: {self.page_number}"
             # Green is the leaf values
             output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
             
