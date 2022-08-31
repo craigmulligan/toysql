@@ -104,11 +104,7 @@ class InteriorPageCell(Cell):
 
     def to_bytes(self):
         buff = io.BytesIO()
-        left_child_page_number = 0
-        if self.left_child_page_number:
-            left_child_page_number = self.left_child_page_number
-
-        page_number = FixedInteger.to_bytes(4, left_child_page_number)
+        page_number = FixedInteger.to_bytes(4, self.left_child_page_number)
         row_id = Integer(self.row_id).to_bytes()
 
         buff.write(page_number)
@@ -136,7 +132,7 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
-    def __init__(self, page_type, page_number=None, cells=None, right_page_number=None) -> None:
+    def __init__(self, page_type, page_number, cells=None, right_page_number=None) -> None:
         self.page_type = PageType(page_type)
         self.page_number = page_number
         self.cells = cells or []
@@ -159,7 +155,10 @@ class Page:
             output += "\n"
             counter += 1 
             for cell in self.cells:
-                output += read_page(cell.left_child_page_number).show(counter, read_page)
+                try:
+                    output += read_page(cell.left_child_page_number).show(counter, read_page)
+                except:
+                    breakpoint()
             
             output += read_page(self.right_page_number).show(counter, read_page)
 
@@ -233,6 +232,8 @@ class Page:
         for cell in self.cells:
             cell_bytes = cell.to_bytes()
             # Add offset for each cell from the cell Content area.
+            # TODO this isn't a true offset. But it makes it easy to read 
+            # All of them.
             offset = FixedInteger.to_bytes(2, len(cell_bytes))
             cell_offsets += offset
             cell_data += cell_bytes
@@ -248,10 +249,12 @@ class Page:
 
         cell_content_offset = len(cell_data)
 
-        buff.seek(cell_content_offset)
+        # Seek negative offset of cell_content area.
+        buff.seek(-cell_content_offset, 2)
         buff.write(cell_data)
 
         buff.seek(0)
+        # Header 
         buff.write(FixedInteger.to_bytes(1, self.page_number))
         # Header type.
         buff.write(FixedInteger.to_bytes(1, self.page_type.value))
@@ -261,7 +264,7 @@ class Page:
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset 
         buff.write(FixedInteger.to_bytes(2, cell_content_offset))
-        # Right most cell pointer (Not implemented)
+
         if self.page_type == PageType.interior:
             buff.write(FixedInteger.to_bytes(4, 0))
 
@@ -308,7 +311,7 @@ class Page:
             cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
 
         # Now read cells
-        buffer.seek(cell_content_offset)
+        buffer.seek(-cell_content_offset, 2)
 
         for offset in cell_offsets:
             cell_content = buffer.read(offset) 

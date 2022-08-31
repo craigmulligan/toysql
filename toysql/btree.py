@@ -144,6 +144,7 @@ class BTree():
 
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
+            parent = child 
             child = self.find_in_interior(key, child)
             child.parent = parent
 
