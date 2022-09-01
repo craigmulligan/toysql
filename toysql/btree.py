@@ -162,6 +162,10 @@ class BTree:
         yield self.read_page(page.right_child_page_number)
 
     def scan(self):
+        if self.root.is_leaf():
+            for cell in self.root.cells:
+                yield cell.record
+
         return self._scan(self.root)
 
     def _scan(self, parent):
