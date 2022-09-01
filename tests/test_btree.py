@@ -25,7 +25,7 @@ class TestBTree(TestCase):
         Given and ordered set of data 
         Ensure the tree is the same.
         """
-        btree = BTree(3, self.pager)
+        btree = BTree(3, self.pager, self.pager.new())
         inputs = [5, 15, 25, 35, 45]
 
         for n in inputs:
@@ -39,7 +39,7 @@ class TestBTree(TestCase):
             assert record.row_id == key
 
     def test_random(self):
-        btree = BTree(3, self.pager)
+        btree = BTree(3, self.pager, self.pager.new())
 
         keys = [n for n in range(100)]
         random.shuffle(keys)
@@ -57,7 +57,7 @@ class TestBTree(TestCase):
         """
         Asserts we can get all the values in leaf nodes.
         """
-        btree = BTree(3, self.pager)
+        btree = BTree(3, self.pager, self.pager.new())
         inputs = [45, 15, 5, 35, 25]
 
         for n in inputs:
@@ -71,7 +71,8 @@ class TestBTree(TestCase):
 
 
     def test_from_disk(self):
-        btree = BTree(3, self.pager)
+        page_number = self.pager.new()
+        btree = BTree(3, self.pager, page_number)
 
         keys = [n for n in range(100)]
         # insert in random order.
@@ -80,7 +81,7 @@ class TestBTree(TestCase):
         for n in keys: 
             btree.insert(self.create_record(n, f'hello-{n}'))
 
-        loaded_tree = BTree(3, self.pager)
+        loaded_tree = BTree(3, self.pager, page_number)
 
         # Check we can search all keys.
         for key in keys:
