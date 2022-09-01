@@ -30,7 +30,7 @@ class TestBTree(TestCase):
         for key in inputs:
             record = btree.find(key)
             assert record
-            assert record.values[1][1] == f"hello-{key}"
+            assert record.row_id == key
 
     def test_random(self):
         btree = BTree(3, self.pager)
@@ -45,4 +45,20 @@ class TestBTree(TestCase):
         for key in keys:
             record = btree.find(key)
             assert record
-            assert record.values[1][1] == f"hello-{key}"
+            assert record.row_id == key
+
+    def test_traverse(self):
+        """
+        Asserts we can get all the values in leaf nodes.
+        """
+        btree = BTree(3, self.pager)
+        inputs = [45, 15, 5, 35, 25]
+
+        for n in inputs:
+            btree.add(n, f'hello-{n}')
+
+        # sort inputs because thats
+        # the order we expect them out of scan.
+        inputs.sort()
+        for i, record in enumerate(btree.scan()):
+            assert record.row_id == inputs[i]
