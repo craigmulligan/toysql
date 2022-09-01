@@ -157,3 +157,25 @@ class BTree():
 
     def show(self):
         return self.root.show(0, self.read_page)
+
+    def child_pages(self, page):
+        for cell in page.cells:
+            yield self.read_page(cell.left_child_page_number)
+
+        yield self.read_page(page.right_child_page_number)
+
+    def scan(self):
+        return self._scan(self.root)
+
+    def _scan(self, parent):
+        """
+        _scan will recursively traverse
+        to leaft pages. yielding each record 
+        in that leaf page.
+        """
+        for child in self.child_pages(parent):
+            if child.is_leaf():
+                for cell in child.cells:
+                    yield cell.record
+            else:
+                yield from self._all(child)
