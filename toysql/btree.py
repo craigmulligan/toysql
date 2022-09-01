@@ -18,10 +18,10 @@ class BTree():
     """
     root: Page
 
-    def __init__(self, order, pager) -> None:
+    def __init__(self, order, pager, root_page_number) -> None:
         self.order = order
         self.pager = pager
-        self.root = self.new_page(PageType.leaf)
+        self.root = self.read_page(root_page_number)
 
     def read_page(self, page_number: int) -> Page:
         raw_bytes = self.pager.read(page_number)
