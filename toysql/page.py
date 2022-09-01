@@ -132,14 +132,14 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
-    def __init__(self, page_type, page_number, cells=None, right_page_number=None) -> None:
+    def __init__(self, page_type, page_number, cells=None, right_child_page_number=None) -> None:
         self.page_type = PageType(page_type)
         self.page_number = page_number
         self.cells = cells or []
 
         self.parent = None
         # Only for Interior Pages
-        self.right_page_number = right_page_number 
+        self.right_child_page_number = right_child_page_number 
 
     def __repr__(self):
         cell_ids = [str(cell.row_id) for cell in self.cells]
@@ -160,7 +160,7 @@ class Page:
                 except:
                     breakpoint()
             
-            output += read_page(self.right_page_number).show(counter, read_page)
+            output += read_page(self.right_child_page_number).show(counter, read_page)
 
         else:
             # Green is the leaf values
@@ -266,7 +266,7 @@ class Page:
         buff.write(FixedInteger.to_bytes(2, cell_content_offset))
 
         if self.page_type == PageType.interior:
-            buff.write(FixedInteger.to_bytes(4, self.right_page_number))
+            buff.write(FixedInteger.to_bytes(4, self.right_child_page_number))
 
         # Right after the header we add the cell_offsets
         buff.write(cell_offsets)
@@ -294,13 +294,13 @@ class Page:
         number_of_cells = FixedInteger.from_bytes(buffer.read(2))
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
 
-        right_page_number = None
+        right_child_page_number = None
 
         # This is the right most child pointer. All the other pointers 
         # are in an InteriorPageCell[key, pointer] but the right most 
         # one is stored seperately.
         if page_type == PageType.interior:
-            right_page_number = FixedInteger.from_bytes(buffer.read(4))
+            right_child_page_number = FixedInteger.from_bytes(buffer.read(4))
 
         cells = []
 
@@ -318,4 +318,4 @@ class Page:
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
 
-        return Page(page_type, page_number, cells=cells, right_page_number=right_page_number)
+        return Page(page_type, page_number, cells=cells, right_child_page_number=right_child_page_number)
