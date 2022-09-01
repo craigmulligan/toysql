@@ -62,3 +62,22 @@ class TestBTree(TestCase):
         inputs.sort()
         for i, record in enumerate(btree.scan()):
             assert record.row_id == inputs[i]
+
+
+    def test_from_disk(self):
+        btree = BTree(3, self.pager)
+
+        keys = [n for n in range(100)]
+        # insert in random order.
+        random.shuffle(keys)
+
+        for key in keys: 
+            btree.add(key, f'hello-{key}')
+
+        loaded_tree = BTree(3, self.pager)
+
+        # Check we can search all keys.
+        for key in keys:
+            record = btree.find(key)
+            assert record
+            assert record.row_id == key
