@@ -132,6 +132,7 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
+    parent: Optional["Page"]
     def __init__(self, page_type, page_number, cells=None, right_child_page_number=None) -> None:
         self.page_type = PageType(page_type)
         self.page_number = page_number

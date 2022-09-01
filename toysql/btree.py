@@ -1,5 +1,6 @@
 from toysql.page import PageType, LeafPageCell, Cell, Page, InteriorPageCell
 from toysql.record import Record, DataType
+from typing import Optional
 
 class BTree():
     """
@@ -26,14 +27,14 @@ class BTree():
         raw_bytes = self.pager.read(page_number)
         return Page.from_bytes(raw_bytes)
 
-    def write_page(self, page):
+    def write_page(self, page) -> None:
         self.pager.write(page.page_number, page.to_bytes())
 
     def new_page(self, page_type) -> Page:
         page_number = self.pager.new() 
         return Page(page_type, page_number)
 
-    def is_full(self, page):
+    def is_full(self, page) -> bool:
       if len(page.cells) >= self.order: 
           return True 
 
@@ -141,7 +142,7 @@ class BTree():
                 return self.read_page(cell.left_child_page_number)
         return self.read_page(page.right_child_page_number)
 
-    def find(self, key):
+    def find(self, key) -> Optional[Record]:
         """Returns a value for a given key, and None if the key does not exist."""
         child = self.root
         while not child.is_leaf():
