@@ -29,6 +29,7 @@ class TestBTree(TestCase):
         
         for key in inputs:
             record = btree.find(key)
+            assert record
             assert record.values[1][1] == f"hello-{key}"
 
     def test_random(self):
@@ -42,5 +43,6 @@ class TestBTree(TestCase):
             btree.add(key, f'hello-{key}')
         
         for key in keys:
-            x = btree.find(key)
-            assert x.values[1][1] == f"hello-{key}"
+            record = btree.find(key)
+            assert record
+            assert record.values[1][1] == f"hello-{key}"
