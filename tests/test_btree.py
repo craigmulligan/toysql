@@ -2,6 +2,7 @@ from snapshottest import TestCase
 import random
 from toysql.btree import BTree
 from toysql.pager import Pager
+from toysql.record import Record, DataType
 import tempfile
 
 class TestBTree(TestCase):
@@ -9,6 +10,11 @@ class TestBTree(TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_file_path = self.temp_dir.name + "/__testdb__.db"
         self.pager = Pager(self.db_file_path)
+
+        def create_record(row_id: int, text: str):
+            return Record([[DataType.INTEGER, row_id], [DataType.TEXT, text]])
+
+        self.create_record = create_record
         return super().setUp()
 
     def cleanUp(self) -> None:
@@ -23,7 +29,7 @@ class TestBTree(TestCase):
         inputs = [5, 15, 25, 35, 45]
 
         for n in inputs:
-            btree.add(n, f'hello-{n}')
+            btree.add(self.create_record(n, f'hello-{n}'))
 
         self.assertMatchSnapshot(btree.show())       
         
@@ -39,8 +45,8 @@ class TestBTree(TestCase):
         random.shuffle(keys)
 
         # insert in random order.
-        for key in keys: 
-            btree.add(key, f'hello-{key}')
+        for n in keys: 
+            btree.add(self.create_record(n, f'hello-{n}'))
         
         for key in keys:
             record = btree.find(key)
@@ -55,7 +61,7 @@ class TestBTree(TestCase):
         inputs = [45, 15, 5, 35, 25]
 
         for n in inputs:
-            btree.add(n, f'hello-{n}')
+            btree.add(self.create_record(n, f'hello-{n}'))
 
         # sort inputs because thats
         # the order we expect them out of scan.
@@ -71,8 +77,8 @@ class TestBTree(TestCase):
         # insert in random order.
         random.shuffle(keys)
 
-        for key in keys: 
-            btree.add(key, f'hello-{key}')
+        for n in keys: 
+            btree.add(self.create_record(n, f'hello-{n}'))
 
         loaded_tree = BTree(3, self.pager)
 

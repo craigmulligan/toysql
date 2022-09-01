@@ -103,13 +103,7 @@ class BTree():
         if self.is_full(parent):
             self._split_internal(parent)
 
-    def keyval_to_cell(self, key, val):
-        return LeafPageCell(Record([
-           [DataType.INTEGER, key],
-           [DataType.TEXT, val],
-        ]))
-
-    def add(self, key, val):
+    def insert(self, record: Record):
         """
         1. Perform a search to determine which leaf node the new key should go into.
         2. If the node is not full, insert the new key, done!
@@ -121,12 +115,12 @@ class BTree():
         """
         parent = None
         child = self.root
-        cell = self.keyval_to_cell(key, val)
+        cell = LeafPageCell(record)
 
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
             parent = child 
-            child = self.find_in_interior(key, child)
+            child = self.find_in_interior(record.row_id, child)
             child.parent = parent
 
         child.add_cell(cell)
