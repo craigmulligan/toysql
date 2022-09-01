@@ -67,7 +67,7 @@ class TestPage(TestCase):
         """
         Bug where only adding one cell caused issues.
         """
-        interior_page = Page(PageType.interior, 2, right_page_number=3)
+        interior_page = Page(PageType.interior, 2, right_child_page_number=3)
         cells = []
 
         for n in [5, 3, 1]:
