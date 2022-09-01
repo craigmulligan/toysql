@@ -2,7 +2,8 @@ from toysql.page import PageType, LeafPageCell, Cell, Page, InteriorPageCell
 from toysql.record import Record, DataType
 from typing import Optional
 
-class BTree():
+
+class BTree:
     """
         https://www.sqlite.org/fileformat.html#b_tree_pages
 
@@ -16,10 +17,13 @@ class BTree():
         - Leaf node store keys and records or pointers to records;
         - All leaves are at the same level in the tree, so the tree is always height balanced.
     """
+
     root: Page
 
-    def __init__(self, order, pager, root_page_number) -> None:
-        self.order = order
+    def __init__(self, pager, root_page_number) -> None:
+        # TODO:
+        # order should be varialbe not 3.
+        self.order = 3
         self.pager = pager
         self.root = self.read_page(root_page_number)
 
@@ -31,23 +35,23 @@ class BTree():
         self.pager.write(page.page_number, page.to_bytes())
 
     def new_page(self, page_type) -> Page:
-        page_number = self.pager.new() 
+        page_number = self.pager.new()
         return Page(page_type, page_number)
 
     def is_full(self, page) -> bool:
-      if len(page.cells) >= self.order: 
-          return True 
+        if len(page.cells) >= self.order:
+            return True
 
-      return False 
+        return False
 
     def _split_leaf(self, page):
         """
-            Given a full leaf page.
-            1. Splits it into two leaf pages.
-            2. If there is no parent it creates a new InteriorPage.
-            3. It then takes the left most key of the right split page.
-            4. Inserts that key into the parent.
-            5. If the parent is full it splits that. 
+        Given a full leaf page.
+        1. Splits it into two leaf pages.
+        2. If there is no parent it creates a new InteriorPage.
+        3. It then takes the left most key of the right split page.
+        4. Inserts that key into the parent.
+        5. If the parent is full it splits that.
         """
         index = self.order // 2
         left = self.new_page(PageType.leaf)
@@ -58,9 +62,9 @@ class BTree():
 
         parent = page.parent
         if parent is None:
-           parent = self.new_page(PageType.interior)
-           self.root = parent
-           self.root.right_child_page_number = page.page_number
+            parent = self.new_page(PageType.interior)
+            self.root = parent
+            self.root.right_child_page_number = page.page_number
 
         parent.add_cell(InteriorPageCell(key, left.page_number))
 
@@ -70,15 +74,14 @@ class BTree():
         if self.is_full(parent):
             self._split_internal(parent)
 
-
     def _split_internal(self, page: Page):
         """
-           Given a full InteriorPage 
+        Given a full InteriorPage
 
-           1. Splits the page in half
-           2. Takes the left most cell of the right page (middle cell)
-           3. It makes the left_page.right_child = middle_cell.left_child 
-           4. It adds the middle_cell.row_id to the parent which points the the left child.
+        1. Splits the page in half
+        2. Takes the left most cell of the right page (middle cell)
+        3. It makes the left_page.right_child = middle_cell.left_child
+        4. It adds the middle_cell.row_id to the parent which points the the left child.
         """
         index = self.order // 2
 
@@ -91,9 +94,9 @@ class BTree():
 
         parent = page.parent
         if parent is None:
-           parent = self.new_page(PageType.interior)
-           self.root = parent
-           self.root.right_child_page_number = page.page_number
+            parent = self.new_page(PageType.interior)
+            self.root = parent
+            self.root.right_child_page_number = page.page_number
 
         parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
 
@@ -119,7 +122,7 @@ class BTree():
 
         # Traverse tree until leaf page is reached.
         while not child.is_leaf():
-            parent = child 
+            parent = child
             child = self.find_in_interior(record.row_id, child)
             child.parent = parent
 
@@ -143,7 +146,7 @@ class BTree():
             child = self.find_in_interior(key, child)
 
         if child is None:
-            return child 
+            return child
 
         cell = child.find_cell(key)
         if cell:
@@ -164,7 +167,7 @@ class BTree():
     def _scan(self, parent):
         """
         _scan will recursively traverse
-        to leaft pages. yielding each record 
+        to leaft pages. yielding each record
         in that leaf page.
         """
         for child in self.child_pages(parent):
@@ -172,4 +175,4 @@ class BTree():
                 for cell in child.cells:
                     yield cell.record
             else:
-                yield from self._all(child)
+                yield from self._scan(child)

@@ -5,6 +5,7 @@ from toysql.pager import Pager
 from toysql.record import Record, DataType
 import tempfile
 
+
 class TestBTree(TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -22,32 +23,32 @@ class TestBTree(TestCase):
 
     def test_btree(self):
         """
-        Given and ordered set of data 
+        Given and ordered set of data
         Ensure the tree is the same.
         """
-        btree = BTree(3, self.pager, self.pager.new())
+        btree = BTree(self.pager, self.pager.new())
         inputs = [5, 15, 25, 35, 45]
 
         for n in inputs:
-            btree.insert(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f"hello-{n}"))
 
-        self.assertMatchSnapshot(btree.show())       
-        
+        self.assertMatchSnapshot(btree.show())
+
         for key in inputs:
             record = btree.find(key)
             assert record
             assert record.row_id == key
 
     def test_random(self):
-        btree = BTree(3, self.pager, self.pager.new())
+        btree = BTree(self.pager, self.pager.new())
 
         keys = [n for n in range(100)]
         random.shuffle(keys)
 
         # insert in random order.
-        for n in keys: 
-            btree.insert(self.create_record(n, f'hello-{n}'))
-        
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
         for key in keys:
             record = btree.find(key)
             assert record
@@ -57,11 +58,11 @@ class TestBTree(TestCase):
         """
         Asserts we can get all the values in leaf nodes.
         """
-        btree = BTree(3, self.pager, self.pager.new())
+        btree = BTree(self.pager, self.pager.new())
         inputs = [45, 15, 5, 35, 25]
 
         for n in inputs:
-            btree.insert(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f"hello-{n}"))
 
         # sort inputs because thats
         # the order we expect them out of scan.
@@ -69,19 +70,18 @@ class TestBTree(TestCase):
         for i, record in enumerate(btree.scan()):
             assert record.row_id == inputs[i]
 
-
     def test_from_disk(self):
         page_number = self.pager.new()
-        btree = BTree(3, self.pager, page_number)
+        btree = BTree(self.pager, page_number)
 
         keys = [n for n in range(100)]
         # insert in random order.
         random.shuffle(keys)
 
-        for n in keys: 
-            btree.insert(self.create_record(n, f'hello-{n}'))
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
 
-        loaded_tree = BTree(3, self.pager, page_number)
+        loaded_tree = BTree(self.pager, page_number)
 
         # Check we can search all keys.
         for key in keys:
