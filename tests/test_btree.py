@@ -29,7 +29,7 @@ class TestBTree(TestCase):
         inputs = [5, 15, 25, 35, 45]
 
         for n in inputs:
-            btree.add(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f'hello-{n}'))
 
         self.assertMatchSnapshot(btree.show())       
         
@@ -46,7 +46,7 @@ class TestBTree(TestCase):
 
         # insert in random order.
         for n in keys: 
-            btree.add(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f'hello-{n}'))
         
         for key in keys:
             record = btree.find(key)
@@ -61,7 +61,7 @@ class TestBTree(TestCase):
         inputs = [45, 15, 5, 35, 25]
 
         for n in inputs:
-            btree.add(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f'hello-{n}'))
 
         # sort inputs because thats
         # the order we expect them out of scan.
@@ -78,7 +78,7 @@ class TestBTree(TestCase):
         random.shuffle(keys)
 
         for n in keys: 
-            btree.add(self.create_record(n, f'hello-{n}'))
+            btree.insert(self.create_record(n, f'hello-{n}'))
 
         loaded_tree = BTree(3, self.pager)
 
