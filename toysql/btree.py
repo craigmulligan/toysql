@@ -166,7 +166,7 @@ class BTree:
             for cell in self.root.cells:
                 yield cell.record
 
-        return self._scan(self.root)
+        yield from self._scan(self.root)
 
     def _scan(self, parent):
         """
