@@ -22,7 +22,7 @@ class BTree:
 
     def __init__(self, pager, root_page_number) -> None:
         # TODO:
-        # order should be varialbe not 3.
+        # order should be variable not 3.
         self.order = 3
         self.pager = pager
         self.root = self.read_page(root_page_number)
@@ -64,6 +64,10 @@ class BTree:
         if parent is None:
             parent = self.new_page(PageType.interior)
             self.root = parent
+
+            # Swap page numbers to keep the root_page_number static.
+            parent.page_number, page.page_number = page.page_number, parent.page_number
+
             self.root.right_child_page_number = page.page_number
 
         parent.add_cell(InteriorPageCell(key, left.page_number))
@@ -96,6 +100,10 @@ class BTree:
         if parent is None:
             parent = self.new_page(PageType.interior)
             self.root = parent
+
+            # Keep the root_page_number static.
+            parent.page_number, page.page_number = page.page_number, parent.page_number
+
             self.root.right_child_page_number = page.page_number
 
         parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
@@ -165,8 +173,8 @@ class BTree:
         if self.root.is_leaf():
             for cell in self.root.cells:
                 yield cell.record
-
-        yield from self._scan(self.root)
+        else:
+            yield from self._scan(self.root)
 
     def _scan(self, parent):
         """
