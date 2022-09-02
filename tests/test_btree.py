@@ -70,6 +70,28 @@ class TestBTree(TestCase):
         for i, record in enumerate(btree.scan()):
             assert record.row_id == inputs[i]
 
+    def test_from_disk_single_page(self):
+        page_number = self.pager.new()
+        btree = BTree(self.pager, page_number)
+
+        keys = [n for n in range(2)]
+        # insert in random order.
+        random.shuffle(keys)
+
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        loaded_tree = BTree(self.pager, page_number)
+
+        # Check we can search all keys.
+        records = [r for r in loaded_tree.scan()]
+        assert len(records) == len(keys)
+
+        for key in keys:
+            record = loaded_tree.find(key)
+            assert record
+            assert record.row_id == key
+
     def test_from_disk(self):
         page_number = self.pager.new()
         btree = BTree(self.pager, page_number)
@@ -84,7 +106,10 @@ class TestBTree(TestCase):
         loaded_tree = BTree(self.pager, page_number)
 
         # Check we can search all keys.
+        records = [r for r in loaded_tree.scan()]
+        assert len(records) == len(keys)
+
         for key in keys:
-            record = btree.find(key)
+            record = loaded_tree.find(key)
             assert record
             assert record.row_id == key

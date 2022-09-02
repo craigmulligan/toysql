@@ -34,5 +34,7 @@ class TestBTree(TestCase):
             table.insert(record)
             records.append(record)
 
-        for i, record in enumerate(table.select()):
-            assert record == records[i]
+        results = [r for r in table.select()]
+
+        for i, record in enumerate(records):
+            assert record == results[i]

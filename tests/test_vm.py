@@ -2,8 +2,10 @@ from toysql.parser import InsertStatement, SelectStatement
 from toysql.vm import VM, SCHEME_TABLE_NAME
 from toysql.exceptions import DuplicateKeyException
 from toysql.pager import Pager
+
 from tests.fixtures import Fixtures
 from unittest import TestCase
+
 import random
 import tempfile
 
@@ -28,7 +30,9 @@ class TestVM(TestCase):
         self.vm = VM(self.db_file_path)
         self.table_name = "users"
 
-        self.vm.execute(f"CREATE TABLE users (id INT, name TEXT(32), email TEXT(255));")
+        self.vm.execute(
+            f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
+        )
 
         return super().setUp()
 
@@ -44,6 +48,7 @@ class TestVM(TestCase):
         assert self.vm.tables[SCHEME_TABLE_NAME]
         assert len(self.vm.tables.keys()) == 2
         [records] = self.vm.execute(f"SELECT * FROM {SCHEME_TABLE_NAME}")
+        assert len(records) == 1
         assert records[0].values[1][1] == self.table_name
 
     def test_insert_and_select(self):
@@ -86,6 +91,7 @@ class TestVM(TestCase):
             )
 
         [records] = self.vm.execute(f"SELECT * FROM {self.table_name}")
+        keys.sort()
 
         assert len(records) == len(keys)
         assert [record.row_id for record in records] == keys
