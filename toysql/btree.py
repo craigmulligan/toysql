@@ -1,5 +1,5 @@
-from toysql.page import PageType, LeafPageCell, Cell, Page, InteriorPageCell
-from toysql.record import Record, DataType
+from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
+from toysql.record import Record
 from typing import Optional
 
 
@@ -145,6 +145,8 @@ class BTree:
         for cell in page.cells:
             if key < cell.row_id:
                 return self.read_page(cell.left_child_page_number)
+
+        assert page.right_child_page_number
         return self.read_page(page.right_child_page_number)
 
     def find(self, key) -> Optional[Record]:

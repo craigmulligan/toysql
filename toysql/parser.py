@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List, Union
+from typing import Tuple, Optional, List
 from dataclasses import dataclass
 from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
