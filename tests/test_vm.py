@@ -1,17 +1,13 @@
+import random
+
 from toysql.vm import VM, SCHEME_TABLE_NAME
 from toysql.exceptions import DuplicateKeyException
-from toysql.pager import Pager
-from unittest import TestCase
-
-import random
-import tempfile
+from tests.fixtures import Fixtures
 
 
-class TestVM(TestCase):
+class TestVM(Fixtures):
     def setUp(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.db_file_path = self.temp_dir.name + "/__testdb__.db"
-        self.pager = Pager(self.db_file_path)
+        super().setUp()
 
         self.vm = VM(self.db_file_path)
         self.table_name = "users"
@@ -20,10 +16,7 @@ class TestVM(TestCase):
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
 
-        return super().setUp()
-
-    def cleanUp(self) -> None:
-        self.temp_dir.cleanup()
+        return
 
     def test_system_schema_table(self):
         """

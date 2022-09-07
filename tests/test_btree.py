@@ -1,17 +1,13 @@
-from snapshottest import TestCase
 import random
+from snapshottest import TestCase
+
 from toysql.btree import BTree
-from toysql.pager import Pager
 from toysql.record import Record, DataType
-import tempfile
+from tests.fixtures import Fixtures
 
 
-class TestBTree(TestCase):
+class TestBTree(Fixtures, TestCase):
     def setUp(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.db_file_path = self.temp_dir.name + "/__testdb__.db"
-        self.pager = Pager(self.db_file_path)
-
         def create_record(row_id: int, text: str):
             return Record([[DataType.INTEGER, row_id], [DataType.TEXT, text]])
 
