@@ -1,7 +1,6 @@
-from typing import List, Any, Dict
+from typing import Iterable
 from toysql.btree import BTree
-from toysql.lexer import Token
-from toysql.record import Record, DataType
+from toysql.record import Record
 
 
 class Table:
@@ -20,5 +19,5 @@ class Table:
         self.tree.insert(record)
         return record
 
-    def select(self) -> List[Record]:
+    def select(self) -> Iterable[Record]:
         return self.tree.scan()

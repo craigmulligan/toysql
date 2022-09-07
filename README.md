@@ -49,6 +49,8 @@ What I've learnt so far:
 
 # NEXT: 
 
-- Replace current Datatypes code with record.py. 
+- Remove btree branch factor
+- Add column names
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
 - auto-incrementing IDs
+- Replace current Datatypes code with record.py. 

@@ -6,21 +6,9 @@ from toysql.lexer import StatementLexer, Kind
 from toysql.record import Record, DataType
 from toysql.parser import Parser
 from toysql.btree import BTree
-from toysql.lexer import Keyword
 from toysql.exceptions import TableFoundException
-import toysql.datatypes as datatypes
-
-from random import randint
 
 SCHEME_TABLE_NAME = "schema"
-
-# TODO this should be called the executor.
-
-# dynamic from disk.
-# 1. Always create schema table load vm.schema_table.
-# 1. read schema table from disk.
-# 2. find table by name and get root_page_number.
-# 3. perform function on table.
 
 
 class VM:
