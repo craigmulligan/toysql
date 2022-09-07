@@ -1,27 +1,18 @@
 from snapshottest import TestCase
-import random
 from toysql.btree import BTree
-from toysql.pager import Pager
 from toysql.record import Record, DataType
 from toysql.table import Table
-import tempfile
+from tests.fixtures import Fixtures
 
 
-class TestBTree(TestCase):
+class TestBTree(Fixtures, TestCase):
     def setUp(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.db_file_path = self.temp_dir.name + "/__testdb__.db"
-        self.pager = Pager(self.db_file_path)
+        super().setUp()
 
         def create_record(row_id: int, text: str):
             return Record([[DataType.INTEGER, row_id], [DataType.TEXT, text]])
 
         self.create_record = create_record
-
-        return super().setUp()
-
-    def cleanUp(self) -> None:
-        self.temp_dir.cleanup()
 
     def test_insert_select(self):
         page_number = self.pager.new()
