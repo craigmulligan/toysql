@@ -27,22 +27,20 @@ class Pager:
         """
         page_number = len(self)
         page = Page(PageType.leaf, page_number)
-        self.write(page_number, page.to_bytes())
+        self.write(page)
 
         return page_number
 
-    def read(self, page_number: PageNumber) -> Pageb:
+    def read(self, page_number: PageNumber) -> Page:
         if page_number is None or page_number >= len(self):
             raise PageNotFoundException(f"page_number: {page_number} not found")
 
         self.f.seek(page_number * self.page_size)
-        page = bytearray(self.f.read(self.page_size))
+        return Page.from_bytes(self.f.read(self.page_size))
 
-        return page
-
-    def write(self, page_number: PageNumber, page: Pageb):
-        self.f.seek(page_number * self.page_size)
-        self.f.write(page)
+    def write(self, page: Page):
+        self.f.seek(page.page_number * self.page_size)
+        self.f.write(page.to_bytes())
         self.f.flush()
 
         return page

@@ -28,11 +28,10 @@ class BTree:
         self.root = self.read_page(root_page_number)
 
     def read_page(self, page_number: int) -> Page:
-        raw_bytes = self.pager.read(page_number)
-        return Page.from_bytes(raw_bytes)
+        return self.pager.read(page_number)
 
     def write_page(self, page) -> None:
-        self.pager.write(page.page_number, page.to_bytes())
+        self.pager.write(page)
 
     def new_page(self, page_type) -> Page:
         page_number = self.pager.new()
