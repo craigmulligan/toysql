@@ -1,9 +1,6 @@
-from toysql.parser import InsertStatement, SelectStatement
 from toysql.vm import VM, SCHEME_TABLE_NAME
 from toysql.exceptions import DuplicateKeyException
 from toysql.pager import Pager
-
-from tests.fixtures import Fixtures
 from unittest import TestCase
 
 import random
@@ -15,17 +12,6 @@ class TestVM(TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_file_path = self.temp_dir.name + "/__testdb__.db"
         self.pager = Pager(self.db_file_path)
-
-        def create_record(row_id: int, text: str):
-            return Record(
-                [
-                    [DataType.INTEGER, row_id],
-                    [DataType.TEXT, text],
-                    [DataType.TEXT, text],
-                ]
-            )
-
-        self.create_record = create_record
 
         self.vm = VM(self.db_file_path)
         self.table_name = "users"
