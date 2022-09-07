@@ -16,8 +16,14 @@ class Table:
         self.tree = btree
 
     def insert(self, record) -> Record:
+        """
+        Inserts data into the table btree
+        """
         self.tree.insert(record)
         return record
 
     def select(self) -> Iterable[Record]:
+        """
+        Selects data from the table btree
+        """
         return self.tree.scan()

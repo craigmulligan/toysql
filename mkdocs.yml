@@ -1,0 +1,5 @@
+site_name: ToySQL 
+theme:
+  name: readthedocs
+plugins:
+  - mkdocstrings

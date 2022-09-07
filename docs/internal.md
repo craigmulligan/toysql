@@ -7,7 +7,7 @@
 * How does a WAL work?
 * How do you store text with variable lengths?
 
-# NEXT: 
+# Next 
 
 - Remove btree branch factor
 - Add column names

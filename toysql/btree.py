@@ -5,17 +5,13 @@ from typing import Optional
 
 class BTree:
     """
-        https://www.sqlite.org/fileformat.html#b_tree_pages
-
-    https://massivealgorithms.blogspot.com/2014/12/b-tree-wikipedia-free-encyclopedia.html?m=1
-    ★ Definition of B+ Tree
-        A B+ Tree of order m has these properties:
-        - The root is either a leaf or has at least two children;
-        - Each internal node, except for the root, has between ⎡order/2⎤ and order children;
-        - Internal nodes do not store record, only store key values to guild the search;
-        - Each leaf node, has between ⎡order/2⎤ and order keys and values;
-        - Leaf node store keys and records or pointers to records;
-        - All leaves are at the same level in the tree, so the tree is always height balanced.
+    A B+ Tree of order m has these properties:
+    - The root is either a leaf or has at least two children;
+    - Each internal node, except for the root, has between ⎡order/2⎤ and order children;
+    - Internal nodes do not store record, only store key values to guild the search;
+    - Each leaf node, has between ⎡order/2⎤ and order keys and values;
+    - Leaf node store keys and records or pointers to records;
+    - All leaves are at the same level in the tree, so the tree is always height balanced.
     """
 
     root: Page
