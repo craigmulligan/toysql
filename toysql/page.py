@@ -5,12 +5,13 @@ from toysql.exceptions import DuplicateKeyException
 import bisect
 import io
 
-class PageType(Enum): 
+
+class PageType(Enum):
     leaf = 0
     interior = 1
 
 
-class FixedInteger():
+class FixedInteger:
     @staticmethod
     def to_bytes(length, value):
         return value.to_bytes(length, "big")
@@ -24,13 +25,14 @@ class Cell:
     """
     Cell interface
     """
+
     row_id = 0
 
     def to_bytes(self):
-        return b"" 
+        return b""
 
     def __lt__(self, other):
-         return self.row_id < other.row_id
+        return self.row_id < other.row_id
 
     def __len__(self):
         return len(self.to_bytes())
@@ -38,12 +40,13 @@ class Cell:
 
 class LeafPageCell(Cell):
     """
-    A cell is a wrapper for the Record format 
-    which adds some metadata depending on the surrounding 
+    A cell is a wrapper for the Record format
+    which adds some metadata depending on the surrounding
 
     A cell should be sortable by key. (PK)
     """
-    def __init__(self,  payload: Record) -> None:
+
+    def __init__(self, payload: Record) -> None:
         if isinstance(payload, Record):
             self.record = payload
         else:
@@ -70,12 +73,12 @@ class LeafPageCell(Cell):
         buff.write(record_bytes)
 
         buff.seek(0)
-        return buff.read() 
+        return buff.read()
 
     @staticmethod
     def from_bytes(data) -> "LeafPageCell":
         """
-        First read two varints record_size + row_id 
+        First read two varints record_size + row_id
         Then read the record payload
         """
         buff = io.BytesIO(data)
@@ -89,12 +92,13 @@ class LeafPageCell(Cell):
 
 
 class InteriorPageCell(Cell):
-    """   
+    """
     Table B-Tree Interior Cell (header 0x05):
 
     A 4-byte big-endian page number which is the left child pointer.
     A varint which is the integer key.
     """
+
     def __init__(self, row_id, left_child_page_number) -> None:
         self.row_id = row_id
         self.left_child_page_number = left_child_page_number
@@ -111,14 +115,14 @@ class InteriorPageCell(Cell):
         buff.write(row_id)
 
         buff.seek(0)
-        return buff.read() 
+        return buff.read()
 
     @staticmethod
     def from_bytes(data) -> "InteriorPageCell":
         """
         Just reading the left_child_page and the varint.
         """
-        buff = io.BytesIO(data) 
+        buff = io.BytesIO(data)
 
         left_child_page_number = FixedInteger.from_bytes(buff.read(4))
         row_id = Integer.from_bytes(buff.read()).value
@@ -132,53 +136,68 @@ class Page:
 
     Cells are expected to be sorted before hand useing cells.sort()
     """
+
     parent: Optional["Page"]
-    def __init__(self, page_type, page_number, cells=None, right_child_page_number=None) -> None:
+
+    def __init__(
+        self,
+        page_type,
+        page_number,
+        cells=None,
+        right_child_page_number=None,
+        page_size=4096,
+    ) -> None:
         self.page_type = PageType(page_type)
         self.page_number = page_number
         self.cells = cells or []
 
         self.parent = None
         # Only for Interior Pages
-        self.right_child_page_number = right_child_page_number 
+        self.right_child_page_number = right_child_page_number
+        self.page_size = page_size
 
     def __repr__(self):
         cell_ids = [str(cell.row_id) for cell in self.cells]
         return ",".join(cell_ids)
 
-
     def show(self, counter, read_page):
         """Prints the keys at each level."""
-        output = counter * "\t" 
+        output = counter * "\t"
 
         if not self.is_leaf():
             output += str(self)
             output += "\n"
-            counter += 1 
+            counter += 1
             for cell in self.cells:
                 try:
-                    output += read_page(cell.left_child_page_number).show(counter, read_page)
+                    output += read_page(cell.left_child_page_number).show(
+                        counter, read_page
+                    )
                 except:
                     breakpoint()
-            
+
             output += read_page(self.right_child_page_number).show(counter, read_page)
 
         else:
             # Green is the leaf values
-            output += "\033[1;32m " + ", ".join(str(cell.row_id) for cell in self.cells) + "\033[0m"
-            
+            output += (
+                "\033[1;32m "
+                + ", ".join(str(cell.row_id) for cell in self.cells)
+                + "\033[0m"
+            )
+
         output += "\n"
         return output
 
     def is_leaf(self):
-      return self.page_type == PageType.leaf
+        return self.page_type == PageType.leaf
 
     def add(self, *args, **kwargs):
         """
         convencience wrapper for add_cell
         """
         if self.page_type == PageType.leaf:
-            record = Record(*args, **kwargs) 
+            record = Record(*args, **kwargs)
             cell = LeafPageCell(record)
             self.add_cell(cell)
             return cell
@@ -190,10 +209,10 @@ class Page:
 
     def add_cell(self, cell):
         """
-            First we need to see if there is space to write the new values. 
-            if there is we add it if not we raise PageFullException
+        First we need to see if there is space to write the new values.
+        if there is we add it if not we raise PageFullException
         """
-        # now check the key doesnt exist. 
+        # now check the key doesnt exist.
         exists = self.find_cell(cell.row_id)
 
         if exists:
@@ -215,17 +234,15 @@ class Page:
 
         return 12
 
-
     def __len__(self):
-        header_size = self.header_size() 
+        header_size = self.header_size()
 
         [cell_offsets, cell_data] = self.cells_to_bytes()
         return header_size + len(cell_offsets) + len(cell_data)
 
-
     def cells_to_bytes(self) -> List[bytes]:
         """
-        Returns the body as bytes 
+        Returns the body as bytes
         """
         cell_offsets = b""
         cell_data = b""
@@ -233,19 +250,19 @@ class Page:
         for cell in self.cells:
             cell_bytes = cell.to_bytes()
             # Add offset for each cell from the cell Content area.
-            # TODO this isn't a true offset. But it makes it easy to read 
+            # TODO this isn't a true offset. But it makes it easy to read
             # All of them.
             offset = FixedInteger.to_bytes(2, len(cell_bytes))
             cell_offsets += offset
             cell_data += cell_bytes
 
         return [cell_offsets, cell_data]
-    
+
     def to_bytes(self) -> bytes:
         """
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
-        buff = io.BytesIO(b"".ljust(4096, b"\0"))
+        buff = io.BytesIO(b"".ljust(self.page_size, b"\0"))
         [cell_offsets, cell_data] = self.cells_to_bytes()
 
         cell_content_offset = len(cell_data)
@@ -255,15 +272,15 @@ class Page:
         buff.write(cell_data)
 
         buff.seek(0)
-        # Header 
+        # Header
         buff.write(FixedInteger.to_bytes(1, self.page_number))
         # Header type.
         buff.write(FixedInteger.to_bytes(1, self.page_type.value))
         # Free block pointer. (Not implemented)
         buff.write(FixedInteger.to_bytes(2, 0))
-        # Number of cells. 
+        # Number of cells.
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
-        # Cell Content Offset 
+        # Cell Content Offset
         buff.write(FixedInteger.to_bytes(2, cell_content_offset))
 
         if self.page_type == PageType.interior:
@@ -275,7 +292,7 @@ class Page:
         # Go to the beginning so we can read everything.
         buff.seek(0)
 
-        return buff.read() 
+        return buff.read()
 
     @staticmethod
     def cell_from_bytes(page_type, raw_bytes):
@@ -285,7 +302,7 @@ class Page:
             return InteriorPageCell.from_bytes(raw_bytes)
 
         raise Exception(f"Unknown page type {page_type}")
-        
+
     @staticmethod
     def from_bytes(data) -> "Page":
         buffer = io.BytesIO(data)
@@ -297,8 +314,8 @@ class Page:
 
         right_child_page_number = None
 
-        # This is the right most child pointer. All the other pointers 
-        # are in an InteriorPageCell[key, pointer] but the right most 
+        # This is the right most child pointer. All the other pointers
+        # are in an InteriorPageCell[key, pointer] but the right most
         # one is stored seperately.
         if page_type == PageType.interior:
             right_child_page_number = FixedInteger.from_bytes(buffer.read(4))
@@ -315,8 +332,13 @@ class Page:
         buffer.seek(-cell_content_offset, 2)
 
         for offset in cell_offsets:
-            cell_content = buffer.read(offset) 
+            cell_content = buffer.read(offset)
             cell = Page.cell_from_bytes(page_type, cell_content)
             cells.append(cell)
 
-        return Page(page_type, page_number, cells=cells, right_child_page_number=right_child_page_number)
+        return Page(
+            page_type,
+            page_number,
+            cells=cells,
+            right_child_page_number=right_child_page_number,
+        )
