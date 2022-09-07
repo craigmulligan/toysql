@@ -4,7 +4,6 @@ from toysql.page import Page, PageType
 from toysql.exceptions import PageNotFoundException
 
 PageNumber = int
-Pageb = bytes
 
 
 class Pager:
@@ -26,7 +25,8 @@ class Pager:
         Requests a new page
         """
         page_number = len(self)
-        page = Page(PageType.leaf, page_number)
+        # TODO give page size here.
+        page = Page(PageType.leaf, page_number, page_size=self.page_size)
         self.write(page)
 
         return page_number
