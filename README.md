@@ -27,15 +27,6 @@ This is a dependency free, minimal clone of sql database written in python. I've
 2. Can insert rows - always indexed by primary key (int)
 3. Can select all rows
 
-TODOs:
-
-- Use bisect & insort in BTree 
-- Where filter on pk
-- Where filter on other columns
-- create table (multiple tables)
-- WAL with transactions + rollback
-- Indexes (btree not b+tree implementation)
-
 What I've learnt so far:
 
 - Difference between Btrees & B+trees.
@@ -44,6 +35,8 @@ What I've learnt so far:
 - How tricky tree algorithms and recursions are to debug, day to day I'm working with much simpler data structures that are easier to reason about.
 - Lexers pretty simple - the most complicated part is managing the cursor. I'm sure I could rewrite it much more simply.
 - python unittest framework is pretty feature complete. The only thing I miss from pytest is the pretty output & parameterized tests.
+- Didn't realize the VM / parser distinction.
+- Didn't have a good grasp of what stats are used in the query planner.
 
 ## Questions:
 

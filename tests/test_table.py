@@ -24,7 +24,8 @@ class TestBTree(TestCase):
         self.temp_dir.cleanup()
 
     def test_insert_select(self):
-        btree = BTree(self.pager, self.pager.new())
+        page_number = self.pager.new()
+        btree = BTree(self.pager, page_number)
         table = Table("users", btree)
 
         records = []
@@ -36,5 +37,13 @@ class TestBTree(TestCase):
 
         results = [r for r in table.select()]
 
+        for i, record in enumerate(records):
+            assert record == results[i]
+
+        # Now load from disk and read again.
+        new_btree = BTree(self.pager, page_number)
+        new_table = Table("users", new_btree)
+
+        results = [r for r in new_table.select()]
         for i, record in enumerate(records):
             assert record == results[i]
