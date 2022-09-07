@@ -1,10 +1,10 @@
 from pathlib import Path
 import os
-from toysql.page import Page
+from toysql.page import Page, PageType
 from toysql.exceptions import PageNotFoundException
 
 PageNumber = int
-Pageb = bytearray
+Pageb = bytes
 
 
 class Pager:
@@ -25,9 +25,9 @@ class Pager:
         """
         Requests a new page
         """
-        page = bytearray(b"".ljust(self.page_size, b"\0"))
         page_number = len(self)
-        self.write(page_number, page)
+        page = Page(PageType.leaf, page_number)
+        self.write(page_number, page.to_bytes())
 
         return page_number
 

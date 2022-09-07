@@ -7,6 +7,7 @@ from toysql.record import Record, DataType
 from toysql.parser import Parser
 from toysql.btree import BTree
 from toysql.lexer import Keyword
+from toysql.exceptions import TableFoundException
 import toysql.datatypes as datatypes
 
 from random import randint
@@ -34,6 +35,7 @@ class VM:
         self.parser = Parser()
         self.tables = {}
         self.schema_table = self.create_schema_table()
+        self.row_counter = 0
 
     def schema_table_exists(self) -> bool:
         return len(self.pager) > 0
@@ -60,15 +62,18 @@ class VM:
         self, statement: CreateStatement, input: str, root_page_number
     ) -> Table:
         table_name = statement.table.value
-
         table = self.load_table(table_name, root_page_number)
-        row_id = len(self.tables)
 
         if table_name != SCHEME_TABLE_NAME:
-            # TODO neaten this up.
-            self.execute(
-                f"INSERT INTO {SCHEME_TABLE_NAME} VALUES ({row_id}, '{table_name}', '{input}', {root_page_number});"
+            self.schema_table.insert(
+                [
+                    [DataType.INTEGER, root_page_number],
+                    [DataType.TEXT, table_name],
+                    [DataType.TEXT, input],
+                    [DataType.INTEGER, root_page_number],
+                ]
             )
+
         return table
 
     def load_table(self, table_name, root_page_number) -> Table:
@@ -77,7 +82,7 @@ class VM:
         self.tables[table_name] = table
         return table
 
-    def get_table(self, table_name) -> Optional[Table]:
+    def get_table(self, table_name) -> Table:
         if table_name == SCHEME_TABLE_NAME:
             return self.schema_table
 
@@ -85,6 +90,8 @@ class VM:
             if record.values[1][1] == table_name:
                 root_page_number = record.values[3][1]
                 return self.load_table(table_name, root_page_number)
+
+        raise TableFoundException(f"Table: {table_name} not found")
 
     def parse_input(self, input: str) -> List[Any]:
         tokens = self.lexer.lex(input)
@@ -121,7 +128,9 @@ class VM:
         if isinstance(statement, InsertStatement):
             table_name = statement.into.value
             record = self.insert_statement_to_record(statement)
-            return self.get_table(table_name).insert(record)
+            t = self.get_table(table_name)
+            t.insert(record)
+            return record
 
         if isinstance(statement, CreateStatement):
             return self.create_table(statement, input, self.pager.new())
