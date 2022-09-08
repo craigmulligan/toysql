@@ -135,7 +135,7 @@ class TestStatementLexer(TestCase):
             Token("and", Kind.keyword, Location(0, 0)),
             Token("y", Kind.identifier, Location(0, 0)),
             Token("=", Kind.symbol, Location(0, 0)),
-            Token(123, Kind.numeric, Location(0, 0)),
+            Token(123, Kind.integer, Location(0, 0)),
             Token(";", Kind.symbol, Location(0, 0)),
         ]
 
@@ -174,7 +174,7 @@ class TestStatementLexer(TestCase):
             Token("users", Kind.identifier, Location(0, 0)),
             Token("values", Kind.keyword, Location(0, 0)),
             Token("(", Kind.symbol, Location(0, 0)),
-            Token(1, Kind.numeric, Location(0, 0)),
+            Token(1, Kind.integer, Location(0, 0)),
             Token(",", Kind.symbol, Location(0, 0)),
             Token("Phil", Kind.string, Location(0, 0)),
             Token(")", Kind.symbol, Location(0, 0)),
