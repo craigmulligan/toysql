@@ -8,6 +8,6 @@ I work with sql databases everyday but don't have deep understanding of how they
 
 ## Current Features
 
-Check the [end-to-end tests](tests/test_e2e.py) for an idea of current features. Anything beyond that is likely to break.
+Check the [vm tests](tests/test_vm.py) for an idea of current features. Anything beyond that is likely to break.
 
 [Reading material & references](docs/reading.md)
