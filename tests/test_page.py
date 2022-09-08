@@ -7,10 +7,10 @@ from toysql.exceptions import DuplicateKeyException
 class TestCell(TestCase):
     def test_leaf_page_cell(self):
         payload = [
-            [DataType.INTEGER, 3],
-            [DataType.INTEGER, 124],
-            [DataType.TEXT, "Craig"],
-            [DataType.NULL, None],
+            [DataType.integer, 3],
+            [DataType.integer, 124],
+            [DataType.text, "Craig"],
+            [DataType.null, None],
         ]
         record = Record(payload)
         cell = LeafPageCell(record)
@@ -19,10 +19,10 @@ class TestCell(TestCase):
 
     def test_leaf_page_cell_handles_extra_bytes(self):
         payload = [
-            [DataType.INTEGER, 3],
-            [DataType.INTEGER, 124],
-            [DataType.TEXT, "Craig"],
-            [DataType.NULL, None],
+            [DataType.integer, 3],
+            [DataType.integer, 124],
+            [DataType.text, "Craig"],
+            [DataType.null, None],
         ]
         record = Record(payload)
         cell = LeafPageCell(record)
@@ -47,10 +47,10 @@ class TestPage(TestCase):
 
         for n in range(3, 1, -1):
             payload = [
-                [DataType.INTEGER, n],
-                [DataType.INTEGER, 124],
-                [DataType.TEXT, "Craig"],
-                [DataType.NULL, None],
+                [DataType.integer, n],
+                [DataType.integer, 124],
+                [DataType.text, "Craig"],
+                [DataType.null, None],
             ]
             leaf_page.add_cell(LeafPageCell(Record(payload)))
 
@@ -86,10 +86,10 @@ class TestPage(TestCase):
         # Add cells in reverse order by PK
         for n in range(5, 0, -1):
             payload = [
-                [DataType.INTEGER, n],
-                [DataType.INTEGER, 124],
-                [DataType.TEXT, "Craig"],
-                [DataType.NULL, None],
+                [DataType.integer, n],
+                [DataType.integer, 124],
+                [DataType.text, "Craig"],
+                [DataType.null, None],
             ]
             cells.append(leaf_page.add(payload))
 
@@ -98,7 +98,7 @@ class TestPage(TestCase):
     def test_duplicate_row_id(self):
         leaf_page = Page(PageType.leaf, 1)
         payload = [
-            [DataType.INTEGER, 3],
+            [DataType.integer, 3],
         ]
 
         leaf_page.add(payload)

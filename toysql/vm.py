@@ -34,7 +34,7 @@ class VM:
         if self.schema_table_exists():
             return self.load_table(SCHEME_TABLE_NAME, page_number)
 
-        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name TEXT(12), sql_text TEXT(500), root_page_number INT);"
+        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
         [statement] = self.parse_input(input)
 
         if len(self.pager) == 0:
@@ -55,10 +55,10 @@ class VM:
         if table_name != SCHEME_TABLE_NAME:
             self.schema_table.insert(
                 [
-                    [DataType.INTEGER, root_page_number],
-                    [DataType.TEXT, table_name],
-                    [DataType.TEXT, input],
-                    [DataType.INTEGER, root_page_number],
+                    [DataType.integer, root_page_number],
+                    [DataType.text, table_name],
+                    [DataType.text, input],
+                    [DataType.integer, root_page_number],
                 ]
             )
 
@@ -100,10 +100,10 @@ class VM:
         values = []
         for token in statment.values:
             if token.kind == Kind.integer:
-                values.append([DataType.INTEGER, token.value])
+                values.append([DataType.integer, token.value])
 
             if token.kind == Kind.text:
-                values.append([DataType.TEXT, token.value])
+                values.append([DataType.text, token.value])
 
         return Record(values)
 
