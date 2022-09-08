@@ -71,7 +71,7 @@ class TokenCursor:
 
             # Now look for one of identifier kind
             exp = None
-            kinds = [Kind.numeric, Kind.string, Kind.identifier]
+            kinds = [Kind.integer, Kind.string, Kind.identifier]
 
             for kind in kinds:
                 try:
@@ -184,7 +184,7 @@ class InsertStatement(Statement):
 
             # Now look for one of identifier kind
             token = None
-            kinds = [Kind.numeric, Kind.string, Kind.identifier]
+            kinds = [Kind.integer, Kind.string, Kind.identifier]
 
             for kind in kinds:
                 try:
@@ -296,13 +296,13 @@ class CreateStatement(Statement):
                 raise ParsingException(f"Expected {Kind.keyword.value}")
 
             length = None
-            # Let's look for length which is (<numeric)
+            # Let's look for length which is (<integer)
             if cursor.peek() == Token(Symbol.left_paren.value, Kind.symbol):
                 cursor.move()
                 try:
-                    length = cursor.expect_kind(Kind.numeric)
+                    length = cursor.expect_kind(Kind.integer)
                 except LookupError:
-                    raise ParsingException(f"Expected {Kind.numeric.value} found")
+                    raise ParsingException(f"Expected {Kind.integer.value} found")
 
                 try:
                     cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))

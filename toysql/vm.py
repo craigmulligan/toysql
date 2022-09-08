@@ -99,7 +99,7 @@ class VM:
     def insert_statement_to_record(self, statment: InsertStatement) -> Record:
         values = []
         for token in statment.values:
-            if token.kind == Kind.numeric:
+            if token.kind == Kind.integer:
                 values.append([DataType.INTEGER, token.value])
 
             if token.kind == Kind.string:

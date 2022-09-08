@@ -9,6 +9,7 @@
 
 # NEXT: 
 
+- Use new Datatypes in Lexer.
 - Remove btree branch factor
 - Add column names
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
@@ -25,4 +26,11 @@
 - python unittest framework is pretty feature complete. The only thing I miss from pytest is the pretty output & parameterized tests.
 - Didn't realize the VM / parser distinction.
 - Didn't have a good grasp of what stats are used in the query planner.
+
+# String lengths 
+SQLite does let you write VARCHAR(255) or NVARCHAR(255), but the only relevant part of that is CHAR (which gives the column "text affinity"). The number in parentheses is allowed for compatibility with standard SQL, but is ignored.
+
+In SQLite, there's little need for length constraints on strings, because (1) it doesn't affect the amount of space the string takes up on disk and (2) there's no arbitrary limit (except for SQLITE_MAX_LENGTH) on the length of strings that can be used in an INDEX.
+
+If you have an actual need to place a limit on the number of characters in a column, just add a constraint like CHECK(LENGTH(TheColumn) <= 255)
 
