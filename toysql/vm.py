@@ -102,7 +102,7 @@ class VM:
             if token.kind == Kind.integer:
                 values.append([DataType.INTEGER, token.value])
 
-            if token.kind == Kind.string:
+            if token.kind == Kind.text:
                 values.append([DataType.TEXT, token.value])
 
         return Record(values)

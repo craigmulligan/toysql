@@ -71,7 +71,7 @@ class TokenCursor:
 
             # Now look for one of identifier kind
             exp = None
-            kinds = [Kind.integer, Kind.string, Kind.identifier]
+            kinds = [Kind.integer, Kind.text, Kind.identifier]
 
             for kind in kinds:
                 try:
@@ -184,7 +184,7 @@ class InsertStatement(Statement):
 
             # Now look for one of identifier kind
             token = None
-            kinds = [Kind.integer, Kind.string, Kind.identifier]
+            kinds = [Kind.integer, Kind.text, Kind.identifier]
 
             for kind in kinds:
                 try:
