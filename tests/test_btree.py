@@ -9,7 +9,7 @@ from tests.fixtures import Fixtures
 class TestBTree(Fixtures, TestCase):
     def setUp(self) -> None:
         def create_record(row_id: int, text: str):
-            return Record([[DataType.INTEGER, row_id], [DataType.TEXT, text]])
+            return Record([[DataType.integer, row_id], [DataType.text, text]])
 
         self.create_record = create_record
         return super().setUp()

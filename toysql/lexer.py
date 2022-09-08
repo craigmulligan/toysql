@@ -45,21 +45,28 @@ class DataType(Enum):
     BLOB. The value is a blob of data, stored exactly as it was input.
     """
 
-    NULL = auto()
-    INTEGER = auto()
-    TEXT = auto()
-    BLOB = auto()
+    null = auto()
+    integer = auto()
+    text = auto()
+    blob = auto()
 
 
 class Kind(Enum):
+    """
+    Kind is a superset of datatypes
+
+    You can't nicely extend Enums in python.
+    """
+
     keyword = auto()
     symbol = auto()
     identifier = auto()
-    text = auto()
-    integer = auto()
     bool = auto()
-    null = auto()
     discard = auto()
+    null = auto()
+    integer = auto()
+    text = auto()
+    blob = auto()
 
 
 @dataclass
@@ -121,6 +128,9 @@ class KeywordLexer(Lexer):
         cursor.loc.col = cursor.loc.col + len(match)
 
         kind = Kind.keyword
+
+        # TODO this is a hack.
+        # Should be handled in own Lexer.
         if match == Keyword.true or match == Keyword.false:
             kind = Kind.bool
 
