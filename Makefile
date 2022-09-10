@@ -1,15 +1,15 @@
-.PHONY test 
+.PHONY: test
 test:
 	python -m unittest discover ./tests
 
-.PHONY pytest 
+.PHONY: pytest
 pytest:
 	pytest .
 
-.PHONY typetest 
+.PHONY: typetest
 typetest:
 	pyright .
 
-.PHONY ci
+.PHONY: ci
 ci: pytest typetest
 	echo "Success"
