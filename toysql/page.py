@@ -308,7 +308,8 @@ class Page:
         buffer = io.BytesIO(data)
         page_number = FixedInteger.from_bytes(buffer.read(1))
         page_type = PageType(FixedInteger.from_bytes(buffer.read(1)))
-        _free_block_pointer = PageType(FixedInteger.from_bytes(buffer.read(2)))
+        # Free block pointer.
+        _ = PageType(FixedInteger.from_bytes(buffer.read(2)))
         number_of_cells = FixedInteger.from_bytes(buffer.read(2))
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
 

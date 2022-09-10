@@ -94,7 +94,7 @@ class TokenCursor:
 
 class Statement:
     @staticmethod
-    def parse(tokens: List[Token], cursor: int) -> Tuple[Optional["Statement"], int]:
+    def parse(tokens: List[Token], _: int) -> Tuple[Optional["Statement"], int]:
         ...
 
 
