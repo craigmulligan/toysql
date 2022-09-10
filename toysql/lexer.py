@@ -255,17 +255,14 @@ class SymbolLexer(Lexer):
         try:
             options.index(current)
         except ValueError:
-            return None, cursor
+            return None
 
         cursor.read(1)
 
-        return (
-            Token(
-                current,
-                Kind.symbol,
-                cursor.loc,
-            ),
-            cursor,
+        return Token(
+            current,
+            Kind.symbol,
+            cursor.loc,
         )
 
 
