@@ -47,6 +47,31 @@ class TestVM(Fixtures):
         for i, record in enumerate(records):
             assert record.row_id == rows[i][0]
 
+    def test_insert_and_select_with_named_columns(self):
+        """
+        Given a list of columns a select statement
+        returns a subset of columns.
+        """
+        rows = [
+            [1, "fred", "fred@flintstone.com"],
+            [2, "pebbles", "pebbles@flintstone.com"],
+        ]
+
+        for row in rows:
+            self.vm.execute(
+                f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
+            )
+
+        [records] = self.vm.execute(f"SELECT name, email FROM {self.table_name}")
+
+        assert len(records) == len(rows)
+
+        for i, record in enumerate(records):
+            name, email = record
+            _, input_name, input_email = rows[i]
+            assert input_name == name
+            assert input_email == email
+
     def test_vm_duplicate_key(self):
         row = (1, "fred", "fred@flintstone.com")
         row_2 = (1, "pebbles", "pebbles@flintstone.com")

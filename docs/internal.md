@@ -7,9 +7,8 @@
 * How does a WAL work?
 * How do you store text with variable lengths?
 
-# NEXT: 
+# Next: 
 
-- Use new Datatypes in Lexer.
 - Remove btree branch factor
 - Add column names
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables

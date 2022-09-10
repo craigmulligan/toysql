@@ -140,6 +140,31 @@ class TestSelectParser(TestCase):
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "*"
 
+    def test_multi_columns(self):
+        tokens = [
+            Token("select", Kind.keyword, Location(0, 0)),
+            Token("a", Kind.identifier, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("b", Kind.identifier, Location(0, 0)),
+            Token("from", Kind.keyword, Location(0, 0)),
+            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("where", Kind.keyword, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("hi", Kind.text, Location(0, 0)),
+            Token("and", Kind.keyword, Location(0, 0)),
+            Token("y", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token(123, Kind.integer, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+        cursor = TokenCursor(tokens)
+        stmt = SelectStatement.parse(cursor)
+        assert isinstance(stmt, SelectStatement)
+        assert stmt._from.value == "my_table"
+        assert stmt.items[0].value == "a"
+        assert stmt.items[1].value == "b"
+
     def test_found(self):
         tokens = [
             Token("select", Kind.keyword, Location(0, 0)),

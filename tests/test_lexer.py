@@ -17,16 +17,17 @@ from unittest import TestCase
 class TestSymbolLexer(TestCase):
     def test_lex(self):
         lexer = SymbolLexer()
-        cases = [("*", "*", 1), (" *", None, 1), ("select", None, 0)]
+        cases = [(",b", ",", 1), ("*", "*", 1), (" *", None, 0), ("select", None, 0)]
 
         for source, value, pointer in cases:
-            cursor = Cursor(0, Location(0, 0))
-            token, cursor = lexer.lex(source, cursor)
+            cursor = Cursor(source)
+            token, cursor = lexer.lex(cursor)
 
             if token:
                 assert cursor.pointer == pointer
                 assert token.value == value
             else:
+                assert cursor.pointer == pointer
                 assert value is None
 
 
@@ -41,7 +42,7 @@ class TestNumericLexer(TestCase):
         ]
 
         for source, value, pointer in cases:
-            cursor = Cursor(0, Location(0, 0))
+            cursor = Cursor(0, source, Location(0, 0))
             token, cursor = lexer.lex(source, cursor)
             if token:
                 assert token.value == value
@@ -56,7 +57,7 @@ class TestStringLexer(TestCase):
         cases = [("'abc'", "abc"), (" 'abc'", None), ("select", None)]
 
         for source, value in cases:
-            cursor = Cursor(0, Location(0, 0))
+            cursor = Cursor(0, source, Location(0, 0))
             token, cursor = lexer.lex(source, cursor)
             if token:
                 assert token.value == value
@@ -76,7 +77,7 @@ class TestKeywordLexer(TestCase):
         ]
 
         for source, value in cases:
-            cursor = Cursor(0, Location(0, 0))
+            cursor = Cursor(0, source, Location(0, 0))
             token, cursor = lexer.lex(source, cursor)
             if token:
                 assert token.value == value
@@ -95,7 +96,7 @@ class TestIdentifierLexer(TestCase):
         ]
 
         for source, value in cases:
-            cursor = Cursor(0, Location(0, 0))
+            cursor = Cursor(0, source, Location(0, 0))
             token, cursor = lexer.lex(source, cursor)
             if token:
                 assert token.value == value
@@ -126,6 +127,36 @@ class TestStatementLexer(TestCase):
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
             Token("*", Kind.symbol, Location(0, 0)),
+            Token("from", Kind.keyword, Location(0, 0)),
+            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("where", Kind.keyword, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token("hi", Kind.text, Location(0, 0)),
+            Token("and", Kind.keyword, Location(0, 0)),
+            Token("y", Kind.identifier, Location(0, 0)),
+            Token("=", Kind.symbol, Location(0, 0)),
+            Token(123, Kind.integer, Location(0, 0)),
+            Token(";", Kind.symbol, Location(0, 0)),
+        ]
+
+        assert tokens == expected_tokens
+
+    def test_select_multi_columns(self):
+        query = """
+            select x,y from "my_table"
+            where x = 'hi'
+            and y = 123;
+        """
+
+        tokens = self.lexer.lex(query)
+
+        # TODO cursor Location doesnt work.
+        expected_tokens = [
+            Token("select", Kind.keyword, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 0)),
+            Token(",", Kind.symbol, Location(0, 0)),
+            Token("y", Kind.identifier, Location(0, 0)),
             Token("from", Kind.keyword, Location(0, 0)),
             Token("my_table", Kind.identifier, Location(0, 0)),
             Token("where", Kind.keyword, Location(0, 0)),
