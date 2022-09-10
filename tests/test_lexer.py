@@ -75,15 +75,14 @@ class TestKeywordLexer(TestCase):
             ("select", "select"),
             (" select", None),
             ("hello", None),
-            ("from", "from"),
+            ("from tablename", "from"),
         ]
 
         for source, value in cases:
-            cursor = Cursor(0, source, Location(0, 0))
-            token, cursor = lexer.lex(source, cursor)
+            cursor = Cursor(source)
+            token = lexer.lex(cursor)
             if token:
                 assert token.value == value
-                assert cursor.pointer == len(value)
             else:
                 assert value is None
 
