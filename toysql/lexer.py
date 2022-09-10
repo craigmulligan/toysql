@@ -85,6 +85,16 @@ class Cursor:
     def pointer(self):
         return self.reader.tell()
 
+    def __len__(self):
+        """
+        length of underlying str.
+        """
+        pointer = self.reader.tell()
+        self.reader.seek(0, io.SEEK_END)
+        size = self.reader.tell()
+        self.reader.seek(pointer)
+        return size
+
     def peek(self, size=1):
         """
         stringIO doesn't have peek
@@ -118,7 +128,7 @@ class Cursor:
 
 @dataclass
 class Token:
-    value: Union[str, int]
+    value: Union[str, int, float]
     kind: Kind
     loc: Optional[Location] = None
 
@@ -184,66 +194,56 @@ def is_exp_marker(c: str):
 
 
 class NumericLexer(Lexer):
-    def lex(self, source, ic):
+    def lex(self, cursor):
         period_found = False
         exp_marker_found = False
 
-        cursor = ic.copy()
-
-        c = source[cursor.pointer]
+        c = cursor.peek()
+        value = ""
 
         if not is_digit(c) and not is_period(c):
-            return None, ic
+            return None
 
-        while cursor.pointer < len(source):
-            c = source[cursor.pointer]
+        while not cursor.is_complete():
+            c = cursor.peek()
+
             if is_period(c):
                 if period_found:
-                    return None, ic
+                    # What cases would you have ".."?
+                    return None
 
                 period_found = True
-                cursor.loc.col += 1
-                cursor.pointer += 1
+                value += cursor.read(1)
                 continue
 
             if is_exp_marker(c):
                 if exp_marker_found:
-                    return None, ic
+                    return None
 
                 # No periods allowed after expMarker
                 period_found = True
                 exp_marker_found = True
 
-                # expMarker must be followed by digits
-                if cursor.pointer == len(source) - 1:
-                    return None, ic
-
-                c_next = source[cursor.pointer + 1]
+                c_next = cursor.peek()
                 if c_next == "-" or c_next == "+":
-                    cursor.loc.col += 1
-                    cursor.pointer += 1
+                    value += cursor.read(1)
 
-                cursor.loc.col += 1
-                cursor.pointer += 1
+                value += cursor.read(1)
                 continue
 
             if not is_digit(c):
                 break
 
-            cursor.loc.col += 1
-            cursor.pointer += 1
+            value += cursor.read(1)
 
         # No characters accumulated
-        if cursor.pointer == ic.pointer:
-            return None, ic
+        if len(value) == 0:
+            return None
 
-        return (
-            Token(
-                int(source[ic.pointer : cursor.pointer]),
-                Kind.integer,
-                cursor.loc,
-            ),
-            cursor,
+        return Token(
+            float(value),
+            Kind.integer,
+            cursor.loc,
         )
 
 

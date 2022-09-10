@@ -35,15 +35,16 @@ class TestNumericLexer(TestCase):
     def test_lex(self):
         lexer = NumericLexer()
         cases = [
-            ("123", 123, 3),
+            ("123 adf", 123, 3),
             ("123 ", 123, 3),
             (" 123", None, 0),
+            ("1.11 ", 1.11, 4),
             ("select", None, 0),
         ]
 
         for source, value, pointer in cases:
             cursor = Cursor(source)
-            token, cursor = lexer.lex(source, cursor)
+            token = lexer.lex(cursor)
             if token:
                 assert token.value == value
                 assert cursor.pointer == pointer
