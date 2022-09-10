@@ -143,30 +143,22 @@ class Lexer(Protocol):
         ...
 
 
-def longest_match(source: str, options: List[str]) -> Optional[str]:
-    """
-    Given a text we find the longest_match from the first character.
-    """
-    options.sort(key=len, reverse=True)
-    for option in options:
-        l = len(option)
-        substr = source[:l]
-        lower_substr = substr.lower()
-        if lower_substr == option:
-            return lower_substr
-
-
 class KeywordLexer(Lexer):
-    def lex(self, source, cursor):
+    def lex(self, cursor):
+        match = None
         options = [e.value for e in Keyword]
+        options.sort(key=len, reverse=True)
 
-        match = longest_match(cursor.read(), options)
+        for option in options:
+            l = len(option)
+            substr = cursor.peek(l)
+            lower_substr = substr.lower()
+            if lower_substr == option:
+                cursor.read(l)
+                match = lower_substr
 
         if match is None:
-            return None, cursor
-
-        cursor.pointer = cursor.pointer + len(match)
-        cursor.loc.col = cursor.loc.col + len(match)
+            return None
 
         kind = Kind.keyword
 
@@ -178,7 +170,7 @@ class KeywordLexer(Lexer):
         if match == Keyword.null:
             kind = Kind.null
 
-        return Token(match, kind, cursor.loc), cursor
+        return Token(match, kind, cursor.loc)
 
 
 def is_digit(c: str):
