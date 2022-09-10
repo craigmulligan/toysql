@@ -21,7 +21,7 @@ class TestSymbolLexer(TestCase):
 
         for source, value, pointer in cases:
             cursor = Cursor(source)
-            token, cursor = lexer.lex(cursor)
+            token = lexer.lex(cursor)
 
             if token:
                 assert cursor.pointer == pointer
@@ -42,13 +42,14 @@ class TestNumericLexer(TestCase):
         ]
 
         for source, value, pointer in cases:
-            cursor = Cursor(0, source, Location(0, 0))
+            cursor = Cursor(source)
             token, cursor = lexer.lex(source, cursor)
             if token:
                 assert token.value == value
                 assert cursor.pointer == pointer
             else:
                 assert value is None
+                assert cursor.pointer == pointer
 
 
 class TestStringLexer(TestCase):
