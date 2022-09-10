@@ -12,7 +12,7 @@
 - Remove btree branch factor
 - Add column names
 - https://stackoverflow.com/questions/40355121/how-does-sqlite-database-stores-tables
-- auto-incrementing IDs
+- auto-incrementing IDs http://www.sqlite.org/c3ref/last_insert_rowid.html + https://www.sqlite.org/autoinc.html (Go for simple default behaviour)
 - Replace current Datatypes code with record.py. 
 
 ## What I've learnt so far:
@@ -32,4 +32,3 @@ SQLite does let you write VARCHAR(255) or NVARCHAR(255), but the only relevant p
 In SQLite, there's little need for length constraints on strings, because (1) it doesn't affect the amount of space the string takes up on disk and (2) there's no arbitrary limit (except for SQLITE_MAX_LENGTH) on the length of strings that can be used in an INDEX.
 
 If you have an actual need to place a limit on the number of characters in a column, just add a constraint like CHECK(LENGTH(TheColumn) <= 255)
-
