@@ -1,6 +1,7 @@
 from typing import Tuple, List, Protocol, Optional, Union
 from dataclasses import dataclass
 from enum import Enum, auto
+import io
 from toysql.exceptions import LexingException
 
 
@@ -77,11 +78,42 @@ class Location:
 
 @dataclass
 class Cursor:
-    pointer: int
-    loc: Location
+    def __init__(self, text) -> None:
+        self.reader = io.StringIO(text)
 
-    def copy(self):
-        return Cursor(self.pointer, Location(self.loc.line, self.loc.col))
+    @property
+    def pointer(self):
+        return self.reader.tell()
+
+    def peek(self, size=1):
+        """
+        stringIO doesn't have peek
+        """
+
+        pointer = self.reader.tell()
+        line = self.read(size)
+        self.reader.seek(pointer)
+
+        return line
+
+    def read(self, size=None):
+        """
+        Reads remaining text from current index without moving the cursor
+        """
+        return self.reader.read(size)
+
+    def is_complete(self):
+        try:
+            self.peek()
+        except EOFError:
+            return True
+
+        return False
+
+    @property
+    def loc(self):
+        """Returns (line_number, col) of `index` in `s`."""
+        return Location(0, 0)
 
 
 @dataclass
@@ -115,14 +147,13 @@ def longest_match(source: str, options: List[str]) -> Optional[str]:
 
 
 class KeywordLexer(Lexer):
-    def lex(self, source, ic):
-        cursor = ic.copy()
+    def lex(self, source, cursor):
         options = [e.value for e in Keyword]
 
-        match = longest_match(source[cursor.pointer :], options)
+        match = longest_match(cursor.read(), options)
 
         if match is None:
-            return None, ic
+            return None, cursor
 
         cursor.pointer = cursor.pointer + len(match)
         cursor.loc.col = cursor.loc.col + len(match)
@@ -217,24 +248,22 @@ class NumericLexer(Lexer):
 
 
 class SymbolLexer(Lexer):
-    def lex(self, source, ic):
-        cursor = ic.copy()
-        c = source[cursor.pointer]
-        # Will get overwritten later if not an ignored syntax
-
+    def lex(self, cursor):
         options = [e.value for e in Symbol]
-        match = longest_match(source[cursor.pointer :], options)
+        current = cursor.peek()
 
-        if match is None:
+        try:
+            options.index(current)
+        except ValueError:
             return None, cursor
 
-        cursor.pointer = cursor.pointer + len(match)
+        cursor.read(1)
 
         return (
             Token(
-                c,
+                current,
                 Kind.symbol,
-                ic.loc,
+                cursor.loc,
             ),
             cursor,
         )
@@ -375,7 +404,7 @@ class StatementLexer:
     def lex(source: str) -> List[Token]:
         source = source.strip()
         tokens = []
-        cursor = Cursor(0, Location(0, 0))
+        cursor = Cursor(source)
         lexers = [
             DiscardLexer(),
             KeywordLexer(),  # Note keyword should always have first pick.
@@ -385,7 +414,7 @@ class StatementLexer:
             IdentifierLexer(),
         ]
 
-        while cursor.pointer < len(source):
+        while not cursor.is_complete():
             pointer = cursor.pointer
             new_tokens = []
             for lexer in lexers:
