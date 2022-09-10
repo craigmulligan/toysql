@@ -82,7 +82,7 @@ class Integer:
     content_length_map = dict([(1, 1), (2, 2), (3, 3), (4, 4), (5, 6), (6, 8)])
 
     def __init__(self, value) -> None:
-        self.value = value
+        self.value = int(value)
 
     def content_length(self) -> IntSizes:
         return cast(IntSizes, len(self.to_bytes()))

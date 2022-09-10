@@ -1,8 +1,8 @@
-from typing import List, Protocol, Optional, Union
 from dataclasses import dataclass
 from enum import Enum, auto
-import io
+from io import StringIO
 from toysql.exceptions import LexingException
+from typing import List, Protocol, Optional, Union
 
 
 class Keyword(Enum):
@@ -78,7 +78,7 @@ class Location:
 
 class Cursor:
     def __init__(self, text) -> None:
-        self.reader = io.StringIO(text)
+        self.reader = StringIO(text)
 
     @property
     def pointer(self):

@@ -67,7 +67,7 @@ class TestVM(Fixtures):
         assert len(records) == len(rows)
 
         for i, record in enumerate(records):
-            name, email = record
+            _, name, email = record.values
             _, input_name, input_email = rows[i]
             assert input_name == name
             assert input_email == email
