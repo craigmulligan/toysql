@@ -53,21 +53,6 @@ class TestNumericLexer(TestCase):
                 assert cursor.pointer == pointer
 
 
-class TestStringLexer(TestCase):
-    def test_lex(self):
-        lexer = StringLexer()
-        cases = [("'abc'", "abc"), (" 'abc'", None), ("select", None)]
-
-        for source, value in cases:
-            cursor = Cursor(0, source, Location(0, 0))
-            token, cursor = lexer.lex(source, cursor)
-            if token:
-                assert token.value == value
-                assert cursor.pointer == len(source)
-            else:
-                assert value is None
-
-
 class TestKeywordLexer(TestCase):
     def test_lex(self):
         lexer = KeywordLexer()
@@ -87,6 +72,21 @@ class TestKeywordLexer(TestCase):
                 assert value is None
 
 
+class TestStringLexer(TestCase):
+    def test_lex(self):
+        lexer = StringLexer()
+        cases = [("'abc'", "abc"), (" 'abc'", None), ("select", None)]
+
+        for source, value in cases:
+            cursor = Cursor(source)
+            token = lexer.lex(cursor)
+            if token:
+                assert token.value == value
+                # TODO check cursor.pointer
+            else:
+                assert value is None
+
+
 class TestIdentifierLexer(TestCase):
     def test_lex(self):
         lexer = IdentifierLexer()
@@ -97,11 +97,10 @@ class TestIdentifierLexer(TestCase):
         ]
 
         for source, value in cases:
-            cursor = Cursor(0, source, Location(0, 0))
-            token, cursor = lexer.lex(source, cursor)
+            cursor = Cursor(source)
+            token = lexer.lex(cursor)
             if token:
                 assert token.value == value
-                assert cursor.pointer == len(source)
             else:
                 assert value is None
 

@@ -263,48 +263,28 @@ class DelimitedLexer(Lexer):
         self.delimiter = delimiter
         self.kind = kind
 
-    def lex(self, source, ic):
-        cursor = ic.copy()
-
-        remaining_source = source[cursor.pointer :]
-        if len(remaining_source) == 0:
-            return None, cursor
-
-        if source[cursor.pointer] != self.delimiter:
-            # we haven't found the delimiter
-            # break exit early
-            return None, cursor
+    def lex(self, cursor):
+        if cursor.peek() != self.delimiter:
+            return None
 
         # Now we have found the delimiter
         # we want to continue until we find the
         # end delimiter.
+        cursor.read(1)
+
         value = ""
-        cursor.pointer += 1
-        cursor.loc.col += 1
+        while not cursor.is_complete():
+            if cursor.peek() == self.delimiter:
+                # Move over the delimiter.
+                cursor.read(1)
 
-        while cursor.pointer < len(source):
-            c = source[cursor.pointer]
-            cursor.loc.col += 1
-            cursor.pointer += 1
+                return Token(
+                    value,
+                    self.kind,
+                    cursor.loc,
+                )
 
-            if c == self.delimiter:
-                # SQL escapes are via double characters, not backslash.
-                if (
-                    cursor.pointer + 1 >= len(source)
-                    or source[cursor.pointer + 1] != self.delimiter
-                ):
-                    return (
-                        Token(
-                            value,
-                            self.kind,
-                            cursor.loc,
-                        ),
-                        cursor,
-                    )
-                else:
-                    value = value + self.delimiter
-
-            value = value + c
+            value += cursor.read(1)
         return None, cursor
 
 
@@ -317,75 +297,42 @@ class IdentifierLexer(Lexer):
     def __init__(self) -> None:
         self.double_quote = DelimitedLexer('"', Kind.identifier)
 
-    def lex(self, source, ic):
+    def lex(self, cursor):
         # Look for double quote texts.
-        token, cursor = self.double_quote.lex(source, ic)
+        token = self.double_quote.lex(cursor)
 
         if token:
-            return token, cursor
+            return token
 
-        c = source[cursor.pointer]
+        c = cursor.peek()
 
         is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
         if not is_alphabetical:
-            return None, ic
+            return None
 
-        value = c
-        cursor.loc.col += 1
-        cursor.pointer += 1
+        value = cursor.read(1)
 
-        while cursor.pointer < len(source):
-            c = source[cursor.pointer]
-            cursor.loc.col += 1
-            cursor.pointer += 1
+        while not cursor.is_complete():
+            c = cursor.peek()
 
             is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
             is_numeric = c >= "0" and c <= "9"
 
             if is_alphabetical or is_numeric or c == "$" or c == "_":
-
-                value += c
+                value += cursor.read()
                 continue
 
             break
 
         if len(value) == 0:
-            return None, ic
+            return None
 
-        return (
-            Token(
-                value.lower(),
-                Kind.identifier,
-                ic.loc,
-            ),
-            cursor,
+        return Token(
+            value.lower(),
+            Kind.identifier,
+            cursor.loc,
         )
-
-
-class DiscardLexer(Lexer):
-    """
-    This is the simplest lexer, it finds things like whitespace
-    and line break and moves the cursor forward accordingly.
-
-    The tokens of Kind.discard are removed later.
-    """
-
-    def lex(self, data, cursor):
-        c = data[cursor.pointer]
-
-        if c == "\n":
-            cursor.pointer += 1
-            cursor.loc.line = +1
-            cursor.loc.col = 0
-            return Token(c, Kind.discard, cursor.loc), cursor
-
-        if c == " ":
-            cursor.pointer += 1
-            cursor.loc.col += 1
-            return Token(c, Kind.discard, cursor.loc), cursor
-
-        return None, cursor
 
 
 class StatementLexer:
@@ -395,33 +342,34 @@ class StatementLexer:
         tokens = []
         cursor = Cursor(source)
         lexers = [
-            DiscardLexer(),
             KeywordLexer(),  # Note keyword should always have first pick.
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
             IdentifierLexer(),
         ]
+        discard_characters = [" ", "\n", "\r"]
 
         while not cursor.is_complete():
-            pointer = cursor.pointer
-            new_tokens = []
-            for lexer in lexers:
-                # Something
+            if cursor.peek() in discard_characters:
+                # move the cursor forward
+                # when discarding things.
+                cursor.read(1)
 
-                token, cursor = lexer.lex(source, cursor)
-                # Omit nil tokens for valid, but empty syntax like newlines
-                if token is not None:
-                    if token.kind != Kind.discard:
-                        new_tokens.append(token)
+            pointer = cursor.pointer
+            for lexer in lexers:
+                token = lexer.lex(cursor)
+                if token:
+                    tokens.append(token)
+                    # start at first lexer again..
                     break
 
+            # TODO if we get here an error is likely.
             if pointer == cursor.pointer:
                 raise Exception(
                     f"Cursor Pointer hasn't changed {pointer} - next few chars '{source[pointer:pointer+5]}'"
                 )
 
-            tokens.extend(new_tokens)
             hint = ""
             if len(tokens) > 0:
                 hint = "after " + str(tokens[-1].value)
