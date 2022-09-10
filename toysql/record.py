@@ -128,9 +128,9 @@ class Integer:
 
 
 class Record:
-    def __init__(self, payload):
+    def __init__(self, payload, row_id=None):
         self.values = payload
-        self.row_id = payload[0][1] or 0
+        self.row_id = row_id or payload[0][1] or 0
 
     def __eq__(self, o: "Record") -> bool:
         for i, v in enumerate(self.values):

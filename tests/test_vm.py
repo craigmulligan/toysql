@@ -67,10 +67,11 @@ class TestVM(Fixtures):
         assert len(records) == len(rows)
 
         for i, record in enumerate(records):
+            assert len(record.values) == 2
             _, name, email = record.values
             _, input_name, input_email = rows[i]
-            assert input_name == name
-            assert input_email == email
+            assert input_name == name[1]
+            assert input_email == email[1]
 
     def test_vm_duplicate_key(self):
         row = (1, "fred", "fred@flintstone.com")
