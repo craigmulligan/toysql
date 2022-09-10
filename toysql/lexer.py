@@ -76,7 +76,6 @@ class Location:
     col: int
 
 
-@dataclass
 class Cursor:
     def __init__(self, text) -> None:
         self.reader = io.StringIO(text)
@@ -139,7 +138,7 @@ class Token:
 
 
 class Lexer(Protocol):
-    def lex(self, data: str, cursor: Cursor) -> Tuple[Optional[Token], Cursor, bool]:
+    def lex(self, cursor: Cursor) -> Optional[Token]:
         ...
 
 
@@ -356,7 +355,6 @@ class StatementLexer:
                 # when discarding things.
                 cursor.read(1)
 
-            pointer = cursor.pointer
             for lexer in lexers:
                 token = lexer.lex(cursor)
                 if token:
@@ -364,17 +362,12 @@ class StatementLexer:
                     # start at first lexer again..
                     break
 
-            # TODO if we get here an error is likely.
-            if pointer == cursor.pointer:
-                raise Exception(
-                    f"Cursor Pointer hasn't changed {pointer} - next few chars '{source[pointer:pointer+5]}'"
-                )
+            raise Exception("TODO fix.")
+            # hint = ""
+            # if len(tokens) > 0:
+            #     hint = "after " + str(tokens[-1].value)
 
-            hint = ""
-            if len(tokens) > 0:
-                hint = "after " + str(tokens[-1].value)
-
-            LexingException(
-                f"Unable to lex token {hint}, at {cursor.loc.line}:{cursor.loc.col}"
-            )
+            # LexingException(
+            #     f"Unable to lex token {hint}, at {cursor.loc.line}:{cursor.loc.col}"
+            # )
         return tokens

@@ -361,7 +361,6 @@ class Parser:
     def parse(self, tokens: List[Token]):
         stmts = []
         parsers = [SelectStatement, CreateStatement, InsertStatement]
-        breakpoint()
         cursor = TokenCursor(tokens)
 
         while not cursor.is_complete():
