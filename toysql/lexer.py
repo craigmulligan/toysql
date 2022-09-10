@@ -1,4 +1,4 @@
-from typing import Tuple, List, Protocol, Optional, Union
+from typing import List, Protocol, Optional, Union
 from dataclasses import dataclass
 from enum import Enum, auto
 import io
@@ -88,11 +88,7 @@ class Cursor:
         """
         length of underlying str.
         """
-        pointer = self.reader.tell()
-        self.reader.seek(0, io.SEEK_END)
-        size = self.reader.tell()
-        self.reader.seek(pointer)
-        return size
+        return len(self.reader.getvalue())
 
     def peek(self, size=1):
         """
@@ -112,12 +108,7 @@ class Cursor:
         return self.reader.read(size)
 
     def is_complete(self):
-        try:
-            self.peek()
-        except EOFError:
-            return True
-
-        return False
+        return self.reader.tell() == len(self)
 
     @property
     def loc(self):
@@ -284,7 +275,8 @@ class DelimitedLexer(Lexer):
                 )
 
             value += cursor.read(1)
-        return None, cursor
+
+        return None
 
 
 class StringLexer(DelimitedLexer):
@@ -319,7 +311,7 @@ class IdentifierLexer(Lexer):
             is_numeric = c >= "0" and c <= "9"
 
             if is_alphabetical or is_numeric or c == "$" or c == "_":
-                value += cursor.read()
+                value += cursor.read(1)
                 continue
 
             break
@@ -354,20 +346,17 @@ class StatementLexer:
                 # move the cursor forward
                 # when discarding things.
                 cursor.read(1)
+                continue
 
             for lexer in lexers:
                 token = lexer.lex(cursor)
                 if token:
                     tokens.append(token)
-                    # start at first lexer again..
                     break
+            else:
+                # Else in a for loop is executed when
+                # it no breaks are called.
+                # Therefore this means no tokens were found.
+                raise LexingException(f"Location {cursor.loc.line}:{cursor.loc.col}")
 
-            raise Exception("TODO fix.")
-            # hint = ""
-            # if len(tokens) > 0:
-            #     hint = "after " + str(tokens[-1].value)
-
-            # LexingException(
-            #     f"Unable to lex token {hint}, at {cursor.loc.line}:{cursor.loc.col}"
-            # )
         return tokens

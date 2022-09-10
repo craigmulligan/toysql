@@ -12,6 +12,7 @@ from toysql.lexer import (
     IdentifierLexer,
 )
 from unittest import TestCase
+from toysql.exceptions import LexingException
 
 
 class TestSymbolLexer(TestCase):
@@ -75,16 +76,17 @@ class TestKeywordLexer(TestCase):
 class TestStringLexer(TestCase):
     def test_lex(self):
         lexer = StringLexer()
-        cases = [("'abc'", "abc"), (" 'abc'", None), ("select", None)]
+        cases = [("'abc'", "abc", 5), (" 'abc'", None, 0), ("select", None, 0)]
 
-        for source, value in cases:
+        for source, value, index in cases:
             cursor = Cursor(source)
             token = lexer.lex(cursor)
             if token:
                 assert token.value == value
-                # TODO check cursor.pointer
+                assert cursor.pointer == index
             else:
                 assert value is None
+                assert cursor.pointer == index
 
 
 class TestIdentifierLexer(TestCase):
@@ -213,3 +215,9 @@ class TestStatementLexer(TestCase):
         ]
 
         assert tokens == expected_tokens
+
+    def test_invalid_sql_symbol(self):
+        query = """INSERT $$"""
+
+        with self.assertRaises(LexingException):
+            self.lexer.lex(query)
