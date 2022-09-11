@@ -14,4 +14,6 @@
 - https://www.geeksforgeeks.org/introduction-of-b-tree
 - https://www.cs.nmsu.edu/~hcao/teaching/cs582/note/DB2_4_BplusTreeExample.pdf
 - https://www.programiz.com/dsa/b-plus-tree#:~:text=A%20B%2B%20tree%20is%20an,the%20data%20easier%20and%20faster.
-
+- https://www.jmeiners.com/lc3-vm/#s0:4
+- https://cheever.domains.swarthmore.edu/Ref/BinaryMath/BinaryMath.html
+- https://wizardforcel.gitbooks.io/sqlite-doc-en/content/64.html
