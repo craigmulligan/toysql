@@ -133,7 +133,7 @@ class Lexer(Protocol):
         ...
 
 
-class KeywordLexer(Lexer):
+class KeywordLexer:
     def lex(self, cursor):
         match = None
         options = [e.value for e in Keyword]
@@ -175,7 +175,7 @@ def is_exp_marker(c: str):
     return c == "e"
 
 
-class NumericLexer(Lexer):
+class NumericLexer:
     def lex(self, cursor):
         period_found = False
         exp_marker_found = False
@@ -229,7 +229,7 @@ class NumericLexer(Lexer):
         )
 
 
-class SymbolLexer(Lexer):
+class SymbolLexer:
     def lex(self, cursor):
         options = [e.value for e in Symbol]
         current = cursor.peek()
@@ -248,7 +248,7 @@ class SymbolLexer(Lexer):
         )
 
 
-class DelimitedLexer(Lexer):
+class DelimitedLexer:
     def __init__(self, delimiter: str, kind: Kind) -> None:
         self.delimiter = delimiter
         self.kind = kind
@@ -284,7 +284,7 @@ class StringLexer(DelimitedLexer):
         super().__init__("'", Kind.text)
 
 
-class IdentifierLexer(Lexer):
+class IdentifierLexer:
     def __init__(self) -> None:
         self.double_quote = DelimitedLexer('"', Kind.identifier)
 
@@ -330,16 +330,18 @@ class StatementLexer:
     @staticmethod
     def lex(source: str) -> List[Token]:
         source = source.strip()
+        discard_characters = [" ", "\n", "\r"]
         tokens = []
         cursor = Cursor(source)
-        lexers = [
+        # Explicitly describe type here
+        # So we ensure each of these is a lexer.
+        lexers: List[Lexer] = [
             KeywordLexer(),  # Note keyword should always have first pick.
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
             IdentifierLexer(),
         ]
-        discard_characters = [" ", "\n", "\r"]
 
         while not cursor.is_complete():
             if cursor.peek() in discard_characters:
