@@ -28,7 +28,7 @@ class TestVM(Fixtures):
         assert len(self.vm.tables.keys()) == 2
         [records] = self.vm.execute(f"SELECT * FROM {SCHEME_TABLE_NAME}")
         assert len(records) == 1
-        assert records[0].values[1][1] == self.table_name
+        assert records[0][1] == self.table_name
 
     def test_insert_and_select(self):
         rows = [
@@ -45,7 +45,7 @@ class TestVM(Fixtures):
 
         assert len(records) == len(rows)
         for i, record in enumerate(records):
-            assert record.row_id == rows[i][0]
+            assert record[0] == rows[i][0]
 
     def test_insert_and_select_with_named_columns(self):
         """
@@ -99,4 +99,4 @@ class TestVM(Fixtures):
         keys.sort()
 
         assert len(records) == len(keys)
-        assert [record.row_id for record in records] == keys
+        assert [record[0] for record in records] == keys
