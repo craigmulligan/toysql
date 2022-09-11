@@ -123,6 +123,7 @@ class VM:
         return Record(values)
 
     def execute_statement(self, statement: Statement, input: str):
+        ## TODO decide on api for return values.
         if isinstance(statement, SelectStatement):
             table_name = statement._from.value
             table = self.get_table(table_name)
@@ -156,7 +157,7 @@ class VM:
             record = self.insert_statement_to_record(statement)
             t = self.get_table(table_name)
             t.insert(record)
-            return record
+            return
 
         if isinstance(statement, CreateStatement):
-            return self.create_table(statement, input, self.pager.new())
+            self.create_table(statement, input, self.pager.new())
