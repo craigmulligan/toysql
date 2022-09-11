@@ -163,19 +163,19 @@ class KeywordLexer:
         return Token(match, kind, cursor.loc)
 
 
-def is_digit(c: str):
-    return c >= "0" and c <= "9"
-
-
-def is_period(c: str):
-    return c == "."
-
-
-def is_exp_marker(c: str):
-    return c == "e"
-
-
 class NumericLexer:
+    @staticmethod
+    def is_digit(c: str):
+        return c >= "0" and c <= "9"
+
+    @staticmethod
+    def is_period(c: str):
+        return c == "."
+
+    @staticmethod
+    def is_exp_marker(c: str):
+        return c == "e"
+
     def lex(self, cursor):
         period_found = False
         exp_marker_found = False
@@ -183,13 +183,13 @@ class NumericLexer:
         c = cursor.peek()
         value = ""
 
-        if not is_digit(c) and not is_period(c):
+        if not self.is_digit(c) and not self.is_period(c):
             return None
 
         while not cursor.is_complete():
             c = cursor.peek()
 
-            if is_period(c):
+            if self.is_period(c):
                 if period_found:
                     # What cases would you have ".."?
                     return None
@@ -198,7 +198,7 @@ class NumericLexer:
                 value += cursor.read(1)
                 continue
 
-            if is_exp_marker(c):
+            if self.is_exp_marker(c):
                 if exp_marker_found:
                     return None
 
@@ -213,7 +213,7 @@ class NumericLexer:
                 value += cursor.read(1)
                 continue
 
-            if not is_digit(c):
+            if not self.is_digit(c):
                 break
 
             value += cursor.read(1)
