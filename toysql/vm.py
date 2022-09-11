@@ -33,7 +33,8 @@ class VM:
         columns = self.get_table_columns(table)
         names = []
         for col in columns:
-            names.append(col.name.value)
+            if col.name.value != "*":
+                names.append(col.name.value)
 
         return names
 
@@ -130,6 +131,10 @@ class VM:
             column_names = self.get_table_column_names(table)
 
             for column_name in statement.items:
+                if column_name.value == "*":
+                    # TODO need to handle this better.
+                    break
+
                 column_index.append(column_names.index(column_name.value))
 
             if len(column_index) == 0:
