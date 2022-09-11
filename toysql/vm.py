@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 from toysql.parser import SelectStatement, InsertStatement, CreateStatement, Statement
 from toysql.table import Table
 from toysql.pager import Pager
@@ -25,14 +25,27 @@ class VM:
         self.schema_table = self.create_schema_table()
         self.row_counter = 0
 
+    def get_table_columns(self, table):
+        [statement] = self.parse_input(table.input)
+        return statement.columns
+
+    def get_table_column_names(self, table):
+        columns = self.get_table_columns(table)
+        names = []
+        for col in columns:
+            names.append(col.name.value)
+
+        return names
+
     def schema_table_exists(self) -> bool:
         return len(self.pager) > 0
 
     def create_schema_table(self) -> Table:
         page_number = 0
+        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
 
         if self.schema_table_exists():
-            return self.load_table(SCHEME_TABLE_NAME, page_number)
+            return self.load_table(SCHEME_TABLE_NAME, input, page_number)
 
         input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
         [statement] = self.parse_input(input)
@@ -50,7 +63,7 @@ class VM:
         self, statement: CreateStatement, input: str, root_page_number
     ) -> Table:
         table_name = statement.table.value
-        table = self.load_table(table_name, root_page_number)
+        table = self.load_table(table_name, input, root_page_number)
 
         if table_name != SCHEME_TABLE_NAME:
             self.schema_table.insert(
@@ -64,9 +77,9 @@ class VM:
 
         return table
 
-    def load_table(self, table_name, root_page_number) -> Table:
+    def load_table(self, table_name, input, root_page_number) -> Table:
         tree = BTree(self.pager, root_page_number)
-        table = Table(table_name, tree)
+        table = Table(table_name, input, tree)
         self.tables[table_name] = table
         return table
 
@@ -77,7 +90,8 @@ class VM:
         for record in self.schema_table.select():
             if record.values[1][1] == table_name:
                 root_page_number = record.values[3][1]
-                return self.load_table(table_name, root_page_number)
+                input = record.values[2][1]
+                return self.load_table(table_name, input, root_page_number)
 
         raise TableFoundException(f"Table: {table_name} not found")
 
@@ -110,8 +124,27 @@ class VM:
     def execute_statement(self, statement: Statement, input: str):
         if isinstance(statement, SelectStatement):
             table_name = statement._from.value
-            records = [r for r in self.get_table(table_name).select()]
-            return records
+            table = self.get_table(table_name)
+
+            column_index = []
+            column_names = self.get_table_column_names(table)
+
+            for column_name in statement.items:
+                column_index.append(column_names.index(column_name.value))
+
+            if len(column_index) == 0:
+                # If no columns we select every index.
+                column_index = list(range(0, len(column_names)))
+
+            results = []
+            for r in table.select():
+                result = []
+                if len(column_index):
+                    for i in column_index:
+                        result.append(r.values[i][1])
+                results.append(result)
+
+            return results
 
         if isinstance(statement, InsertStatement):
             table_name = statement.into.value

@@ -13,11 +13,15 @@ class TestBTree(Fixtures, TestCase):
             return Record([[DataType.integer, row_id], [DataType.text, text]])
 
         self.create_record = create_record
+        self.table_name = "users"
+        self.create_statment = (
+            f"CREATE TABLE {self.table_name} (id INT, name text(12));"
+        )
 
     def test_insert_select(self):
         page_number = self.pager.new()
         btree = BTree(self.pager, page_number)
-        table = Table("users", btree)
+        table = Table(self.table_name, self.create_statment, btree)
 
         records = []
 
@@ -33,7 +37,7 @@ class TestBTree(Fixtures, TestCase):
 
         # Now load from disk and read again.
         new_btree = BTree(self.pager, page_number)
-        new_table = Table("users", new_btree)
+        new_table = Table(self.table_name, self.create_statment, new_btree)
 
         results = [r for r in new_table.select()]
         for i, record in enumerate(records):
