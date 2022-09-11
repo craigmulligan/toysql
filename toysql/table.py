@@ -1,6 +1,6 @@
-from typing import Iterable
+from typing import Iterable, Dict
 from toysql.btree import BTree
-from toysql.record import Record
+from toysql.record import Record, DataType
 
 
 class Table:
@@ -10,8 +10,9 @@ class Table:
     table.
     """
 
-    def __init__(self, name, btree: BTree):
+    def __init__(self, name: str, input: str, btree: BTree):
         self.name = name
+        self.input = input
         self.btree = btree
         self.tree = btree
 
