@@ -6,16 +6,8 @@
 * How do you handle deleted pages (freenode list)?
 * How does a WAL work?
 * How do you store text with variable lengths?
-
-# Next: 
-
-- auto-incrementing IDs http://www.sqlite.org/c3ref/last_insert_rowid.html + https://www.sqlite.org/autoinc.html (Go for simple default behaviour)
-- Remove btree branch factor
-- Stuck into simple VM
-- indexes
-- where & limit
-- deletes
-- joins
+* How exactly does the schema cookie work?
+* If everything is handled by the VM eg opening btree cursors loading values etc. How does the planner (eg pre-vm look up the schema & stats table?) Are those tables looked up directly, or do they still use the vm internally? I'm guessing this has something to do with the schema cookie. [relevant](https://github.com/sqlite/sqlite/blob/41ce47c4f4bcae3882fdccec18a6100a85f4bba5/src/prepare.c#L710) looks like it runs it through [`sqlite3_exec`](https://github.com/sqlite/sqlite/blob/master/src/legacy.c) which does run it through `sqlite3_prepare_v2` the planner & `sqlite3_step` the vm.
 
 ## What I've learnt so far:
 
