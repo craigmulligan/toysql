@@ -21,6 +21,7 @@ class TestPlanner(Fixtures):
     def test_select(self):
         """
         select * from artist;
+
         addr  opcode         p1    p2    p3    p4             p5  comment
         ----  -------------  ----  ----  ----  -------------  --  -------------
         0     Init           0     8     0                    0   Start at 8
@@ -41,8 +42,16 @@ class TestPlanner(Fixtures):
         root_page_number = 12
 
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=1),
-            Instruction(Opcode.OpenRead, p1=0, p2=root_page_number),
+            Instruction(Opcode.Init, p2=8),
+            Instruction(Opcode.OpenRead, p1=0, p2=root_page_number, p3=0, p4=2),
+            Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
+            Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=2),
+            Instruction(Opcode.ResultRow, p1=1, p2=1, p3=0),
+            Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
+            Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
+            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
         ]
 
     def test_create(self):
