@@ -1,6 +1,6 @@
 from toysql.parser import Parser
 from toysql.lexer import StatementLexer
-from toysql.planner import Planner
+from toysql.planner import Planner, Instruction, Opcode
 from tests.fixtures import Fixtures
 
 
@@ -38,7 +38,12 @@ class TestPlanner(Fixtures):
         """
         stmt = self.prepare("select * from artist;")
         program = self.planner.plan(stmt)
-        assert len(program.instructions) == 1
+        root_page_number = 12
+
+        assert program.instructions == [
+            Instruction(Opcode.Init, p2=1),
+            Instruction(Opcode.OpenRead, p1=0, p2=root_page_number),
+        ]
 
     def test_create(self):
         """
