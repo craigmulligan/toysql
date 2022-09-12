@@ -14,9 +14,6 @@ class TestBTree(Fixtures, TestCase):
         self.create_record = create_record
         return super().setUp()
 
-    def cleanUp(self) -> None:
-        self.temp_dir.cleanup()
-
     def test_btree(self):
         """
         Given and ordered set of data

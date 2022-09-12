@@ -1,4 +1,4 @@
-from typing import List, Any, Optional, Dict
+from typing import List, Any, Optional
 from toysql.parser import SelectStatement, InsertStatement, CreateStatement, Statement
 from toysql.table import Table
 from toysql.pager import Pager
@@ -23,7 +23,6 @@ class VM:
         self.parser = Parser()
         self.tables = {}
         self.schema_table = self.create_schema_table()
-        self.row_counter = 0
 
     def get_table_columns(self, table):
         [statement] = self.parse_input(table.input)
