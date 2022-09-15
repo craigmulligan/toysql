@@ -17,3 +17,4 @@
 - https://www.jmeiners.com/lc3-vm/#s0:4
 - https://cheever.domains.swarthmore.edu/Ref/BinaryMath/BinaryMath.html
 - https://wizardforcel.gitbooks.io/sqlite-doc-en/content/64.html
+- https://iafisher.com/blog/2021/10/using-sqlite-effectively-in-python
