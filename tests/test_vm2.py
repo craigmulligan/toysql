@@ -4,6 +4,7 @@ from tests.fixtures import Fixtures
 from toysql.parser import Parser
 from toysql.lexer import StatementLexer
 from toysql.planner import Planner
+from unittest.mock import Mock
 
 
 class TestVM(Fixtures):
@@ -17,7 +18,12 @@ class TestVM(Fixtures):
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
 
+        self.root_page_number = 1
         self.planner = Planner(self.pager)
+        self.planner.get_table_root_page_number = Mock(
+            return_value=self.root_page_number
+        )
+
         self.lexer = StatementLexer()
         self.parser = Parser()
 
@@ -41,7 +47,6 @@ class TestVM(Fixtures):
     #     assert records[0][1] == self.table_name
 
     def test_insert_and_select(self):
-
         vmv1 = VMV1(self.pager)
         rows = [
             [1, "fred", "fred@flintstone.com"],
@@ -54,7 +59,8 @@ class TestVM(Fixtures):
             )
 
         program = self.prepare(f"SELECT * FROM {self.table_name}")
-        [records] = vmv1.execute(program)
+        records = [r for r in vmv1.execute(program)]
+        print(records)
 
         assert len(records) == len(rows)
         for i, record in enumerate(records):

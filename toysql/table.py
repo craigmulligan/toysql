@@ -13,7 +13,6 @@ class Table:
     def __init__(self, name: str, input: str, btree: BTree):
         self.name = name
         self.input = input
-        self.btree = btree
         self.tree = btree
 
     def insert(self, record) -> Record:

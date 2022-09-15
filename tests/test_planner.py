@@ -2,6 +2,7 @@ from toysql.parser import Parser
 from toysql.lexer import StatementLexer
 from toysql.planner import Planner, Instruction, Opcode
 from tests.fixtures import Fixtures
+from unittest.mock import Mock
 
 
 class TestPlanner(Fixtures):
@@ -40,6 +41,7 @@ class TestPlanner(Fixtures):
         stmt = self.prepare("select * from artist;")
         program = self.planner.plan(stmt)
         root_page_number = 12
+        self.planner.get_table_root_page_number = Mock(return_value=root_page_number)
 
         assert program.instructions == [
             Instruction(Opcode.Init, p2=8),
@@ -47,7 +49,7 @@ class TestPlanner(Fixtures):
             Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
             Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
             Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-            Instruction(Opcode.ResultRow, p1=1, p2=1, p3=0),
+            Instruction(Opcode.ResultRow, p1=1, p2=2, p3=0),
             Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
             Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
             Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
