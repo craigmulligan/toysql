@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 class Opcode(Enum):
     """
-    Programs contain a single instance of this opcode as the very first opcode.
+    Init: Programs contain a single instance of this opcode as the very first opcode.
 
     p2 holds the starting instruction address.
     """
@@ -23,15 +23,59 @@ class Opcode(Enum):
     It is an error for P1 to be negative.
     """
     OpenRead = auto()
+    """
+    Rewind: The next use of the Rowid or Column or Next instruction for P1 will refer to the first entry in the database table or index. If the table or index is empty, jump immediately to P2. If the table or index is not empty, fall through to the following instruction.
+    """
     Rewind = auto()
+    """
+    Rowid: Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
+    P1 can be either an ordinary table or a virtual table. There used to be a separate OP_VRowid opcode for use with virtual tables, but this one opcode now works for both table types.
+    """
     Rowid = auto()
+    """
+    Column: Interpret the data that cursor P1 points to as a structure built using the MakeRecord instruction. (See the MakeRecord opcode for additional information about the format of the data.) Extract the P2-th column from this record. If there are less that (P2+1) values in the record, extract a NULL.
+    The value extracted is stored in register P3.
+
+    If the record contains fewer than P2 fields, then extract a NULL. Or, if the P4 argument is a P4_MEM use the value of the P4 argument as the result.
+
+    If the OPFLAG_LENGTHARG and OPFLAG_TYPEOFARG bits are set on P5 then the result is guaranteed to only be used as the argument of a length() or typeof() function, respectively. The loading of large blobs can be skipped for length() and all content loading can be skipped for typeof().
+    """
     Column = auto()
+    """
+    The registers P1 through P1+P2-1 contain a single row of results. This opcode causes the sqlite3_step() call to terminate with an SQLITE_ROW return code and it sets up the sqlite3_stmt structure to provide access to the r(P1)..r(P1+P2-1) values as the result row.
+    """
     ResultRow = auto()
+    """
+    Advance cursor P1 so that it points to the next key/data pair in its table or index. If there are no more key/value pairs then fall through to the following instruction. But if the cursor advance was successful, jump immediately to P2.
+    The Next opcode is only valid following an SeekGT, SeekGE, or Rewind opcode used to position the cursor. Next is not allowed to follow SeekLT, SeekLE, or Last.
+
+    The P1 cursor must be for a real table, not a pseudo-table. P1 must have been opened prior to this opcode or the program will segfault.
+
+    The P3 value is a hint to the btree implementation. If P3==1, that means P1 is an SQL index and that this instruction could have been omitted if that index had been unique. P3 is usually 0. P3 is always either 0 or 1.
+
+    If P5 is positive and the jump is taken, then event counter number P5-1 in the prepared statement is incremented.
+    """
     Next = auto()
+    """
+    Halt:  Exit immediately. All open cursors, etc are closed automatically.
+
+    P1 is the result code returned by sqlite3_exec(), sqlite3_reset(), or sqlite3_finalize(). For a normal halt, this should be SQLITE_OK (0). For errors, it can be some other value. If P1!=0 then P2 will determine whether or not to rollback the current transaction. Do not rollback if P2==OE_Fail. Do the rollback if P2==OE_Rollback. If P2==OE_Abort, then back out all changes that have occurred during this execution of the VDBE, but do not rollback the transaction.
+
+    If P4 is not null then it is an error message string.
+
+    P5 is a value between 0 and 4, inclusive, that modifies the P4 string.
+
+    0: (no change) 1: NOT NULL contraint failed: P4 2: UNIQUE constraint failed: P4 3: CHECK constraint failed: P4 4: FOREIGN KEY constraint failed: P4
+
+    If P5 is not zero and P4 is NULL, then everything after the ":" is omitted.
+
+    There is an implied "Halt 0 0 0" instruction inserted at the very end of every program. So a jump past the last instruction of the program is the same as executing Halt.
+    """
+
     Halt = auto()
 
     """
-    Begin a transaction on database P1 if a transaction is not already active. If P2 is non-zero, then a write-transaction is started, or if a read-transaction is already active, it is upgraded to a write-transaction. If P2 is zero, then a read-transaction is started. If P2 is 2 or more then an exclusive transaction is started.
+    Transaction: Begin a transaction on database P1 if a transaction is not already active. If P2 is non-zero, then a write-transaction is started, or if a read-transaction is already active, it is upgraded to a write-transaction. If P2 is zero, then a read-transaction is started. If P2 is 2 or more then an exclusive transaction is started.
     P1 is the index of the database file on which the transaction is started. Index 0 is the main database file and index 1 is the file used for temporary tables. Indices of 2 or more are used for attached databases.
 
     If a write-transaction is started and the Vdbe.usesStmtJournal flag is true (this flag is set if the Vdbe may modify more than one row and may throw an ABORT exception), a statement transaction may also be opened. More specifically, a statement transaction is opened iff the database connection is currently not in autocommit mode, or if there are other active statements. A statement transaction allows the changes made by this VDBE to be rolled back after an error without having to roll back the entire transaction. If no error is encountered, the statement transaction will automatically commit when the VDBE halts.
@@ -39,6 +83,11 @@ class Opcode(Enum):
     If P5!=0 then this opcode also checks the schema cookie against P3 and the schema generation counter against P4. The cookie changes its value whenever the database schema changes. This operation is used to detect when that the cookie has changed and that the current process needs to reread the schema. If the schema cookie in P3 differs from the schema cookie in the database header or if the schema generation counter in P4 differs from the current generation counter, then an SQLITE_SCHEMA error is raised and execution halts. The sqlite3_step() wrapper function might then reprepare the statement and rerun it from the beginning.
     """
     Transaction = auto()
+    """
+    Goto: An unconditional jump to address P2. The next instruction executed will be the one at index P2 from the beginning of the program.
+
+    The P1 parameter is not actually used by this opcode. However, it is sometimes set to 1 instead of 0 as a hint to the command-line shell that this Goto is the bottom of a loop and that the lines from P2 down to the current line should be indented for EXPLAIN output.
+    """
     Goto = auto()
 
 
@@ -78,8 +127,8 @@ class Instruction:
     """
 
     opcode: Opcode
-    p1: Optional[int] = None
-    p2: Optional[int] = None
+    p1: Optional[Any] = None
+    p2: Optional[Any] = None
     p3: Optional[int] = None
     p4: Optional[Any] = None  # TODO narrow type
     p5: Optional[int] = None
@@ -106,8 +155,16 @@ class Program:
 
     instructions: List[Instruction]
 
+    def resolve_refs(self):
+        """
+        TODO probably a better data structure for this.
+        """
+        for instruction in self.instructions:
+            if isinstance(instruction.p1, Instruction):
+                instruction.p1 = self.instructions.index(instruction.p1)
 
-#    registers: List[Any]
+            if isinstance(instruction.p2, Instruction):
+                instruction.p2 = self.instructions.index(instruction.p2)
 
 
 class Planner:
@@ -129,13 +186,30 @@ class Planner:
         program = Program([])
 
         if isinstance(statement, SelectStatement):
-            program.instructions.append(Instruction(Opcode.Init, p2=1))
-
-            root_page_number = self.get_table_root_page_number(
+            table_page_number = self.get_table_root_page_number(
                 str(statement._from.value)
             )
-            program.instructions.append(
-                Instruction(Opcode.OpenRead, p1=0, p2=root_page_number)
+            transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
+            init = Instruction(Opcode.Init, p2=transaction)
+            rewind = Instruction(Opcode.Rewind, p1=0, p2=7, p3=0)
+            open_read = Instruction(
+                Opcode.OpenRead, p1=0, p2=table_page_number, p3=0, p4=2
             )
+            goto = Instruction(Opcode.Goto, p1=0, p2=open_read, p3=0)
+
+            program.instructions = [
+                init,
+                open_read,
+                rewind,
+                Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
+                Instruction(Opcode.Column, p1=0, p2=1, p3=2),
+                Instruction(Opcode.ResultRow, p1=1, p2=1, p3=0),
+                Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
+                Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
+                transaction,
+                goto,
+            ]
+
+        program.resolve_refs()
 
         return program
