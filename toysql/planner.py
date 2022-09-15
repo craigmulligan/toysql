@@ -14,9 +14,12 @@ class Opcode(Enum):
 
     Init = auto()
     """
-    OpenRead: Open a read-only cursor for the database table whose root page is P2 in a database file. 
+    OpenRead: Open a read-only cursor for the 
+    database table whose root page is P2 in a database file. 
+
     The database file is determined by P3. P3==0 means the main database,
     P3==1 means the database used for temporary tables, 
+
     and P3>1 means used the corresponding attached database. 
     Give the new cursor an identifier of P1. 
     The P1 values need not be contiguous but all P1 values should be small integers. 
@@ -203,7 +206,7 @@ class Planner:
                 rewind,
                 Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
                 Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-                Instruction(Opcode.ResultRow, p1=1, p2=1, p3=0),
+                Instruction(Opcode.ResultRow, p1=1, p2=2, p3=0),
                 Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
                 Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
                 transaction,
