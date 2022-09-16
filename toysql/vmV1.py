@@ -40,6 +40,7 @@ class VM:
         btrees = {}
         registers = {}
         cursor = 0
+
         while True:
             instruction = program.instructions[cursor]
 
@@ -70,26 +71,22 @@ class VM:
                     cursor += 1
 
             if instruction.opcode == Opcode.Rowid:
+                # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].peek()
 
-                if row is None:
-                    # This should never happen.
-                    raise Exception("record not found")
                 registers[instruction.p2] = row.row_id
                 cursor += 1
 
             if instruction.opcode == Opcode.Column:
-                # Extra column at index p2 and store in register p3
+                # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].peek()
-
-                if row is None:
-                    # This should never happen.
-                    raise Exception("record not found")
 
                 registers[instruction.p3] = row.values[instruction.p2][1]
                 cursor += 1
 
             if instruction.opcode == Opcode.ResultRow:
+                # Take all the stored values in registers p1 - p2 and yeild them
+                # to the caller.
                 values = []
                 for i in range(cast(int, instruction.p1), cast(int, instruction.p2)):
                     values.append(registers[i])
@@ -98,6 +95,9 @@ class VM:
                 yield values
 
             if instruction.opcode == Opcode.Next:
+                # Check if btree cursor p1 has next value.
+                # If next continue to address p2
+                # else fall through to next instruction.
                 next(btrees[instruction.p1])
                 v = btrees[instruction.p1].peek()
 
@@ -107,6 +107,7 @@ class VM:
                     cursor += 1
 
             if instruction.opcode == Opcode.Halt:
+                # Immediate exit.
                 break
 
         return
