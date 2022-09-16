@@ -181,6 +181,15 @@ class Program:
 SCHEMA_TABLE_NAME = "schema"
 SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
 
+# Fancy counter
+@dataclass
+class Memory:
+    address = 0
+
+    def next_addr(self):
+        self.address += 1
+        return self.address - 1
+
 
 class Planner:
     """
@@ -203,8 +212,6 @@ class Planner:
         # Gets the current schema table values
         program = self.plan(f"SELECT * from {SCHEMA_TABLE_NAME}")
         values = [v for v in self.vm.execute(program)]
-
-        breakpoint()
         return values
 
     def prepare(self, sql_text: str):
@@ -215,10 +222,22 @@ class Planner:
 
     def get_column_names_from_sql_text(self, sql_text: str):
         [statement] = self.prepare(sql_text)
+
         names = []
-        for col in statement.items:
-            if col.name.value != "*":
-                names.append(col.name.value)
+        if isinstance(statement, SelectStatement):
+            for col in statement.items:
+                if col.value != "*":
+                    names.append(col.value)
+
+        if isinstance(statement, CreateStatement):
+            for col in statement.columns:
+                if col.name.value != "*":
+                    names.append(col.name.value)
+
+        if isinstance(statement, InsertStatement):
+            raise NotImplemented(
+                "InsertStatement get_column_names_from_sql_text not NotImplemented"
+            )
 
         return names
 
@@ -232,6 +251,23 @@ class Planner:
                 return self.get_column_names_from_sql_text(sql_text)
 
         raise TableFoundException(f"Table: {table_name} not found")
+
+    def get_column_indexes(self, statement: SelectStatement):
+        column_index = []
+        column_names = self.get_table_column_names(str(statement._from.value))
+
+        for column_name in statement.items:
+            if column_name.value == "*":
+                # TODO need to handle this better.
+                break
+
+            column_index.append(column_names.index(column_name.value))
+
+        if len(column_index) == 0:
+            # If no columns we select every index.
+            column_index = list(range(0, len(column_names)))
+
+        return column_index
 
     def get_table_root_page_number(self, table_name: str) -> int:
         # We don't need the schema here.
@@ -249,6 +285,7 @@ class Planner:
         # Initally we assume only one statement.
         [statement] = self.prepare(sql_text)
         program = Program([])
+        memory = Memory()
 
         if isinstance(statement, SelectStatement):
             table_page_number = self.get_table_root_page_number(
@@ -262,13 +299,27 @@ class Planner:
             )
             goto = Instruction(Opcode.Goto, p1=0, p2=open_read, p3=0)
 
+            columns = []
+            for i in self.get_column_indexes(statement):
+                if i == 0:
+                    # We assume for now columns at index 0
+                    # are the row_id
+                    columns.append(
+                        Instruction(Opcode.Rowid, p1=0, p2=1, p3=memory.next_addr())
+                    )
+                else:
+                    columns.append(
+                        Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
+                    )
+
             program.instructions = [
                 init,
                 open_read,
                 rewind,
-                Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
-                Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-                Instruction(Opcode.ResultRow, p1=1, p2=2, p3=0),
+                *columns,
+                Instruction(
+                    Opcode.ResultRow, p1=columns[0].p3, p2=columns[-1].p3, p3=0
+                ),
                 Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
                 Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
                 transaction,

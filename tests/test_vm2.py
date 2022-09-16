@@ -44,7 +44,6 @@ class TestVM(Fixtures):
 
         program = Planner(self.pager, vmv1).plan(f"SELECT * FROM {self.table_name}")
 
-        breakpoint()
         records = [r for r in vmv1.execute(program)]
 
         assert len(records) == len(rows)
