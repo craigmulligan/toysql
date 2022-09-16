@@ -1,4 +1,4 @@
-from toysql.planner import Planner, Instruction, Opcode
+from toysql.planner import Planner, Instruction, Opcode, SCHEMA_TABLE_NAME
 from tests.fixtures import Fixtures
 from unittest.mock import Mock
 
@@ -13,6 +13,23 @@ class TestPlanner(Fixtures):
         self.planner.get_schema = Mock(
             return_value=[[1, "user", sql_text, self.root_page_number]]
         )
+
+    def test_schema_select(self):
+        program = self.planner.plan(f"select * from {SCHEMA_TABLE_NAME};")
+        assert program.instructions == [
+            Instruction(Opcode.Init, p2=10),
+            Instruction(Opcode.OpenRead, p1=0, p2=0, p3=0, p4=2),
+            Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
+            Instruction(Opcode.Rowid, p1=0, p2=0),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=1),
+            Instruction(Opcode.Column, p1=0, p2=2, p3=2),
+            Instruction(Opcode.Column, p1=0, p2=3, p3=3),
+            Instruction(Opcode.ResultRow, p1=0, p2=3, p3=0),
+            Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
+            Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
+            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+        ]
 
     def test_select(self):
         """
@@ -40,7 +57,7 @@ class TestPlanner(Fixtures):
             Instruction(Opcode.Init, p2=9),
             Instruction(Opcode.OpenRead, p1=0, p2=self.root_page_number, p3=0, p4=2),
             Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
-            Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
+            Instruction(Opcode.Rowid, p1=0, p2=0),
             Instruction(Opcode.Column, p1=0, p2=1, p3=1),
             Instruction(Opcode.Column, p1=0, p2=2, p3=2),
             Instruction(Opcode.ResultRow, p1=0, p2=2, p3=0),

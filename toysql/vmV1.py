@@ -1,5 +1,4 @@
 from toysql.planner import Program, Opcode
-from toysql.table import Table
 from toysql.btree import BTree
 from typing import cast
 from collections import deque
@@ -75,25 +74,29 @@ class VM:
             if instruction.opcode == Opcode.Rowid:
                 # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].peek()
-
                 registers[instruction.p2] = row.row_id
                 cursor += 1
 
             if instruction.opcode == Opcode.Column:
                 # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].peek()
+                v = row.values[instruction.p2][1]
 
-                registers[instruction.p3] = row.values[instruction.p2][1]
+                registers[instruction.p3] = v
                 cursor += 1
 
             if instruction.opcode == Opcode.ResultRow:
                 # Take all the stored values in registers p1 - p2 and yeild them
                 # to the caller.
+
                 values = []
-                for i in range(cast(int, instruction.p1), cast(int, instruction.p2)):
+                for i in range(
+                    cast(int, instruction.p1), cast(int, instruction.p2) + 1
+                ):
                     values.append(registers[i])
 
                 cursor += 1
+
                 yield values
 
             if instruction.opcode == Opcode.Next:
