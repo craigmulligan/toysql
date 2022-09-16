@@ -6,12 +6,12 @@ from unittest.mock import Mock
 class TestPlanner(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-        sql_text = "CREATE TABLE artist (id INT, name text(12));"
+        sql_text = "CREATE TABLE user (id INT, name text(12), email text(255));"
         self.root_page_number = 3
         self.vm = Mock()
         self.planner = Planner(self.pager, self.vm)
         self.planner.get_schema = Mock(
-            return_value=[[1, "artist", sql_text, self.root_page_number]]
+            return_value=[[1, "user", sql_text, self.root_page_number]]
         )
 
     def test_select(self):
@@ -23,8 +23,9 @@ class TestPlanner(Fixtures):
         0     Init           0     8     0                    0   Start at 8
         1     OpenRead       0     3     0     2              0   root=3 iDb=0; artist
         2     Rewind         0     7     0                    0
-        3       Rowid          0     1     0                    0   r[1]=Artist.rowid
-        4       Column         0     1     2                    0   r[2]=Artist.Name
+        3       Rowid          0     1     0                    0   r[1]=user.rowid
+        4       Column         0     1     1                    0   r[2]=user.name
+        4       Column         0     2     2                    0   r[3]=user.email
         5       ResultRow      1     2     0                    0   output=r[1..2]
         6     Next           0     3     0                    1
         7     Halt           0     0     0                    0
@@ -33,15 +34,16 @@ class TestPlanner(Fixtures):
 
         Given statements we should create a VM instructions to execute the query.
         """
-        program = self.planner.plan("select * from artist;")
+        program = self.planner.plan("select * from user;")
 
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=8),
+            Instruction(Opcode.Init, p2=9),
             Instruction(Opcode.OpenRead, p1=0, p2=self.root_page_number, p3=0, p4=2),
             Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
             Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
-            Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-            Instruction(Opcode.ResultRow, p1=1, p2=2, p3=0),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=1),
+            Instruction(Opcode.Column, p1=0, p2=2, p3=2),
+            Instruction(Opcode.ResultRow, p1=0, p2=2, p3=0),
             Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
             Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
             Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
