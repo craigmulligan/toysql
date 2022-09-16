@@ -12,7 +12,7 @@ class TestPlanner(Fixtures):
         self.root_page_number = 3
         self.schema_table_values = [[1, "artist", sql_text, self.root_page_number]]
 
-        self.planner = Planner(self.pager, self.schema_table_values)
+        self.planner = Planner(self.pager, lambda: self.schema_table_values)
         self.lexer = StatementLexer()
         self.parser = Parser()
 
