@@ -259,13 +259,10 @@ class Planner:
         for column_name in statement.items:
             if column_name.value == "*":
                 # TODO need to handle this better.
+                column_index = list(range(0, len(column_names)))
                 break
 
             column_index.append(column_names.index(column_name.value))
-
-        if len(column_index) == 0:
-            # If no columns we select every index.
-            column_index = list(range(0, len(column_names)))
 
         return column_index
 
@@ -305,7 +302,7 @@ class Planner:
                     # We assume for now columns at index 0
                     # are the row_id
                     columns.append(
-                        Instruction(Opcode.Rowid, p1=0, p2=1, p3=memory.next_addr())
+                        Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
                     )
                 else:
                     columns.append(
@@ -318,7 +315,11 @@ class Planner:
                 rewind,
                 *columns,
                 Instruction(
-                    Opcode.ResultRow, p1=columns[0].p3, p2=columns[-1].p3, p3=0
+                    # TODO this assumes columns[0] is always a RowId
+                    Opcode.ResultRow,
+                    p1=columns[0].p2,
+                    p2=columns[-1].p3,
+                    p3=0,
                 ),
                 Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
                 Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
