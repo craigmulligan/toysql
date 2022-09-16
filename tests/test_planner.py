@@ -8,8 +8,11 @@ from unittest.mock import Mock
 class TestPlanner(Fixtures):
     def setUp(self) -> None:
         super().setUp()
+        sql_text = "CREATE TABLE artist (id INT, name text(12));"
+        self.root_page_number = 3
+        self.schema_table_values = [[1, "artist", sql_text, self.root_page_number]]
 
-        self.planner = Planner(self.pager)
+        self.planner = Planner(self.pager, self.schema_table_values)
         self.lexer = StatementLexer()
         self.parser = Parser()
 
@@ -40,12 +43,10 @@ class TestPlanner(Fixtures):
         """
         stmt = self.prepare("select * from artist;")
         program = self.planner.plan(stmt)
-        root_page_number = 12
-        self.planner.get_table_root_page_number = Mock(return_value=root_page_number)
 
         assert program.instructions == [
             Instruction(Opcode.Init, p2=8),
-            Instruction(Opcode.OpenRead, p1=0, p2=root_page_number, p3=0, p4=2),
+            Instruction(Opcode.OpenRead, p1=0, p2=self.root_page_number, p3=0, p4=2),
             Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
             Instruction(Opcode.Rowid, p1=0, p2=1, p3=0),
             Instruction(Opcode.Column, p1=0, p2=1, p3=2),

@@ -1,8 +1,16 @@
 from typing import List, Any, Optional
 from toysql.pager import Pager
-from toysql.parser import Statement, SelectStatement, InsertStatement, CreateStatement
+from toysql.parser import (
+    Statement,
+    SelectStatement,
+    InsertStatement,
+    CreateStatement,
+    Parser,
+)
+from toysql.lexer import StatementLexer
 from enum import Enum, auto
 from dataclasses import dataclass
+from toysql.exceptions import TableFoundException
 
 
 class Opcode(Enum):
@@ -170,6 +178,10 @@ class Program:
                 instruction.p2 = self.instructions.index(instruction.p2)
 
 
+SCHEMA_TABLE_NAME = "schema"
+SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
+
+
 class Planner:
     """
     Given a Statement a planner will produce a Program for the VM to execute.
@@ -177,11 +189,51 @@ class Planner:
     It's given the schema and the stats table so it can look up info.
     """
 
-    def __init__(self, pager: Pager):
+    def __init__(self, pager: Pager, schema: List[List[Any]]):
         self.pager = pager
+        self.schema = schema
 
-    def get_table_root_page_number(self, tablename: str) -> int:
-        return 12
+        # These are needed to parse schema_table.sql_text
+        # values to interpret column names and types
+        self.lexer = StatementLexer()
+        self.parser = Parser()
+
+    def parse_input(self, sql_text: str):
+        tokens = self.lexer.lex(sql_text)
+        stmts = self.parser.parse(tokens)
+        return stmts
+
+    def get_column_names_from_sql_text(self, sql_text: str):
+        [statement] = self.parse_input(sql_text)
+        names = []
+        for col in statement.items:
+            if col.name.value != "*":
+                names.append(col.name.value)
+
+        return names
+
+    def get_table_column_names(self, table_name):
+        if table_name == SCHEMA_TABLE_NAME:
+            return self.get_column_names_from_sql_text(SCHEMA_TABLE_SQL_TEXT)
+
+        for values in self.schema:
+            if values[1] == table_name:
+                sql_text = values[2]
+                return self.get_column_names_from_sql_text(sql_text)
+
+        raise TableFoundException(f"Table: {table_name} not found")
+
+    def get_table_root_page_number(self, table_name: str) -> int:
+        # We don't need the schema here.
+        if table_name == SCHEMA_TABLE_NAME:
+            return 0
+
+        for record in self.schema:
+            if record[1] == table_name:
+                root_page_number = record[3]
+                return root_page_number
+
+        raise TableFoundException(f"Table: {table_name} not found")
 
     def plan(self, statements: List[Statement]) -> Program:
         # Initally we assume only one statement.
