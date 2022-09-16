@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Callable
 from toysql.pager import Pager
 from toysql.parser import (
     Statement,
@@ -189,9 +189,12 @@ class Planner:
     It's given the schema and the stats table so it can look up info.
     """
 
-    def __init__(self, pager: Pager, schema: List[List[Any]]):
+    def __init__(self, pager: Pager, get_schema: Callable[[], List[List[Any]]]):
         self.pager = pager
-        self.schema = schema
+
+        # TODO sqlite uses a schema cookie to cache schemas
+        # Not sure if we want to add that complexity
+        self.get_schema = get_schema
 
         # These are needed to parse schema_table.sql_text
         # values to interpret column names and types
@@ -216,7 +219,7 @@ class Planner:
         if table_name == SCHEMA_TABLE_NAME:
             return self.get_column_names_from_sql_text(SCHEMA_TABLE_SQL_TEXT)
 
-        for values in self.schema:
+        for values in self.get_schema():
             if values[1] == table_name:
                 sql_text = values[2]
                 return self.get_column_names_from_sql_text(sql_text)
@@ -228,7 +231,7 @@ class Planner:
         if table_name == SCHEMA_TABLE_NAME:
             return 0
 
-        for record in self.schema:
+        for record in self.get_schema():
             if record[1] == table_name:
                 root_page_number = record[3]
                 return root_page_number

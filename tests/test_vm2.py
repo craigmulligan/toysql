@@ -19,7 +19,12 @@ class TestVM(Fixtures):
         )
 
         self.root_page_number = 1
-        self.planner = Planner(self.pager)
+
+        # TODO First read schema_values from real db.
+        sql_text = "CREATE TABLE artist (id INT, name text(12));"
+        self.schema_table_values = [[1, "artist", sql_text, self.root_page_number]]
+
+        self.planner = Planner(self.pager, lambda: self.schema_table_values)
         self.planner.get_table_root_page_number = Mock(
             return_value=self.root_page_number
         )
