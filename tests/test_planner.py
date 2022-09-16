@@ -1,5 +1,3 @@
-from toysql.parser import Parser
-from toysql.lexer import StatementLexer
 from toysql.planner import Planner, Instruction, Opcode
 from tests.fixtures import Fixtures
 from unittest.mock import Mock
@@ -10,17 +8,11 @@ class TestPlanner(Fixtures):
         super().setUp()
         sql_text = "CREATE TABLE artist (id INT, name text(12));"
         self.root_page_number = 3
-        self.schema_table_values = [[1, "artist", sql_text, self.root_page_number]]
-
-        self.planner = Planner(self.pager, lambda: self.schema_table_values)
-        self.lexer = StatementLexer()
-        self.parser = Parser()
-
-        def prepare(input: str):
-            tokens = self.lexer.lex(input)
-            return self.parser.parse(tokens)
-
-        self.prepare = prepare
+        self.vm = Mock()
+        self.planner = Planner(self.pager, self.vm)
+        self.planner.get_schema = Mock(
+            return_value=[[1, "artist", sql_text, self.root_page_number]]
+        )
 
     def test_select(self):
         """
@@ -41,8 +33,7 @@ class TestPlanner(Fixtures):
 
         Given statements we should create a VM instructions to execute the query.
         """
-        stmt = self.prepare("select * from artist;")
-        program = self.planner.plan(stmt)
+        program = self.planner.plan("select * from artist;")
 
         assert program.instructions == [
             Instruction(Opcode.Init, p2=8),

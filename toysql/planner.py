@@ -189,25 +189,32 @@ class Planner:
     It's given the schema and the stats table so it can look up info.
     """
 
-    def __init__(self, pager: Pager, get_schema: Callable[[], List[List[Any]]]):
+    def __init__(self, pager: Pager, vm):
         self.pager = pager
-
-        # TODO sqlite uses a schema cookie to cache schemas
-        # Not sure if we want to add that complexity
-        self.get_schema = get_schema
-
         # These are needed to parse schema_table.sql_text
         # values to interpret column names and types
         self.lexer = StatementLexer()
         self.parser = Parser()
+        # VM is used for internal programs
+        # Like reading + writing to the schema table
+        self.vm = vm
 
-    def parse_input(self, sql_text: str):
+    def get_schema(self) -> List[List[Any]]:
+        # Gets the current schema table values
+        program = self.plan(f"SELECT * from {SCHEMA_TABLE_NAME}")
+        values = [v for v in self.vm.execute(program)]
+
+        breakpoint()
+        return values
+
+    def prepare(self, sql_text: str):
         tokens = self.lexer.lex(sql_text)
         stmts = self.parser.parse(tokens)
+
         return stmts
 
     def get_column_names_from_sql_text(self, sql_text: str):
-        [statement] = self.parse_input(sql_text)
+        [statement] = self.prepare(sql_text)
         names = []
         for col in statement.items:
             if col.name.value != "*":
@@ -238,9 +245,9 @@ class Planner:
 
         raise TableFoundException(f"Table: {table_name} not found")
 
-    def plan(self, statements: List[Statement]) -> Program:
+    def plan(self, sql_text) -> Program:
         # Initally we assume only one statement.
-        [statement] = statements
+        [statement] = self.prepare(sql_text)
         program = Program([])
 
         if isinstance(statement, SelectStatement):

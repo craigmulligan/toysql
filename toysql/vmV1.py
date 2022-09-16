@@ -37,6 +37,8 @@ class VM:
         self.pager = pager
 
     def execute(self, program: Program):
+        assert len(program.instructions)
+
         btrees = {}
         registers = {}
         cursor = 0
