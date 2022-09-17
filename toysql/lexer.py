@@ -48,8 +48,26 @@ class DataType(Enum):
 
     null = auto()
     integer = auto()
+    numeric = auto()
+    real = auto()
     text = auto()
     blob = auto()
+
+    def affinity(self):
+        # Taken from https://github.com/sqlcipher/sqlcipher/blob/master/src/sqliteInt.h#L2173-L2178
+        ###
+        # define SQLITE_AFF_NONE     0x40  /* '@' */
+        # define SQLITE_AFF_BLOB     0x41  /* 'A' */
+        # define SQLITE_AFF_TEXT     0x42  /* 'B' */
+        # define SQLITE_AFF_NUMERIC  0x43  /* 'C' */
+        # define SQLITE_AFF_INTEGER  0x44  /* 'D' */
+        # define SQLITE_AFF_REAL     0x45  /* 'E' */
+        ###
+        if self == DataType.text:
+            return "B"
+
+        if self == DataType.integer:
+            return "D"
 
 
 class Kind(Enum):
