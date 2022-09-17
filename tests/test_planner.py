@@ -56,15 +56,15 @@ class TestPlanner(Fixtures):
         assert program.instructions == [
             Instruction(Opcode.Init, p2=9),
             Instruction(Opcode.OpenRead, p1=0, p2=self.root_page_number, p3=0, p4=2),
-            Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
+            Instruction(Opcode.Rewind, p1=0, p2=7),
             Instruction(Opcode.Rowid, p1=0, p2=0),
             Instruction(Opcode.Column, p1=0, p2=1, p3=1),
             Instruction(Opcode.Column, p1=0, p2=2, p3=2),
-            Instruction(Opcode.ResultRow, p1=0, p2=2, p3=0),
+            Instruction(Opcode.ResultRow, p1=0, p2=2),
             Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
-            Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
+            Instruction(Opcode.Halt, p1=0, p2=0),
             Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+            Instruction(Opcode.Goto, p1=0, p2=1),
         ]
 
     def test_create(self):
@@ -104,7 +104,7 @@ class TestPlanner(Fixtures):
         29    Goto           0     1     0                    0
         """
 
-    def insert(self):
+    def test_insert(self):
         """
         sqlite> explain insert into Artist values (9999, "Craigo");
         addr  opcode         p1    p2    p3    p4             p5  comment
@@ -126,3 +126,26 @@ class TestPlanner(Fixtures):
         14    Transaction    0     1     21    0              1   usesStmtJournal=0
         15    Goto           0     1     0                    0
         """
+        program = self.planner.plan(
+            "insert into user values (9999, 'craig', 'craig@example.com');"
+        )
+
+        assert program.instructions == [
+            Instruction(Opcode.Init, p2=15),
+            Instruction(Opcode.OpenWrite, p1=0, p2=self.root_page_number, p3=0, p4=2),
+            Instruction(Opcode.SoftNull),
+            Instruction(Opcode.String, p1=17, p2=3, p3=0, p4="craig@example.com"),
+            Instruction(Opcode.String, p1=5, p2=2, p3=0, p4="craig"),
+            Instruction(Opcode.Integer, p1=9999, p2=1, p3=0),
+            Instruction(Opcode.NotNull, p1=1, p2=8),
+            Instruction(Opcode.NewRowid, p1=0, p2=1),
+            Instruction(Opcode.MustBeInt, p1=1),
+            Instruction(Opcode.Noop),
+            Instruction(Opcode.NotExists, p1=0, p2=12, p3=1),
+            Instruction(Opcode.Halt, p1=1555, p2=2, p4="user.id"),
+            Instruction(Opcode.MakeRecord, p1=2, p2=3, p3=4, p4="DBB"),
+            Instruction(Opcode.Insert, p2=4, p3=1, p4="user"),
+            Instruction(Opcode.Halt),
+            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+        ]
