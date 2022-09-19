@@ -1,7 +1,7 @@
 from toysql.vm import VM
 from toysql.vmV1 import VM as VMV1
 from tests.fixtures import Fixtures
-from toysql.planner import Planner
+from toysql.compiler import Compiler
 
 
 class TestVM(Fixtures):
@@ -38,12 +38,12 @@ class TestVM(Fixtures):
         ]
 
         for row in rows:
-            prog = Planner(self.pager, vmv1).plan(
+            prog = Compiler(self.pager, vmv1).compile(
                 f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
             )
             [row for row in vmv1.execute(prog)]
 
-        program = Planner(self.pager, vmv1).plan(f"SELECT * FROM {self.table_name}")
+        program = Compiler(self.pager, vmv1).compile(f"SELECT * FROM {self.table_name}")
 
         records = [r for r in vmv1.execute(program)]
 

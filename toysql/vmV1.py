@@ -1,4 +1,4 @@
-from toysql.planner import Program, Opcode
+from toysql.compiler import Program, Opcode
 from toysql.record import DataType, Record
 from toysql.btree import BTree
 from typing import cast
