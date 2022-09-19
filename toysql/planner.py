@@ -471,7 +471,7 @@ class Planner:
             must_be_int = Instruction(Opcode.MustBeInt, p1=values[-1].p2)
             make_record = Instruction(
                 Opcode.MakeRecord,
-                p1=2,
+                p1=values[-1].p2,
                 p2=len(affinities),
                 p3=memory.next_addr(),
                 p4=affinities,
