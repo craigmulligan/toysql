@@ -38,9 +38,10 @@ class TestVM(Fixtures):
         ]
 
         for row in rows:
-            self.vm.execute(
+            prog = Planner(self.pager, vmv1).plan(
                 f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
             )
+            [row for row in vmv1.execute(prog)]
 
         program = Planner(self.pager, vmv1).plan(f"SELECT * FROM {self.table_name}")
 
