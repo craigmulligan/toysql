@@ -143,7 +143,7 @@ class TestPlanner(Fixtures):
             Instruction(Opcode.Noop),
             Instruction(Opcode.NotExists, p1=0, p2=12, p3=1),
             Instruction(Opcode.Halt, p1=1555, p2=2, p4="user.id"),
-            Instruction(Opcode.MakeRecord, p1=2, p2=3, p3=4, p4="DBB"),
+            Instruction(Opcode.MakeRecord, p1=1, p2=3, p3=4, p4="DBB"),
             Instruction(Opcode.Insert, p2=4, p3=1, p4="user"),
             Instruction(Opcode.Halt),
             Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
