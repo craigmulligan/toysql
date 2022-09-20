@@ -39,7 +39,10 @@ class Opcode(Enum):
     It is an error for P1 to be negative.
     """
     OpenRead = auto()
-
+    """
+    CreateBtree: Allocate a new b-tree in the main database file if P1==0 or in the TEMP database file if P1==1 or in an attached database if P1>1. The P3 argument must be 1 (BTREE_INTKEY) for a rowid table it must be 2 (BTREE_BLOBKEY) for an index or WITHOUT ROWID table. The root page number of the new b-tree is stored in register P2.
+    """
+    CreateBtree = auto()
     """
     OpenWrite
     """
@@ -55,6 +58,19 @@ class Opcode(Enum):
     if( P3!=0 and reg[P3]==P5 ) reg[P2] := CAST(reg[P2] as BLOB)
     """
     String = auto()
+
+    """
+    SCopy: Make a shallow copy of register P1 into register P2.
+    
+    This instruction makes a shallow copy of the value. If the value is a string or blob, then the copy is only a pointer to the original and hence if the original changes so will the copy. Worse, if the original is deallocated, the copy becomes invalid. Thus the program must guarantee that the original will not change during the lifetime of the copy. Use Copy to make a complete copy.
+    """
+    SCopy = auto()
+
+    """
+    Jump to P2 if the value in register P1 is NULL.
+    """
+    IsNull = auto()
+
     """
     Insert: Write an entry into the table of cursor P1. A new entry is created if it doesn't already exist or the data for an existing entry is overwritten. The data is the value MEM_Blob stored in register number P2. The key is stored in register P3. The key must be a MEM_Int.
     If the OPFLAG_NCHANGE flag of P5 is set, then the row change count is incremented (otherwise not). If the OPFLAG_LASTROWID flag of P5 is set, then rowid is stored for subsequent return by the sqlite3_last_insert_rowid() function (otherwise it is unmodified).
@@ -504,6 +520,47 @@ class Compiler:
                 Instruction(Opcode.Halt),
                 transaction,
                 goto,
+            ]
+
+        if isinstance(statement, CreateStatement):
+            raise NotImplementedError("TODO: Implement create statement compiler")
+            program.instructions = [
+                Instruction(Opcode.Init, p2=12),
+                Instruction(
+                    Opcode.CreateBtree, p1=0, p2=0, p3=1
+                ),  # Save new btree root to reg 2
+                Instruction(
+                    Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
+                ),  # open write on schema table (root_page_number: 0)
+                Instruction(
+                    Opcode.NewRowid, p1=0, p2=1
+                ),  # get new row_id for table cursor in p1 store it in addr p2
+                Instruction(
+                    Opcode.Rowid, p1=1, p2=3
+                ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
+                Instruction(
+                    Opcode.IsNull, p1=3, p2=11
+                ),  # If p1 addr is null jump to 25
+                Instruction(
+                    Opcode.String, p1=3, p2=2, p3=0, p4="org"
+                ),  # Store "org" in addr p2
+                Instruction(
+                    Opcode.String,
+                    p1=39,
+                    p2=3,
+                    p3=0,
+                    p4='create table "org" (id INT, name TEXT);',
+                ),  # store sql_text addr p2
+                Instruction(
+                    Opcode.SCopy, p1=0, p2=4
+                ),  # This is to get root_page_number close in adress space to following values
+                Instruction(
+                    Opcode.MakeRecord, p1=1, p2=4, p3=5, p4="DBBD"
+                ),  # create record
+                Instruction(Opcode.Insert, p2=5, p3=1, p4=SCHEMA_TABLE_NAME),
+                Instruction(Opcode.Halt),
+                Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+                Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
             ]
 
         program.resolve_refs()

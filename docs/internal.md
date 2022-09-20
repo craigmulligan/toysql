@@ -9,6 +9,8 @@
 * How exactly does the schema cookie work?
 * If everything is handled by the VM eg opening btree cursors loading values etc. How does the planner (eg pre-vm look up the schema & stats table?) Are those tables looked up directly, or do they still use the vm internally? I'm guessing this has something to do with the schema cookie. [relevant](https://github.com/sqlite/sqlite/blob/41ce47c4f4bcae3882fdccec18a6100a85f4bba5/src/prepare.c#L710) looks like it runs it through [`sqlite3_exec`](https://github.com/sqlite/sqlite/blob/master/src/legacy.c) which does run it through `sqlite3_prepare_v2` the planner & `sqlite3_step` the vm.
 
+* Unique constraints I don't see any opcodes checking this? Is this done when writing the index?
+
 ## What I've learnt so far:
 
 - Difference between Btrees & B+trees.

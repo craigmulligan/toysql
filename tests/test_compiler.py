@@ -68,7 +68,6 @@ class TestCompiler(Fixtures):
         ]
 
     def test_create(self):
-        # TODO for now we aren't implementing the Cookie related tokens.
         """
         sqlite> explain create table "people" (id INT, name TEXT, email Text);
         addr  opcode         p1    p2    p3    p4             p5  comment
@@ -104,6 +103,51 @@ class TestCompiler(Fixtures):
         28    Transaction    0     1     1     0              1   usesStmtJournal=1
         29    Goto           0     1     0                    0
         """
+
+        # We are going a fair ways offscript here.
+        # Ignoring instructions 1-13 as they are schema cookie replated.
+        # It's simpler to imagine a schema change is a create statement is just an insert on the schema table.
+        program = self.compiler.compile('create table "org" (id INT, name TEXT);')
+
+        # TODO CreateBtree will write to disk. We need to check that we can recover
+        # with Transactions
+
+        assert program.instructions == [
+            Instruction(Opcode.Init, p2=12),
+            Instruction(
+                Opcode.CreateBtree, p1=0, p2=0, p3=1
+            ),  # Save new btree root to reg 2
+            Instruction(
+                Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
+            ),  # open write on schema table (root_page_number: 0)
+            Instruction(
+                Opcode.NewRowid, p1=0, p2=1
+            ),  # get new row_id for table cursor in p1 store it in addr p2
+            Instruction(
+                Opcode.Rowid, p1=1, p2=3
+            ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
+            Instruction(Opcode.IsNull, p1=3, p2=11),  # If p1 addr is null jump to 25
+            Instruction(
+                Opcode.String, p1=3, p2=2, p3=0, p4="org"
+            ),  # Store "org" in addr p2
+            Instruction(
+                Opcode.String,
+                p1=39,
+                p2=3,
+                p3=0,
+                p4='create table "org" (id INT, name TEXT);',
+            ),  # store sql_text addr p2
+            Instruction(
+                Opcode.SCopy, p1=0, p2=4
+            ),  # This is to get root_page_number close in adress space to following values
+            Instruction(
+                Opcode.MakeRecord, p1=1, p2=4, p3=5, p4="DBBD"
+            ),  # create record
+            Instruction(Opcode.Insert, p2=5, p3=1, p4=SCHEMA_TABLE_NAME),
+            Instruction(Opcode.Halt),
+            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+        ]
 
     def test_insert(self):
         """
