@@ -68,6 +68,7 @@ class TestCompiler(Fixtures):
         ]
 
     def test_create(self):
+        # TODO for now we aren't implementing the Cookie related tokens.
         """
         sqlite> explain create table "people" (id INT, name TEXT, email Text);
         addr  opcode         p1    p2    p3    p4             p5  comment

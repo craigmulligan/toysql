@@ -106,3 +106,18 @@ class TestBTree(Fixtures, TestCase):
             record = loaded_tree.find(key)
             assert record
             assert record.row_id == key
+
+    def test_new_row_id(self):
+        page_number = self.pager.new()
+        btree = BTree(self.pager, page_number)
+
+        assert btree.new_row_id() == 1
+
+        keys = [n for n in range(100)]
+        # insert in random order.
+        random.shuffle(keys)
+
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        assert btree.new_row_id() == 100

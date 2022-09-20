@@ -189,3 +189,20 @@ class BTree:
                     yield cell.record
             else:
                 yield from self._scan(child)
+
+    def new_row_id(self):
+        """
+        This retuns the next unused row_id for a btree.
+        TODO: Assume there is a more optimized way of doing this.
+        """
+        last = None
+        try:
+            for record in self.scan():
+                last = record
+        except StopIteration:
+            pass
+
+        if last is None:
+            return 1
+
+        return last.row_id + 1
