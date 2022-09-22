@@ -1,3 +1,4 @@
+from io import SEEK_CUR
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record, DataType
 from typing import Optional
@@ -26,6 +27,9 @@ class BTree:
         self.order = 3
         self.pager = pager
         self.root = self.read_page(root_page_number)
+
+        self.current_page_number = 0
+        self.current_cell_index = 0
 
     def read_page(self, page_number: int) -> Page:
         return self.pager.read(page_number)
@@ -193,7 +197,8 @@ class BTree:
     def new_row_id(self):
         """
         This retuns the next unused row_id for a btree.
-        TODO: Assume there is a more optimized way of doing this.
+        TODO: Instead of full table scan, we should just
+        traverse right to the highest record.
         """
         last = None
         try:
@@ -209,3 +214,52 @@ class BTree:
         record = Record([], row_id=new_row_id)
         self.insert(record)
         return new_row_id
+
+
+# class Cursor:
+#     def __init__(self, btree: BTree) -> None:
+#         self.tree = btree
+#         self.cell_index = 0
+#         self.current_page = self.tree.root
+
+#     def seek(self, row_id):
+#         # Moves cursor to row_id.
+#         pass
+
+#     def seek_end(self):
+#         # last row
+#         pass
+
+#     def seek_start(self):
+#         # go to first row.
+#         pass
+
+#     def peek(self):
+#         # Returns row at cursor
+#         # With out moving the cursor
+#         pass
+
+#     def __iter__(self):
+#         return self
+
+#     def __next__(self):
+
+#         if self.current_page.is_leaf():
+#             try:
+#                 self.cell_index += 1
+#                 self.current_page.cells[self.cell_index]
+#             except KeyError:
+#                 self.cell_index = 0
+#                 # TODO:
+#                 self.current_page = ""
+#                 self.__next__()
+
+#         if not self.current_page.is_leaf():
+#             self.cell_index += 1
+#             for cell in page.cells:
+#                 yield self.read_page(cell.left_child_page_number)
+
+#             yield self.read_page(page.right_child_page_number)
+
+
+#

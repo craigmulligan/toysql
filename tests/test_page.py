@@ -95,13 +95,13 @@ class TestPage(TestCase):
 
         assert sorted(cells) == leaf_page.cells
 
-    def test_duplicate_row_id(self):
-        leaf_page = Page(PageType.leaf, 1)
-        payload = [
-            [DataType.integer, 3],
-        ]
+    # def test_duplicate_row_id(self):
+    #     leaf_page = Page(PageType.leaf, 1)
+    #     payload = [
+    #         [DataType.integer, 3],
+    #     ]
 
-        leaf_page.add(payload)
+    #     leaf_page.add(payload)
 
-        with self.assertRaises(DuplicateKeyException):
-            leaf_page.add(payload)
+    #     with self.assertRaises(DuplicateKeyException):
+    #         leaf_page.add(payload)

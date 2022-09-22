@@ -31,7 +31,10 @@ class Cell:
     def to_bytes(self):
         return b""
 
-    def __lt__(self, other):
+    def __eq__(self, other: "Cell") -> bool:
+        return self.row_id == other.row_id
+
+    def __lt__(self, other: "Cell"):
         return self.row_id < other.row_id
 
     def __len__(self):
@@ -174,7 +177,7 @@ class Page:
                         counter, read_page
                     )
                 except:
-                    breakpoint()
+                    pass
 
             output += read_page(self.right_child_page_number).show(counter, read_page)
 
@@ -216,10 +219,13 @@ class Page:
         exists = self.find_cell(cell.row_id)
 
         if exists:
-            raise DuplicateKeyException(f"key already exists {cell.row_id} in page")
+            self.remove_cell(exists)
 
         bisect.insort(self.cells, cell)
         return cell
+
+    def remove_cell(self, cell):
+        self.cells.remove(cell)
 
     def find_cell(self, row_id):
         for cell in self.cells:

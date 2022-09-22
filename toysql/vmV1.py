@@ -6,8 +6,9 @@ from collections import deque
 
 
 class PeekIterator:
-    def __init__(self, iterable):
-        self.iterator = iter(iterable)
+    def __init__(self, tree):
+        self.tree = tree
+        self.iterator = iter(tree.scan())
         self.peeked = deque()
 
     def __iter__(self):
@@ -31,40 +32,10 @@ class PeekIterator:
             self.peeked.append(v)
         return self.peeked[ahead]
 
-        # Instruction(Opcode.Init, p2=12),
-        # Instruction(
-        #     Opcode.CreateBtree, p1=0, p2=0, p3=1
-        # ),  # Save new btree root to reg 2
-        # Instruction(
-        #     Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
-        # ),  # open write on schema table (root_page_number: 0)
-        # Instruction(
-        #     Opcode.NewRowid, p1=0, p2=1
-        # ),  # get new row_id for table cursor in p1 store it in addr p2
-        # Instruction(
-        #     Opcode.Rowid, p1=1, p2=2
-        # ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-        # Instruction(Opcode.IsNull, p1=2, p2=11),  # If p1 addr is null jump to p2
-        # Instruction(
-        #     Opcode.String, p1=3, p2=3, p3=0, p4="org"
-        # ),  # Store "org" in addr p2
-        # Instruction(
-        #     Opcode.String,
-        #     p1=39,
-        #     p2=4,
-        #     p3=0,
-        #     p4='create table "org" (id INT, name TEXT);',
-        # ),  # store sql_text addr p2
-        # Instruction(
-        #     Opcode.SCopy, p1=0, p2=5
-        # ),  # This is to get root_page_number close in adress space to following values
-        # Instruction(
-        #     Opcode.MakeRecord, p1=2, p2=4, p3=6, p4="DBBD"
-        # ),  # create record
-        # Instruction(Opcode.Insert, p2=6, p3=1, p4=SCHEMA_TABLE_NAME),
-        # Instruction(Opcode.Halt),
-        # Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-        # Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+    def __getattr__(self, name):
+        # Proxy all other calls to btree.
+        # TODO this is a hack.
+        return getattr(self.tree, name)
 
 
 class VM:
@@ -78,6 +49,8 @@ class VM:
 
         while True:
             instruction = program.instructions[cursor]
+            print(instruction.opcode)
+
             if instruction.opcode == Opcode.Init:
                 # init instruction tells us which address to start at.
                 cursor = cast(int, instruction.p2)
@@ -100,20 +73,19 @@ class VM:
             if instruction.opcode == Opcode.SCopy:
                 # shallow copy register value p1 -> p2.
                 registers[instruction.p2] = registers[instruction.p1]
+                cursor += 1
 
             if instruction.opcode == Opcode.OpenWrite:
                 # Open btree with write cursor
                 # TODO: This is different btree object from OpenRead. Btrees should instead have
                 # an iterator that holds state so it can be the same object
                 # Also p4 is unimplemeneted.
-                btrees[instruction.p1] = BTree(self.pager, instruction.p2)
+                btrees[instruction.p1] = PeekIterator(BTree(self.pager, instruction.p2))
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenRead:
                 # Open a cursor with root page p2 and assign its refname to val p1
-                btrees[instruction.p1] = PeekIterator(
-                    BTree(self.pager, instruction.p2).scan()
-                )
+                btrees[instruction.p1] = PeekIterator(BTree(self.pager, instruction.p2))
                 cursor += 1
 
             if instruction.opcode == Opcode.SoftNull:
@@ -144,6 +116,28 @@ class VM:
             if instruction.opcode == Opcode.NewRowid:
                 registers[instruction.p2] = btrees[instruction.p1].new_row_id()
                 cursor += 1
+
+            if instruction.opcode == Opcode.SeekRowid:
+                # TODO propery implement Seek in Btree module.
+                found = False
+
+                bt = btrees[instruction.p1]
+                while True:
+                    next_record = bt.peek()
+
+                    if next_record is None:
+                        break
+
+                    if next_record.row_id == registers[instruction.p3]:
+                        found = True
+                        break
+
+                    next(btrees[instruction.p1])
+
+                if found is False:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
             if instruction.opcode == Opcode.MustBeInt:
                 # Force the value in register P1 to be an integer.
@@ -181,8 +175,6 @@ class VM:
 
             if instruction.opcode == Opcode.Rowid:
                 # Read column at index p2 and store in register p3
-                breakpoint()
-
                 row = btrees[instruction.p1].peek()
                 registers[instruction.p2] = row.row_id
                 cursor += 1
