@@ -130,6 +130,14 @@ class Opcode(Enum):
     NotNull = auto()
 
     """
+    SeekRowid: P1 is the index of a cursor open on an SQL table btree (with integer keys). 
+    If register P3 does not contain an integer or if P1 does not contain a record with rowid P3 then jump immediately to P2. 
+
+    Or, if P2 is 0, raise an SQLITE_CORRUPT error. 
+    If P1 does contain a record with rowid P3 then leave the cursor pointing at that record and fall through to the next instruction.
+    """
+    SeekRowid = auto()
+    """
     NewRowid: 
 
     Get a new integer record number (a.k.a "rowid") used as the key to a table. The record number is not previously used as a key in the database table that cursor P1 points to. The new record number is written written to register P2.
@@ -533,9 +541,12 @@ class Compiler:
             )
 
             new_row_id = Instruction(Opcode.NewRowid, p1=0, p2=memory.next_addr())
-            row_id = Instruction(Opcode.Rowid, p1=new_row_id.p2, p2=memory.next_addr())
+            row_id = Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
             halt = Instruction(Opcode.Halt)
-
+            is_null = Instruction(Opcode.IsNull, p1=row_id.p2, p2=halt)
+            seek_row_id = Instruction(
+                Opcode.SeekRowid, p1=0, p2=is_null, p3=new_row_id.p2
+            )
             # affinities are always the same for schema table.
             # eg row_id, table_name, sql_text, root_page_number
             affinities = "DBBD"
@@ -575,10 +586,9 @@ class Compiler:
                     Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
                 ),  # open write on schema table (root_page_number: 0)
                 new_row_id,  # get new row_id for table cursor in p1 store it in addr p2
+                seek_row_id,  # Seek cursor
                 row_id,  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-                Instruction(
-                    Opcode.IsNull, p1=row_id.p2, p2=halt
-                ),  # If p1 addr is null jump to 11
+                is_null,  # If p1 addr is null jump to 11
                 table_name_col,
                 sql_text_col,
                 root_page_number_col,

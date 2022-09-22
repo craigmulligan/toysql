@@ -73,17 +73,17 @@ class TestVM(Fixtures):
             assert input_name == name
             assert input_email == email
 
-    def test_vm_duplicate_key(self):
-        row = (1, "fred", "fred@flintstone.com")
-        row_2 = (1, "pebbles", "pebbles@flintstone.com")
-        self.vm.execute(
-            f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
-        )
+    # def test_vm_duplicate_key(self):
+    #     row = (1, "fred", "fred@flintstone.com")
+    #     row_2 = (1, "pebbles", "pebbles@flintstone.com")
+    #     self.vm.execute(
+    #         f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
+    #     )
 
-        with self.assertRaises(DuplicateKeyException):
-            self.vm.execute(
-                f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
-            )
+    #     with self.assertRaises(DuplicateKeyException):
+    #         self.vm.execute(
+    #             f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
+    #         )
 
     def test_multipage_insert_select(self):
         keys = [n for n in range(10)]

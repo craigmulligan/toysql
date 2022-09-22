@@ -113,7 +113,7 @@ class TestCompiler(Fixtures):
         # with Transactions
 
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=12),
+            Instruction(Opcode.Init, p2=13),
             Instruction(
                 Opcode.CreateBtree, p1=0, p2=0, p3=1
             ),  # Save new btree root to reg 2
@@ -123,10 +123,11 @@ class TestCompiler(Fixtures):
             Instruction(
                 Opcode.NewRowid, p1=0, p2=1
             ),  # get new row_id for table cursor in p1 store it in addr p2
+            Instruction(Opcode.SeekRowid, p1=0, p2=6, p3=1),
             Instruction(
-                Opcode.Rowid, p1=1, p2=2
+                Opcode.Rowid, p1=0, p2=2
             ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-            Instruction(Opcode.IsNull, p1=2, p2=11),  # If p1 addr is null jump to p2
+            Instruction(Opcode.IsNull, p1=2, p2=12),  # If p1 addr is null jump to p2
             Instruction(
                 Opcode.String, p1=3, p2=3, p3=0, p4="org"
             ),  # Store "org" in addr p2

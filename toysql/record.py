@@ -133,6 +133,10 @@ class Record:
         self.row_id = row_id or payload[0][1] or 0
 
     def __eq__(self, o: "Record") -> bool:
+        return o.row_id == self.row_id
+
+    def deep_eq(self, o: "Record") -> bool:
+        # TODO handy for tests.
         for i, v in enumerate(self.values):
             if v != o.values[i]:
                 return False
