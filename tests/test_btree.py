@@ -1,7 +1,7 @@
 import random
 from snapshottest import TestCase
 
-from toysql.btree import BTree
+from toysql.btree import BTree, Cursor
 from toysql.record import Record, DataType
 from tests.fixtures import Fixtures
 
@@ -121,3 +121,22 @@ class TestBTree(Fixtures, TestCase):
             btree.insert(self.create_record(n, f"hello-{n}"))
 
         assert btree.new_row_id() == 100
+
+    def test_cursor_traverse(self):
+        """
+        Asserts we can get all the values in leaf nodes.
+        """
+        btree = BTree(self.pager, self.pager.new())
+        keys = [n for n in range(100)]
+
+        random.shuffle(keys)
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        records = [r.row_id for r in btree.scan()]
+        keys.sort()
+
+        records = [x for x in enumerate(Cursor(btree))]
+        assert len(records) == len(keys)
+        for i, record in records:
+            assert record.row_id == keys[i]
