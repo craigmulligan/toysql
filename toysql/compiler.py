@@ -523,44 +523,72 @@ class Compiler:
             ]
 
         if isinstance(statement, CreateStatement):
-            raise NotImplementedError("TODO: Implement create statement compiler")
+            transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
+            goto = Instruction(Opcode.Goto, p1=0, p2=1, p3=0)
+
+            init = Instruction(Opcode.Init, p2=transaction)
+
+            create_btree = Instruction(
+                Opcode.CreateBtree, p1=0, p2=memory.next_addr(), p3=1
+            )
+
+            new_row_id = Instruction(Opcode.NewRowid, p1=0, p2=memory.next_addr())
+            row_id = Instruction(Opcode.Rowid, p1=new_row_id.p2, p2=memory.next_addr())
+            halt = Instruction(Opcode.Halt)
+
+            # affinities are always the same for schema table.
+            # eg row_id, table_name, sql_text, root_page_number
+            affinities = "DBBD"
+
+            table_name_col = Instruction(
+                Opcode.String,
+                p1=len(str(statement.table.value)),
+                p2=memory.next_addr(),
+                p3=0,
+                p4=str(statement.table.value),
+            )  # Store "org" in addr p2
+
+            sql_text_col = Instruction(
+                Opcode.String,
+                p1=len(sql_text),
+                p2=memory.next_addr(),
+                p3=0,
+                p4=sql_text,
+            )  # store sql_text addr p2
+
+            root_page_number_col = Instruction(
+                Opcode.SCopy, p1=create_btree.p2, p2=memory.next_addr()
+            )  # This is to get root_page_number close in adress space to following values
+
+            make_record = Instruction(
+                Opcode.MakeRecord,
+                p1=row_id.p2,
+                p2=len(affinities),
+                p3=memory.next_addr(),
+                p4=affinities,
+            )
+
             program.instructions = [
-                Instruction(Opcode.Init, p2=12),
-                Instruction(
-                    Opcode.CreateBtree, p1=0, p2=0, p3=1
-                ),  # Save new btree root to reg 2
+                init,
+                create_btree,  # Save new btree root to reg 2
                 Instruction(
                     Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
                 ),  # open write on schema table (root_page_number: 0)
+                new_row_id,  # get new row_id for table cursor in p1 store it in addr p2
+                row_id,  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
                 Instruction(
-                    Opcode.NewRowid, p1=0, p2=1
-                ),  # get new row_id for table cursor in p1 store it in addr p2
+                    Opcode.IsNull, p1=row_id.p2, p2=halt
+                ),  # If p1 addr is null jump to 11
+                table_name_col,
+                sql_text_col,
+                root_page_number_col,
+                make_record,
                 Instruction(
-                    Opcode.Rowid, p1=1, p2=3
-                ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-                Instruction(
-                    Opcode.IsNull, p1=3, p2=11
-                ),  # If p1 addr is null jump to 25
-                Instruction(
-                    Opcode.String, p1=3, p2=2, p3=0, p4="org"
-                ),  # Store "org" in addr p2
-                Instruction(
-                    Opcode.String,
-                    p1=39,
-                    p2=3,
-                    p3=0,
-                    p4='create table "org" (id INT, name TEXT);',
-                ),  # store sql_text addr p2
-                Instruction(
-                    Opcode.SCopy, p1=0, p2=4
-                ),  # This is to get root_page_number close in adress space to following values
-                Instruction(
-                    Opcode.MakeRecord, p1=1, p2=4, p3=5, p4="DBBD"
-                ),  # create record
-                Instruction(Opcode.Insert, p2=5, p3=1, p4=SCHEMA_TABLE_NAME),
-                Instruction(Opcode.Halt),
-                Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-                Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+                    Opcode.Insert, p2=make_record.p3, p3=1, p4=SCHEMA_TABLE_NAME
+                ),
+                halt,
+                transaction,
+                goto,
             ]
 
         program.resolve_refs()
