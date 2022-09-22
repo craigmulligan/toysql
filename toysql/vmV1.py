@@ -31,6 +31,41 @@ class PeekIterator:
             self.peeked.append(v)
         return self.peeked[ahead]
 
+        # Instruction(Opcode.Init, p2=12),
+        # Instruction(
+        #     Opcode.CreateBtree, p1=0, p2=0, p3=1
+        # ),  # Save new btree root to reg 2
+        # Instruction(
+        #     Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
+        # ),  # open write on schema table (root_page_number: 0)
+        # Instruction(
+        #     Opcode.NewRowid, p1=0, p2=1
+        # ),  # get new row_id for table cursor in p1 store it in addr p2
+        # Instruction(
+        #     Opcode.Rowid, p1=1, p2=2
+        # ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
+        # Instruction(Opcode.IsNull, p1=2, p2=11),  # If p1 addr is null jump to p2
+        # Instruction(
+        #     Opcode.String, p1=3, p2=3, p3=0, p4="org"
+        # ),  # Store "org" in addr p2
+        # Instruction(
+        #     Opcode.String,
+        #     p1=39,
+        #     p2=4,
+        #     p3=0,
+        #     p4='create table "org" (id INT, name TEXT);',
+        # ),  # store sql_text addr p2
+        # Instruction(
+        #     Opcode.SCopy, p1=0, p2=5
+        # ),  # This is to get root_page_number close in adress space to following values
+        # Instruction(
+        #     Opcode.MakeRecord, p1=2, p2=4, p3=6, p4="DBBD"
+        # ),  # create record
+        # Instruction(Opcode.Insert, p2=6, p3=1, p4=SCHEMA_TABLE_NAME),
+        # Instruction(Opcode.Halt),
+        # Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
+        # Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+
 
 class VM:
     def __init__(self, pager):
@@ -51,9 +86,20 @@ class VM:
                 # No support for Transactions yet.
                 cursor += 1
 
+            if instruction.opcode == Opcode.CreateBtree:
+                # TODO: Should be able to roll this back.
+                # RN: pager.new() will write to disk.
+                page_number = self.pager.new()
+                registers[instruction.p2] = page_number
+                cursor += 1
+
             if instruction.opcode == Opcode.Goto:
                 # Unconditional jump to instruction at address p2
                 cursor = cast(int, instruction.p2)
+
+            if instruction.opcode == Opcode.SCopy:
+                # shallow copy register value p1 -> p2.
+                registers[instruction.p2] = registers[instruction.p1]
 
             if instruction.opcode == Opcode.OpenWrite:
                 # Open btree with write cursor
@@ -74,6 +120,19 @@ class VM:
                 # Not Implemented.
                 cursor += 1
 
+            if instruction.opcode == Opcode.NotNull:
+                if registers[instruction.p1] is not None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
+
+            if instruction.opcode == Opcode.IsNull:
+                # If p1 addr is null jump to p2
+                if registers[instruction.p1] is None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
+
             if instruction.opcode == Opcode.String:
                 registers[instruction.p2] = instruction.p4
                 cursor += 1
@@ -82,15 +141,8 @@ class VM:
                 registers[instruction.p2] = instruction.p1
                 cursor += 1
 
-            if instruction.opcode == Opcode.NotNull:
-                if registers[instruction.p1] is not None:
-                    cursor = cast(int, instruction.p2)
-                else:
-                    cursor += 1
-
             if instruction.opcode == Opcode.NewRowid:
-                # TODO: Implement btree.next_row_id()
-                # eg: registers[p2] = btrees[instruction.p1].next_row_id()
+                registers[instruction.p2] = btrees[instruction.p1].new_row_id()
                 cursor += 1
 
             if instruction.opcode == Opcode.MustBeInt:
@@ -129,6 +181,8 @@ class VM:
 
             if instruction.opcode == Opcode.Rowid:
                 # Read column at index p2 and store in register p3
+                breakpoint()
+
                 row = btrees[instruction.p1].peek()
                 registers[instruction.p2] = row.row_id
                 cursor += 1

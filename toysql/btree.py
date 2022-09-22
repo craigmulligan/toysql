@@ -1,5 +1,5 @@
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
-from toysql.record import Record
+from toysql.record import Record, DataType
 from typing import Optional
 
 
@@ -205,4 +205,7 @@ class BTree:
         if last is None:
             return 1
 
-        return last.row_id + 1
+        new_row_id = last.row_id + 1
+        record = Record([], row_id=new_row_id)
+        self.insert(record)
+        return new_row_id
