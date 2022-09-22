@@ -124,26 +124,26 @@ class TestCompiler(Fixtures):
                 Opcode.NewRowid, p1=0, p2=1
             ),  # get new row_id for table cursor in p1 store it in addr p2
             Instruction(
-                Opcode.Rowid, p1=1, p2=3
+                Opcode.Rowid, p1=1, p2=2
             ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-            Instruction(Opcode.IsNull, p1=3, p2=11),  # If p1 addr is null jump to 25
+            Instruction(Opcode.IsNull, p1=2, p2=11),  # If p1 addr is null jump to p2
             Instruction(
-                Opcode.String, p1=3, p2=2, p3=0, p4="org"
+                Opcode.String, p1=3, p2=3, p3=0, p4="org"
             ),  # Store "org" in addr p2
             Instruction(
                 Opcode.String,
                 p1=39,
-                p2=3,
+                p2=4,
                 p3=0,
                 p4='create table "org" (id INT, name TEXT);',
             ),  # store sql_text addr p2
             Instruction(
-                Opcode.SCopy, p1=0, p2=4
+                Opcode.SCopy, p1=0, p2=5
             ),  # This is to get root_page_number close in adress space to following values
             Instruction(
-                Opcode.MakeRecord, p1=1, p2=4, p3=5, p4="DBBD"
+                Opcode.MakeRecord, p1=2, p2=4, p3=6, p4="DBBD"
             ),  # create record
-            Instruction(Opcode.Insert, p2=5, p3=1, p4=SCHEMA_TABLE_NAME),
+            Instruction(Opcode.Insert, p2=6, p3=1, p4=SCHEMA_TABLE_NAME),
             Instruction(Opcode.Halt),
             Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
             Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
