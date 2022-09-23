@@ -8,12 +8,18 @@ class TestVM(Fixtures):
     def setUp(self) -> None:
         super().setUp()
 
+        # TODO: if I remove this tests fail.
+
         self.vm = VM(self.db_file_path)
         self.table_name = "users"
 
-        self.vm.execute(
+        create_stmt = (
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
+
+        vm = VMV1(self.pager)
+        program = Compiler(self.pager, vm).compile(create_stmt)
+        [row for row in vm.execute(program)]
 
         self.root_page_number = 1
 
