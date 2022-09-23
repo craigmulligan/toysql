@@ -217,18 +217,49 @@ class Cursor:
         return self
 
     @staticmethod
-    def page_at_index(page, index):
-        if index == len(page.cells):
-            return page.right_child_page_number
-        else:
-            return page.cells[index].left_child_page_number
-
-    @staticmethod
     def child_page_numbers(page):
         for cell in page.cells:
             yield cell.left_child_page_number
 
         yield page.right_child_page_number
+
+    def seek(self, row_id: int):
+        if len(self.stack) == 0:
+            raise StopIteration()
+
+        current_page = self.tree.read_page(int(self.current_page_number))
+
+        if current_page.is_leaf():
+            try:
+                v = current_page.cells[self.current_leaf_cell_index]
+                self.current_leaf_cell_index += 1
+                return v.record
+            except IndexError:
+                # End of the LeafPage
+                # Walk back up to parent.
+                self.current_leaf_cell_index = 0
+                parent_page_number = self.stack.pop()
+                self.current_page_number = parent_page_number
+                return self.__next__()
+        else:
+            # InteriorPage
+            # Here we keep track of each path we have been down
+            # with visited.
+            # If we have visited each child
+            # We pop off the stack to the parent
+            for page_number in self.child_page_numbers(current_page):
+                if page_number in self.visited:
+                    continue
+                else:
+                    self.stack.append(self.current_page_number)
+                    self.visited.append(page_number)
+                    self.current_page_number = page_number
+                    return self.__next__()
+
+            # End of the InteriorPage
+            # Walk back up to parent.
+            self.current_page_number = self.stack.pop()
+            return self.__next__()
 
     def __next__(self):
         if len(self.stack) == 0:
@@ -286,6 +317,11 @@ class Cursor:
         self.current_page_number = current_page
 
         return v
+
+    def current(self):
+        """Returns the row the cursor is currently pointing to"""
+        current_page = self.tree.read_page(int(self.current_page_number))
+        return current_page.cells[-1]
 
     def __getattr__(self, name):
         # Proxy all other calls to btree.

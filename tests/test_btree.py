@@ -145,7 +145,7 @@ class TestBTree(Fixtures, TestCase):
         Asserts by calling next(iter)
         """
         btree = BTree(self.pager, self.pager.new())
-        keys = [n for n in range(1, 3)]
+        keys = [n for n in range(50)]
 
         random.shuffle(keys)
         for n in keys:
@@ -161,3 +161,21 @@ class TestBTree(Fixtures, TestCase):
             assert next_row.row_id == key
             row = next(cursor)
             assert row.row_id == key
+
+    def test_cursor_traverse_seek(self):
+        """
+        Asserts by we can seek to a specfic row.
+        """
+        btree = BTree(self.pager, self.pager.new())
+        keys = [n for n in range(5)]
+
+        random.shuffle(keys)
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        keys.sort()
+        cursor = Cursor(btree)
+
+        cursor.seek(4)
+        record = cursor.current()
+        assert record.row_id == 4
