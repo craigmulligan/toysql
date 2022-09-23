@@ -1,6 +1,5 @@
-from io import SEEK_CUR
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
-from toysql.record import Record, DataType
+from toysql.record import Record
 from typing import Optional
 
 
