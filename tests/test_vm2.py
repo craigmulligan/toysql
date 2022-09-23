@@ -10,15 +10,16 @@ class TestVM(Fixtures):
 
         # TODO: if I remove this tests fail.
 
-        self.vm = VM(self.db_file_path)
+        # self.vm = VM(self.db_file_path)
         self.table_name = "users"
-
         create_stmt = (
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
 
         vm = VMV1(self.pager)
-        program = Compiler(self.pager, vm).compile(create_stmt)
+        compiler = Compiler(self.pager, vm)
+
+        program = compiler.compile(create_stmt)
         [row for row in vm.execute(program)]
 
         self.root_page_number = 1
@@ -38,9 +39,9 @@ class TestVM(Fixtures):
         program = Compiler(self.pager, vm).compile(f"SELECT * FROM {SCHEMA_TABLE_NAME}")
         records = [r for r in vm.execute(program)]
 
-        assert len(records) == 2
-        new_row = records[1]
-        assert new_row == [2, table_name, create_stmt, len(self.pager) - 1]
+        assert len(records) == 3
+        new_row = records[2]
+        assert new_row == [3, table_name, create_stmt, 2]
 
     def test_insert_and_select(self):
         vmv1 = VMV1(self.pager)

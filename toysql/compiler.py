@@ -324,6 +324,14 @@ class Compiler:
         # VM is used for internal programs
         # Like reading + writing to the schema table
         self.vm = vm
+        self.init_schema_table()
+
+    def init_schema_table(self):
+        if len(self.pager) > 0:
+            return
+
+        program = self.compile(SCHEMA_TABLE_SQL_TEXT)
+        [row for row in self.vm.execute(program)]
 
     def get_schema(self) -> List[List[Any]]:
         # Gets the current schema table values

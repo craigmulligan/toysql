@@ -1,6 +1,6 @@
 from toysql.compiler import Compiler, Instruction, Opcode, SCHEMA_TABLE_NAME
 from tests.fixtures import Fixtures
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 
 class TestCompiler(Fixtures):
@@ -9,10 +9,15 @@ class TestCompiler(Fixtures):
         sql_text = "CREATE TABLE user (id INT, name text(12), email text(255));"
         self.root_page_number = 3
         self.vm = Mock()
+        self.vm.execute = Mock(return_value=[])
         self.compiler = Compiler(self.pager, self.vm)
         self.compiler.get_schema = Mock(
             return_value=[[1, "user", sql_text, self.root_page_number]]
         )
+
+    def tearDown(self) -> None:
+
+        return super().tearDown()
 
     def test_schema_select(self):
         program = self.compiler.compile(f"select * from {SCHEMA_TABLE_NAME};")

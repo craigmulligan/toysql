@@ -4,39 +4,6 @@ from toysql.btree import BTree, Cursor
 from typing import cast
 
 
-# class PeekIterator:
-#     def __init__(self, tree):
-#         self.tree = tree
-#         self.iterator = iter(tree.scan())
-#         self.peeked = deque()
-
-#     def __iter__(self):
-#         return self
-
-#     def __next__(self):
-#         if self.peeked:
-#             return self.peeked.popleft()
-
-#         return self.safe_next()
-
-#     def safe_next(self):
-#         try:
-#             return next(self.iterator)
-#         except StopIteration:
-#             return None
-
-#     def peek(self, ahead=0):
-#         while len(self.peeked) <= ahead:
-#             v = self.safe_next()
-#             self.peeked.append(v)
-#         return self.peeked[ahead]
-
-#     def __getattr__(self, name):
-#         # Proxy all other calls to btree.
-#         # TODO this is a hack.
-#         return getattr(self.tree, name)
-
-
 class VM:
     def __init__(self, pager):
         self.pager = pager
