@@ -99,7 +99,6 @@ class Integer:
         """
         Pack `value` into varint bytes
         """
-        # return self.value.to_bytes(self.value.bit_length()//8 + 1, "little", signed=True)
         number = self.value
         buf = b""
         while True:
@@ -131,6 +130,10 @@ class Record:
     def __init__(self, payload, row_id=None):
         self.values = payload
         self.row_id = row_id or payload[0][1] or 0
+
+        if len(payload) == 0:
+            # Always ensure values is set.
+            self.values = [[DataType.integer, self.row_id]]
 
     def __eq__(self, o: "Record") -> bool:
         return o.row_id == self.row_id

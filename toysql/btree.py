@@ -175,24 +175,7 @@ class BTree:
         yield self.read_page(page.right_child_page_number)
 
     def scan(self):
-        if self.root.is_leaf():
-            for cell in self.root.cells:
-                yield cell.record
-        else:
-            yield from self._scan(self.root)
-
-    def _scan(self, parent):
-        """
-        _scan will recursively traverse
-        to leaft pages. yielding each record
-        in that leaf page.
-        """
-        for child in self.child_pages(parent):
-            if child.is_leaf():
-                for cell in child.cells:
-                    yield cell.record
-            else:
-                yield from self._scan(child)
+        return Cursor(self)
 
     def new_row_id(self):
         """
@@ -207,10 +190,10 @@ class BTree:
         except StopIteration:
             pass
 
-        if last is None:
-            return 1
+        new_row_id = 1
+        if last is not None:
+            new_row_id = last.row_id + 1
 
-        new_row_id = last.row_id + 1
         record = Record([], row_id=new_row_id)
         self.insert(record)
         return new_row_id
@@ -219,19 +202,10 @@ class BTree:
 class Cursor:
     def __init__(self, btree: BTree) -> None:
         self.tree = btree
-        self.cell_index = 0
         self.current_leaf_cell_index = 0
         self.current_page_number = self.tree.root.page_number
         self.stack = [self.tree.root.page_number]
         self.visited = []
-
-    def seek(self, row_id):
-        # Moves cursor to row_id.
-        pass
-
-    def seek_end(self):
-        # last row
-        pass
 
     def seek_start(self):
         # go to first row.
@@ -240,16 +214,8 @@ class Cursor:
         self.stack = [self.tree.root.page_number]
         self.visited = []
 
-    def peek(self):
-        # Returns row at cursor
-        # With out moving the cursor
-        pass
-
     def __iter__(self):
         return self
-
-    def next_page(self, page):
-        pass
 
     @staticmethod
     def page_at_index(page, index):
@@ -275,7 +241,7 @@ class Cursor:
             try:
                 v = current_page.cells[self.current_leaf_cell_index]
                 self.current_leaf_cell_index += 1
-                return v
+                return v.record
             except IndexError:
                 # End of the LeafPage
                 # Walk back up to parent.
@@ -303,6 +269,26 @@ class Cursor:
             self.current_page_number = self.stack.pop()
             return self.__next__()
 
-    def current(self):
-        current_page = self.tree.read_page(int(self.current_page_number))
-        return current_page.cells[self.cell_index]
+    def peek(self):
+        # iterate then restore.
+        visited = self.visited.copy()
+        stack = self.stack.copy()
+        current_leaf_cell_index = self.current_leaf_cell_index
+        current_page = self.current_page_number
+
+        try:
+            v = next(self)
+        except StopIteration:
+            return None
+
+        self.visited = visited
+        self.stack = stack
+        self.current_leaf_cell_index = current_leaf_cell_index
+        self.current_page_number = current_page
+
+        return v
+
+    def __getattr__(self, name):
+        # Proxy all other calls to btree.
+        # TODO this is a hack.
+        return getattr(self.tree, name)

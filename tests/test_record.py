@@ -15,6 +15,12 @@ class TestRecord(TestCase):
         record = Record.from_bytes(raw_bytes)
         assert record.values == payload
 
+    def test_empty(self):
+        raw_bytes = Record([], row_id=3).to_bytes()
+        assert raw_bytes
+        record = Record.from_bytes(raw_bytes)
+        assert record.row_id == 3
+
     def test_different_order(self):
         payload = [
             [DataType.integer, 124],

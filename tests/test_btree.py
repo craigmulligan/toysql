@@ -127,16 +127,37 @@ class TestBTree(Fixtures, TestCase):
         Asserts we can get all the values in leaf nodes.
         """
         btree = BTree(self.pager, self.pager.new())
-        keys = [n for n in range(100)]
+        keys = [n for n in range(1)]
 
         random.shuffle(keys)
         for n in keys:
             btree.insert(self.create_record(n, f"hello-{n}"))
 
-        records = [r.row_id for r in btree.scan()]
         keys.sort()
 
         records = [x for x in enumerate(Cursor(btree))]
         assert len(records) == len(keys)
         for i, record in records:
             assert record.row_id == keys[i]
+
+    def test_cursor_traverse_peek(self):
+        """
+        Asserts by calling next(iter)
+        """
+        btree = BTree(self.pager, self.pager.new())
+        keys = [n for n in range(1, 3)]
+
+        random.shuffle(keys)
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        keys.sort()
+
+        cursor = Cursor(btree)
+
+        for key in keys:
+            next_row = cursor.peek()
+            assert next_row
+            assert next_row.row_id == key
+            row = next(cursor)
+            assert row.row_id == key

@@ -23,6 +23,7 @@ class TestVM(Fixtures):
         create a schema table.
         """
         vm = VMV1(self.pager)
+
         table_name = "org"
         create_stmt = f"CREATE TABLE {table_name} (id INT, name TEXT);"
         program = Compiler(self.pager, vm).compile(create_stmt)
