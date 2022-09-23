@@ -1,162 +1,228 @@
-from typing import List, Any, Optional
-from toysql.parser import SelectStatement, InsertStatement, CreateStatement, Statement
-from toysql.table import Table
-from toysql.pager import Pager
-from toysql.lexer import StatementLexer, Kind
-from toysql.record import Record, DataType
-from toysql.parser import Parser
-from toysql.btree import BTree
-from toysql.exceptions import TableFoundException
-
-SCHEME_TABLE_NAME = "schema"
+from toysql.compiler import Program, Opcode
+from toysql.record import DataType, Record
+from toysql.btree import BTree, Cursor
+from typing import cast
 
 
 class VM:
-    """
-    NOTE: this is not yet a real VM with OPcodes etc
-    it's simply the glue code between the frontend & backend.
-    """
+    def __init__(self, pager):
+        self.pager = pager
 
-    def __init__(self, file_path):
-        self.pager = Pager(file_path)
-        self.lexer = StatementLexer()
-        self.parser = Parser()
-        self.tables = {}
-        self.schema_table = self.create_schema_table()
+    def execute(self, program: Program):
+        btrees = {}
+        registers = {}
+        cursor = 0
 
-    def get_table_columns(self, table):
-        [statement] = self.parse_input(table.input)
-        return statement.columns
+        while True:
+            instruction = program.instructions[cursor]
+            print(instruction.opcode)
 
-    def get_table_column_names(self, table):
-        columns = self.get_table_columns(table)
-        names = []
-        for col in columns:
-            if col.name.value != "*":
-                names.append(col.name.value)
+            if instruction.opcode == Opcode.Init:
+                # init instruction tells us which address to start at.
+                cursor = cast(int, instruction.p2)
 
-        return names
+            if instruction.opcode == Opcode.Transaction:
+                # No support for Transactions yet.
+                cursor += 1
 
-    def schema_table_exists(self) -> bool:
-        return len(self.pager) > 0
+            if instruction.opcode == Opcode.CreateBtree:
+                # TODO: Should be able to roll this back.
+                # RN: pager.new() will write to disk.
+                page_number = self.pager.new()
+                registers[instruction.p2] = page_number
+                cursor += 1
 
-    def create_schema_table(self) -> Table:
-        page_number = 0
-        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
+            if instruction.opcode == Opcode.Goto:
+                # Unconditional jump to instruction at address p2
+                cursor = cast(int, instruction.p2)
 
-        if self.schema_table_exists():
-            return self.load_table(SCHEME_TABLE_NAME, input, page_number)
+            if instruction.opcode == Opcode.SCopy:
+                # shallow copy register value p1 -> p2.
+                registers[instruction.p2] = registers[instruction.p1]
+                cursor += 1
 
-        input = f"CREATE TABLE {SCHEME_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
-        [statement] = self.parse_input(input)
+            if instruction.opcode == Opcode.OpenWrite:
+                # Open btree with write cursor
+                # TODO: This is different btree object from OpenRead. Btrees should instead have
+                # an iterator that holds state so it can be the same object
+                # Also p4 is unimplemeneted.
+                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
+                cursor += 1
 
-        if len(self.pager) == 0:
-            # If there is no first page create one.
-            page_number = self.pager.new()
+            if instruction.opcode == Opcode.OpenRead:
+                # Open a cursor with root page p2 and assign its refname to val p1
+                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
+                cursor += 1
 
-        return self.create_table(statement, input, page_number)
+            if instruction.opcode == Opcode.SoftNull:
+                # Not Implemented.
+                cursor += 1
 
-    def get_schema_table(self) -> Optional[Table]:
-        return self.get_table(SCHEME_TABLE_NAME)
+            if instruction.opcode == Opcode.NotNull:
+                if registers[instruction.p1] is not None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
-    def create_table(
-        self, statement: CreateStatement, input: str, root_page_number
-    ) -> Table:
-        table_name = statement.table.value
-        table = self.load_table(table_name, input, root_page_number)
+            if instruction.opcode == Opcode.IsNull:
+                # If p1 addr is null jump to p2
+                if registers[instruction.p1] is None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
-        if table_name != SCHEME_TABLE_NAME:
-            self.schema_table.insert(
-                [
-                    [DataType.integer, root_page_number],
-                    [DataType.text, table_name],
-                    [DataType.text, input],
-                    [DataType.integer, root_page_number],
-                ]
-            )
+            if instruction.opcode == Opcode.String:
+                registers[instruction.p2] = instruction.p4
+                cursor += 1
 
-        return table
+            if instruction.opcode == Opcode.Integer:
+                registers[instruction.p2] = instruction.p1
+                cursor += 1
 
-    def load_table(self, table_name, input, root_page_number) -> Table:
-        tree = BTree(self.pager, root_page_number)
-        table = Table(table_name, input, tree)
-        self.tables[table_name] = table
-        return table
+            if instruction.opcode == Opcode.NewRowid:
+                registers[instruction.p2] = btrees[instruction.p1].new_row_id()
+                cursor += 1
 
-    def get_table(self, table_name) -> Table:
-        if table_name == SCHEME_TABLE_NAME:
-            return self.schema_table
+            if instruction.opcode == Opcode.SeekRowid:
+                # TODO propery implement Seek in Btree module.
+                found = False
+                tree = btrees[instruction.p1]
 
-        for record in self.schema_table.select():
-            if record.values[1][1] == table_name:
-                root_page_number = record.values[3][1]
-                input = record.values[2][1]
-                return self.load_table(table_name, input, root_page_number)
+                while True:
+                    next_record = tree.peek()
 
-        raise TableFoundException(f"Table: {table_name} not found")
+                    if next_record is None:
+                        break
 
-    def parse_input(self, input: str) -> List[Any]:
-        tokens = self.lexer.lex(input)
-        stmts = self.parser.parse(tokens)
-        return stmts
+                    if next_record.row_id == registers[instruction.p3]:
+                        found = True
+                        break
 
-    def execute(self, input: str) -> List[Any]:
-        stmts = self.parse_input(input)
-        results = []
+                    next(tree)
 
-        for stmt in stmts:
-            result = self.execute_statement(stmt, input)
-            results.append(result)
+                if found is False:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
-        return results
+            if instruction.opcode == Opcode.MustBeInt:
+                # Force the value in register P1 to be an integer.
+                # If the value in P1 is not an integer and cannot be converted into an integer without data loss
+                # then jump immediately to P2, or if P2==0 raise an SQLITE_MISMATCH exception.
+                try:
+                    registers[instruction.p1] = int(registers[instruction.p1])
+                    cursor += 1
+                except ValueError:
+                    if instruction.p2 == 0:
+                        # TODO create a custom error type for TypeErrors
+                        raise ValueError("TOYSQL TYPE MISMATCH")
+                    cursor = cast(int, instruction.p2)
 
-    def insert_statement_to_record(self, statment: InsertStatement) -> Record:
-        values = []
-        for token in statment.values:
-            if token.kind == Kind.integer:
-                values.append([DataType.integer, token.value])
+            if instruction.opcode == Opcode.Noop:
+                cursor += 1
 
-            if token.kind == Kind.text:
-                values.append([DataType.text, token.value])
+            if instruction.opcode == Opcode.NotExists:
+                record = btrees[instruction.p1].find(registers[instruction.p3])
 
-        return Record(values)
+                if record:
+                    raise Exception("It found")
 
-    def execute_statement(self, statement: Statement, input: str):
-        ## TODO decide on api for return values.
-        if isinstance(statement, SelectStatement):
-            table_name = statement._from.value
-            table = self.get_table(table_name)
+                if record is None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
-            column_index = []
-            column_names = self.get_table_column_names(table)
+            if instruction.opcode == Opcode.Rewind:
+                # If table or index is empty jump to p2
+                if not btrees[instruction.p1].peek():
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
 
-            for column_name in statement.items:
-                if column_name.value == "*":
-                    # TODO need to handle this better.
-                    break
+            if instruction.opcode == Opcode.Rowid:
+                # Read column at index p2 and store in register p3
+                row = btrees[instruction.p1].peek()
+                registers[instruction.p2] = row.row_id
+                cursor += 1
 
-                column_index.append(column_names.index(column_name.value))
+            if instruction.opcode == Opcode.Column:
+                # Read column at index p2 and store in register p3
+                row = btrees[instruction.p1].peek()
+                v = row.values[instruction.p2][1]
 
-            if len(column_index) == 0:
-                # If no columns we select every index.
-                column_index = list(range(0, len(column_names)))
+                registers[instruction.p3] = v
+                cursor += 1
 
-            results = []
-            for r in table.select():
-                result = []
-                if len(column_index):
-                    for i in column_index:
-                        result.append(r.values[i][1])
-                results.append(result)
+            if instruction.opcode == Opcode.MakeRecord:
+                assert instruction.p4
+                values = []
 
-            return results
+                for i in range(instruction.p2):
+                    v = []
+                    type_affinity = instruction.p4[i]
 
-        if isinstance(statement, InsertStatement):
-            table_name = statement.into.value
-            record = self.insert_statement_to_record(statement)
-            t = self.get_table(table_name)
-            t.insert(record)
-            return
+                    # Add column type
+                    if type_affinity == "D":
+                        v.append(DataType.integer)
 
-        if isinstance(statement, CreateStatement):
-            self.create_table(statement, input, self.pager.new())
+                    if type_affinity == "B":
+                        v.append(DataType.text)
+
+                    # Add column value
+                    v.append(registers[instruction.p1 + i])
+                    values.append(v)
+
+                record = Record(values)
+
+                # Not sure if this is right.
+                registers[instruction.p3] = record
+                cursor += 1
+
+            if instruction.opcode == Opcode.ResultRow:
+                # Take all the stored values in registers p1 - p2 and yeild them
+                # to the caller.
+                values = []
+                for i in range(
+                    cast(int, instruction.p1), cast(int, instruction.p2) + 1
+                ):
+                    values.append(registers[i])
+
+                cursor += 1
+
+                yield values
+
+            if instruction.opcode == Opcode.Insert:
+                record = registers[instruction.p2]
+                btrees[instruction.p1].insert(record)
+                registers[instruction.p3] = record.row_id
+                registers[instruction.p2] = record
+                cursor += 1
+
+            if instruction.opcode == Opcode.Next:
+                # Check if btree cursor p1 has next value.
+                # If next continue to address p2
+                # else fall through to next instruction.
+                next(btrees[instruction.p1])
+                v = btrees[instruction.p1].peek()
+
+                if v is not None:
+                    cursor = cast(int, instruction.p2)
+                else:
+                    cursor += 1
+
+            if instruction.opcode == Opcode.Halt:
+                # Immediate exit.
+                # P1 is the result code returned by sqlite3_exec(),
+                # sqlite3_reset(), or sqlite3_finalize().
+                # For a normal halt, this should be SQLITE_OK (0).
+                # For errors, it can be some other value.
+                # If P1!=0 then P2 will determine whether or not to rollback the current transaction.
+                # Do not rollback if P2==OE_Fail. Do the rollback if P2==OE_Rollback.
+                # If P2==OE_Abort, then back out all changes that have occurred during this execution of the VDBE,
+                # but do not rollback the transaction.
+                if instruction.p1 != 0:
+                    # We have an error
+                    raise Exception(instruction.p4)
+                break
+
+        return
