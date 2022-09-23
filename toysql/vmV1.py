@@ -1,41 +1,40 @@
 from toysql.compiler import Program, Opcode
 from toysql.record import DataType, Record
-from toysql.btree import BTree
+from toysql.btree import BTree, Cursor
 from typing import cast
-from collections import deque
 
 
-class PeekIterator:
-    def __init__(self, tree):
-        self.tree = tree
-        self.iterator = iter(tree.scan())
-        self.peeked = deque()
+# class PeekIterator:
+#     def __init__(self, tree):
+#         self.tree = tree
+#         self.iterator = iter(tree.scan())
+#         self.peeked = deque()
 
-    def __iter__(self):
-        return self
+#     def __iter__(self):
+#         return self
 
-    def __next__(self):
-        if self.peeked:
-            return self.peeked.popleft()
+#     def __next__(self):
+#         if self.peeked:
+#             return self.peeked.popleft()
 
-        return self.safe_next()
+#         return self.safe_next()
 
-    def safe_next(self):
-        try:
-            return next(self.iterator)
-        except StopIteration:
-            return None
+#     def safe_next(self):
+#         try:
+#             return next(self.iterator)
+#         except StopIteration:
+#             return None
 
-    def peek(self, ahead=0):
-        while len(self.peeked) <= ahead:
-            v = self.safe_next()
-            self.peeked.append(v)
-        return self.peeked[ahead]
+#     def peek(self, ahead=0):
+#         while len(self.peeked) <= ahead:
+#             v = self.safe_next()
+#             self.peeked.append(v)
+#         return self.peeked[ahead]
 
-    def __getattr__(self, name):
-        # Proxy all other calls to btree.
-        # TODO this is a hack.
-        return getattr(self.tree, name)
+#     def __getattr__(self, name):
+#         # Proxy all other calls to btree.
+#         # TODO this is a hack.
+#         return getattr(self.tree, name)
 
 
 class VM:
@@ -80,12 +79,12 @@ class VM:
                 # TODO: This is different btree object from OpenRead. Btrees should instead have
                 # an iterator that holds state so it can be the same object
                 # Also p4 is unimplemeneted.
-                btrees[instruction.p1] = PeekIterator(BTree(self.pager, instruction.p2))
+                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenRead:
                 # Open a cursor with root page p2 and assign its refname to val p1
-                btrees[instruction.p1] = PeekIterator(BTree(self.pager, instruction.p2))
+                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
                 cursor += 1
 
             if instruction.opcode == Opcode.SoftNull:
@@ -120,10 +119,10 @@ class VM:
             if instruction.opcode == Opcode.SeekRowid:
                 # TODO propery implement Seek in Btree module.
                 found = False
+                tree = btrees[instruction.p1]
 
-                bt = btrees[instruction.p1]
                 while True:
-                    next_record = bt.peek()
+                    next_record = tree.peek()
 
                     if next_record is None:
                         break
@@ -132,7 +131,7 @@ class VM:
                         found = True
                         break
 
-                    next(btrees[instruction.p1])
+                    next(tree)
 
                 if found is False:
                     cursor = cast(int, instruction.p2)
