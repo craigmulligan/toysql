@@ -1,7 +1,7 @@
 from toysql.vm import VM
-from toysql.vmV1 import VM as VMV1
 from tests.fixtures import Fixtures
 from toysql.compiler import Compiler, SCHEMA_TABLE_NAME
+import random
 
 
 class TestVM(Fixtures):
@@ -16,11 +16,17 @@ class TestVM(Fixtures):
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
         )
 
-        vm = VMV1(self.pager)
-        compiler = Compiler(self.pager, vm)
+        self.vm = VM(self.pager)
+        self.compiler = Compiler(self.pager, self.vm)
 
-        program = compiler.compile(create_stmt)
-        [row for row in vm.execute(program)]
+        def execute(sql: str):
+            program = self.compiler.compile(sql)
+            return [row for row in self.vm.execute(program)]
+
+        self.execute = execute
+
+        program = self.compiler.compile(create_stmt)
+        [row for row in self.vm.execute(program)]
 
         self.root_page_number = 1
 
@@ -29,38 +35,64 @@ class TestVM(Fixtures):
         When we init the VM we should auto
         create a schema table.
         """
-        vm = VMV1(self.pager)
-
         table_name = "org"
         create_stmt = f"CREATE TABLE {table_name} (id INT, name TEXT);"
-        program = Compiler(self.pager, vm).compile(create_stmt)
-        [row for row in vm.execute(program)]
-
-        program = Compiler(self.pager, vm).compile(f"SELECT * FROM {SCHEMA_TABLE_NAME}")
-        records = [r for r in vm.execute(program)]
+        self.execute(create_stmt)
+        records = self.execute(f"SELECT * FROM {SCHEMA_TABLE_NAME}")
 
         assert len(records) == 3
         new_row = records[2]
         assert new_row == [3, table_name, create_stmt, 2]
 
     def test_insert_and_select(self):
-        vmv1 = VMV1(self.pager)
-
         rows = [
             [1, "fred", "fred@flintstone.com"],
             [2, "pebbles", "pebbles@flintstone.com"],
         ]
 
         for row in rows:
-            prog = Compiler(self.pager, vmv1).compile(
+            self.execute(
                 f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
             )
-            [row for row in vmv1.execute(prog)]
 
-        program = Compiler(self.pager, vmv1).compile(f"SELECT * FROM {self.table_name}")
-
-        records = [r for r in vmv1.execute(program)]
+        records = self.execute(f"SELECT * FROM {self.table_name}")
 
         assert len(records) == len(rows)
         for i, record in enumerate(records):
             assert record[0] == rows[i][0]
+
+    def test_insert_and_select_many(self):
+        keys = [k for k in range(100)]
+        rows = []
+
+        random.shuffle(keys)
+
+        for key in keys:
+            rows.append([key, f"name-{key}", f"{key}@flintstone.com"])
+
+        for row in rows:
+            self.execute(
+                f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
+            )
+
+        records = self.execute(f"SELECT * FROM {self.table_name}")
+
+        assert len(records) == len(keys)
+        keys.sort()
+        for i, record in enumerate(records):
+            assert record[0] == keys[i]
+
+    # def test_vm_duplicate_key(self):
+    #     row = (1, "fred", "fred@flintstone.com")
+    #     row_2 = (1, "pebbles", "pebbles@flintstone.com")
+
+    #     program = self.compiler.compile(
+    #         f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
+    #     )
+    #     self.vm.execute(program)
+
+    #     with self.assertRaises(Exception):
+    #         program = self.compiler.compile(
+    #             f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
+    #         )
+    #         self.vm.execute(program)
