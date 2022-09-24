@@ -1,3 +1,4 @@
+import sys
 from typing import Callable
 import logging
 
@@ -19,7 +20,6 @@ def repl(callback: Callable):
     repl is responsible for interacting with the
     db.
     """
-    # TODO add keyboard interupt.
     text = input("Enter your query:\n")
 
     try:
@@ -34,4 +34,7 @@ if __name__ == "__main__":
     print("Welcome to toysql.")
     # We pass itself as the callback
     # so that it infinitely continues
-    repl(repl)
+    try:
+        repl(repl)
+    except KeyboardInterrupt:
+        sys.exit(0)
