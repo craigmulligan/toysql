@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Protocol
 from dataclasses import dataclass
 from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
@@ -92,9 +92,9 @@ class TokenCursor:
         return expressions
 
 
-class Statement:
+class Statement(Protocol):
     @staticmethod
-    def parse(tokens: List[Token], _: int) -> Tuple[Optional["Statement"], int]:
+    def parse(cursor: TokenCursor) -> "Statement":
         ...
 
 
@@ -104,7 +104,7 @@ class SelectStatement(Statement):
     items: List[Expression]
 
     @staticmethod
-    def parse(cursor: TokenCursor) -> "Statement":
+    def parse(cursor: TokenCursor) -> "SelectStatement":
         """
         Parsing SELECT statements is easy. We'll look for the following token pattern:
 
@@ -205,7 +205,7 @@ class InsertStatement(Statement):
         return tokens
 
     @staticmethod
-    def parse(cursor: TokenCursor) -> "Statement":
+    def parse(cursor: TokenCursor) -> "InsertStatement":
         """
         Parses a insert statement in the format:
 
@@ -320,7 +320,7 @@ class CreateStatement(Statement):
         return columns
 
     @staticmethod
-    def parse(cursor: TokenCursor) -> "Statement":
+    def parse(cursor: TokenCursor) -> "CreateStatement":
         """
         Parses a create statement in the format:
             CREATE TABLE table_name (
@@ -360,7 +360,7 @@ class CreateStatement(Statement):
 class Parser:
     def parse(self, tokens: List[Token]):
         stmts = []
-        parsers = [SelectStatement, CreateStatement, InsertStatement]
+        parsers: List[Statement] = [SelectStatement, CreateStatement, InsertStatement]
         cursor = TokenCursor(tokens)
 
         while not cursor.is_complete():
