@@ -17,15 +17,21 @@ class Pager:
         file_name.touch(exist_ok=True)
         self.f = open(file_name, "rb+")
         self.page_size = page_size
-        # TODO check for corrupt file.
-        # file_length % PAGE_SIZE != 0
+
+        if self.is_corrupt():
+            raise Exception(f"{file_path} is corrupted")
+
+    def is_corrupt(self) -> bool:
+        """
+        Checks if the current file is not exact page size * blocks.
+        """
+        return self.size() % self.page_size != 0
 
     def new(self) -> PageNumber:
         """
         Requests a new page
         """
         page_number = len(self)
-        # TODO give page size here.
         page = Page(PageType.leaf, page_number, page_size=self.page_size)
         self.write(page)
 
@@ -46,9 +52,12 @@ class Pager:
         return page
 
     def __len__(self) -> int:
-        size = self.s()
-        return int(size / self.page_size)
+        current = self.f.tell()
+        size = self.size()
+        l = int(size / self.page_size)
+        self.f.seek(current)
+        return l
 
-    def s(self) -> float:
+    def size(self) -> float:
         self.f.seek(0, os.SEEK_END)
         return self.f.tell()

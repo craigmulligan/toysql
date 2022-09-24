@@ -7,10 +7,6 @@ import random
 class TestVM(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-
-        # TODO: if I remove this tests fail.
-
-        # self.vm = VM(self.db_file_path)
         self.table_name = "users"
         create_stmt = (
             f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"

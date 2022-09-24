@@ -1,7 +1,6 @@
 from toysql.record import Record, DataType
 from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType
 from unittest import TestCase
-from toysql.exceptions import DuplicateKeyException
 
 
 class TestCell(TestCase):
