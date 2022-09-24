@@ -1,9 +1,6 @@
-from toysql.record import Record, DataType
 from snapshottest import TestCase
-from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType
 from toysql.pager import Pager
 from tests.fixtures import Fixtures
-from pathlib import Path
 
 
 class TestPager(Fixtures, TestCase):
