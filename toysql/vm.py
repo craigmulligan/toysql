@@ -161,12 +161,8 @@ class VM:
                     v = []
                     type_affinity = instruction.p4[i]
 
-                    # Add column type
-                    if type_affinity == "D":
-                        v.append(DataType.integer)
-
-                    if type_affinity == "B":
-                        v.append(DataType.text)
+                    # Add column datatype (from affinity)
+                    v.append(DataType.from_affinity(type_affinity))
 
                     # Add column value
                     v.append(registers[instruction.p1 + i])

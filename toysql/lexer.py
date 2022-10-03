@@ -53,7 +53,7 @@ class DataType(Enum):
     text = auto()
     blob = auto()
 
-    def affinity(self):
+    def to_affinity(self) -> str:
         # Taken from https://github.com/sqlcipher/sqlcipher/blob/master/src/sqliteInt.h#L2173-L2178
         ###
         # define SQLITE_AFF_NONE     0x40  /* '@' */
@@ -68,6 +68,18 @@ class DataType(Enum):
 
         if self == DataType.integer:
             return "D"
+
+        raise Exception("Unmapped DataType affinity")
+
+    @staticmethod
+    def from_affinity(affinity: str) -> "DataType":
+        if affinity == "B":
+            return DataType.text
+
+        if affinity == "D":
+            return DataType.integer
+
+        raise Exception("Unmapped DataType affinity")
 
 
 class Kind(Enum):
