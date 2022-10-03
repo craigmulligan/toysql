@@ -1,6 +1,6 @@
-from typing import Iterable, Dict
+from typing import Iterable
 from toysql.btree import BTree
-from toysql.record import Record, DataType
+from toysql.record import Record
 
 
 class Table:

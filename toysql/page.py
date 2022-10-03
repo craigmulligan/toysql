@@ -1,7 +1,6 @@
 from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
-from toysql.exceptions import DuplicateKeyException
 import bisect
 import io
 

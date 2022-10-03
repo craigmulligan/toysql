@@ -1,16 +1,9 @@
-from typing import Tuple, Optional, List, Protocol
+from typing import Optional, List, Protocol
 from dataclasses import dataclass
 from toysql.lexer import Token, Kind, Keyword, Symbol
 from toysql.exceptions import ParsingException
 
 Expression = Token
-
-
-@dataclass
-class BinaryExpression:
-    a: Expression
-    b: Expression
-    op: Token
 
 
 class TokenCursor:
