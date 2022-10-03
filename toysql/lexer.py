@@ -400,6 +400,7 @@ class StatementLexer:
         lexers: List[Lexer] = [
             KeywordLexer(),  # Note keyword should always have first pick.
             NullLexer(),
+            BoolLexer(),
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
