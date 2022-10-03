@@ -9,6 +9,7 @@ from toysql.lexer import (
     NumericLexer,
     StringLexer,
     KeywordLexer,
+    NullLexer,
     IdentifierLexer,
 )
 from unittest import TestCase
@@ -68,6 +69,26 @@ class TestKeywordLexer(TestCase):
             cursor = Cursor(source)
             token = lexer.lex(cursor)
             if token:
+                assert token.value == value
+            else:
+                assert value is None
+
+
+class TestLiteralLexer(TestCase):
+    def test_lex(self):
+        lexer = NullLexer()
+        cases = [
+            ("NULL", "null"),
+            ("null", "null"),
+            (" null", None),
+            ("null tablename", "null"),
+        ]
+
+        for source, value in cases:
+            cursor = Cursor(source)
+            token = lexer.lex(cursor)
+            if token:
+                assert token.kind == Kind.null
                 assert token.value == value
             else:
                 assert value is None

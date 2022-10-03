@@ -19,9 +19,6 @@ class Keyword(Enum):
     int = "int"
     bool = "bool"
     text = "text"
-    null = "null"
-    true = "true"
-    false = "true"
 
 
 class Symbol(Enum):
@@ -92,10 +89,14 @@ class Kind(Enum):
     keyword = auto()
     symbol = auto()
     identifier = auto()
+
+    # might not need bool.
+    # Sqlite just uses into under the hood.
     bool = auto()
-    discard = auto()
     null = auto()
+
     integer = auto()
+    # TODO should have REAL for floating point
     text = auto()
     blob = auto()
 
@@ -180,17 +181,48 @@ class KeywordLexer:
         if match is None:
             return None
 
-        kind = Kind.keyword
+        return Token(match, Kind.keyword, cursor.loc)
 
-        # TODO this is a hack.
-        # Should be handled in own Lexer.
-        if match == Keyword.true or match == Keyword.false:
-            kind = Kind.bool
 
-        if match == Keyword.null:
-            kind = Kind.null
+class BoolLexer:
+    """
+    Matches against bool literals
+    """
 
-        return Token(match, kind, cursor.loc)
+    def lex(self, cursor):
+        match = None
+        options = ["true", "false"]
+        for option in options:
+            l = len(option)
+            substr = cursor.peek(l)
+            lower_substr = substr.lower()
+            if lower_substr == option:
+                cursor.read(l)
+                match = lower_substr
+
+        if match is None:
+            return None
+
+        return Token(match, Kind.bool, cursor.loc)
+
+
+class NullLexer:
+    """
+    Matches against literals currently only for NULL.
+    """
+
+    def lex(self, cursor):
+        search_term = "null"
+        l = len(search_term)
+        substr = cursor.peek(l)
+        lower_substr = substr.lower()
+
+        if lower_substr != search_term:
+            return
+        else:
+            cursor.read(l)
+
+        return Token(search_term, Kind.null, cursor.loc)
 
 
 class NumericLexer:
@@ -367,6 +399,7 @@ class StatementLexer:
         # So we ensure each of these is a lexer.
         lexers: List[Lexer] = [
             KeywordLexer(),  # Note keyword should always have first pick.
+            NullLexer(),
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
