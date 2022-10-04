@@ -100,6 +100,8 @@ class Kind(Enum):
     text = auto()
     blob = auto()
 
+    # TODO maybe cleanest is to have a datatype property?
+
 
 @dataclass
 class Location:
