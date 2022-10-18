@@ -300,6 +300,11 @@ class Cursor:
             return self.__next__()
 
     def current(self):
+        frame = self.stack[-1]
+        current_page = self.tree.read_page(frame.page_number)
+        return self.get_current(frame, current_page)
+
+    def get_current(self, frame, current_page):
         """
         Get the current record
         if cursor is pointing a leaf node.
@@ -308,14 +313,9 @@ class Cursor:
 
         I think this means we don't need peek.
         """
-        frame = self.stack[-1]
-        current_page = self.tree.read_page(frame.page_number)
-
         try:
             v = current_page.cells[frame.child_index]
-            if frame.child_index <= len(current_page.cells):
-                frame.child_index += 1
-
+            frame.child_index += 1
             return v.record
         except IndexError:
             # End of the LeafPage
@@ -345,7 +345,15 @@ class Cursor:
         current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
-            self.current()
+            try:
+                v = current_page.cells[frame.child_index]
+                frame.child_index += 1
+                return v.record
+            except IndexError:
+                # End of the LeafPage
+                # Walk back up to parent.
+                self.stack.pop()
+                return self.__next__()
         else:
             # InteriorPage
             # Here we keep track of each branch we have been down
