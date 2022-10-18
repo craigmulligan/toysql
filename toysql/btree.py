@@ -2,6 +2,7 @@ from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record
 from typing import Optional
 from dataclasses import dataclass
+from copy import deepcopy
 
 
 class BTree:
@@ -281,7 +282,6 @@ class Cursor:
             try:
                 v = current_page.cells[frame.child_index]
                 frame.child_index += 1
-                print(v.row_id)
                 return v.record
             except IndexError:
                 # End of the LeafPage
@@ -290,10 +290,11 @@ class Cursor:
                 return self.__next__()
         else:
             # InteriorPage
-            # Here we keep track of each path we have been down
-            # with visited.
-            # If we have visited each child
-            # We pop off the stack to the parent
+            # Here we keep track of each branch we have been down
+            # in the stack. If we have already been down a child branch
+            # we skip it.
+            # If we have been down all child paths we pop off the stack
+            # and traverse the parent.
             for i, page_number in enumerate(self.child_page_numbers(current_page)):
                 if not isinstance(page_number, int):
                     raise Exception("page_number not int")
@@ -304,7 +305,6 @@ class Cursor:
                 else:
                     frame.child_index += 1
                     self.stack.append(Frame(page_number, 0))
-                    breakpoint()
                     return self.__next__()
 
             # We have exhausted all child branches
@@ -314,7 +314,9 @@ class Cursor:
 
     def peek(self):
         # iterate then restore.
-        stack = self.stack.copy()
+        # We need deep copy so we capture
+        # Frame objects too.
+        stack = deepcopy(self.stack)
 
         try:
             v = next(self)
