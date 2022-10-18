@@ -1,6 +1,7 @@
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record
 from typing import Optional
+from dataclasses import dataclass
 
 
 class BTree:
@@ -27,7 +28,6 @@ class BTree:
         self.pager = pager
         self.root = self.read_page(root_page_number)
 
-        self.current_page_number = 0
         self.current_cell_index = 0
 
     def read_page(self, page_number: int) -> Page:
@@ -198,6 +198,12 @@ class BTree:
         return new_row_id
 
 
+@dataclass
+class Frame:
+    page_number: int
+    child_index: int
+
+
 class Cursor:
     """
     sqlite definition:
@@ -228,6 +234,15 @@ class Cursor:
     int sqlite3BtreeDataSize(BtCursor*, u32 *pSize);
     int sqlite3BtreeData(BtCursor*, u32 offset, u32 amt, void*);
     int sqlite3BtreeCount(BtCursor *, i64 *);
+
+    StackBased cursor.
+
+    As we move to each node we will keep the
+    Stack = List[Frame]
+
+    Frame:
+        page_number: int
+        child_index: int
     """
 
     def __init__(self, btree: BTree) -> None:
@@ -235,9 +250,7 @@ class Cursor:
         self.seek_start()
 
     def seek_start(self):
-        self.current_page_number = self.tree.root.page_number
-        self.current_leaf_cell_index = 0
-        self.stack = [[self.tree.root.page_number, 0]]
+        self.stack = [Frame(self.tree.root.page_number, 0)]
         self.visited = []
 
     def __iter__(self):
@@ -261,20 +274,19 @@ class Cursor:
         if len(self.stack) == 0:
             raise StopIteration()
 
-        current_page = self.tree.read_page(int(self.current_page_number))
+        frame = self.stack[-1]
+        current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
             try:
-                v = current_page.cells[self.current_leaf_cell_index]
-                self.current_leaf_cell_index += 1
+                v = current_page.cells[frame.child_index]
+                frame.child_index += 1
+                print(v.row_id)
                 return v.record
             except IndexError:
                 # End of the LeafPage
                 # Walk back up to parent.
-                self.current_leaf_cell_index = 0
-
-                [parent_page_number, _] = self.stack.pop()
-                self.current_page_number = parent_page_number
+                self.stack.pop()
                 return self.__next__()
         else:
             # InteriorPage
@@ -283,36 +295,33 @@ class Cursor:
             # If we have visited each child
             # We pop off the stack to the parent
             for i, page_number in enumerate(self.child_page_numbers(current_page)):
-                if page_number in self.visited:
+                if not isinstance(page_number, int):
+                    raise Exception("page_number not int")
+
+                # Find the branch we haven't been down yet.
+                if i < frame.child_index:
                     continue
                 else:
-                    self.stack.append([self.current_page_number, i])
-                    self.visited.append(page_number)
-                    self.current_page_number = page_number
+                    frame.child_index += 1
+                    self.stack.append(Frame(page_number, 0))
+                    breakpoint()
                     return self.__next__()
 
-            # End of the InteriorPage
-            # Walk back up to parent.
-            [current_page_number, _] = self.stack.pop()
-            self.current_page_number = current_page_number
+            # We have exhausted all child branches
+            # Pop off back up to parent.
+            self.stack.pop()
             return self.__next__()
 
     def peek(self):
         # iterate then restore.
-        visited = self.visited.copy()
         stack = self.stack.copy()
-        current_leaf_cell_index = self.current_leaf_cell_index
-        current_page = self.current_page_number
 
         try:
             v = next(self)
         except StopIteration:
             return None
 
-        self.visited = visited
         self.stack = stack
-        self.current_leaf_cell_index = current_leaf_cell_index
-        self.current_page_number = current_page
 
         return v
 
