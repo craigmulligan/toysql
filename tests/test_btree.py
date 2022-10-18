@@ -127,7 +127,7 @@ class TestBTree(Fixtures, TestCase):
         Asserts we can get all the values in leaf nodes.
         """
         btree = BTree(self.pager, self.pager.new())
-        keys = [n for n in range(1)]
+        keys = [n for n in range(5)]
 
         random.shuffle(keys)
         for n in keys:
