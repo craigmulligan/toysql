@@ -29,8 +29,6 @@ class BTree:
         self.pager = pager
         self.root = self.read_page(root_page_number)
 
-        self.current_cell_index = 0
-
     def read_page(self, page_number: int) -> Page:
         return self.pager.read(page_number)
 
@@ -257,6 +255,74 @@ class Cursor:
     def __iter__(self):
         return self
 
+    def seek(self, row_id: int):
+        """
+        Cursor seek to a specified rowid in the Btree
+        """
+        if len(self.stack) == 0:
+            raise StopIteration()
+
+        frame = self.stack[-1]
+        current_page = self.tree.read_page(frame.page_number)
+
+        if current_page.is_leaf():
+            try:
+                v = current_page.cells[frame.child_index]
+                frame.child_index += 1
+                return v.record
+            except IndexError:
+                # End of the LeafPage
+                # Walk back up to parent.
+                self.stack.pop()
+                return self.__next__()
+        else:
+            # InteriorPage
+            # Here we keep track of each branch we have been down
+            # in the stack. If we have already been down a child branch
+            # we skip it.
+            # If we have been down all child paths we pop off the stack
+            # and traverse the parent.
+            for i, page_number in enumerate(self.child_page_numbers(current_page)):
+                if not isinstance(page_number, int):
+                    raise Exception("page_number not int")
+
+                # Find the branch we haven't been down yet.
+                if i < frame.child_index:
+                    continue
+                else:
+                    frame.child_index += 1
+                    self.stack.append(Frame(page_number, 0))
+                    return self.__next__()
+
+            # We have exhausted all child branches
+            # Pop off back up to parent.
+            self.stack.pop()
+            return self.__next__()
+
+    def current(self):
+        """
+        Get the current record
+        if cursor is pointing a leaf node.
+
+        else move to next record.
+
+        I think this means we don't need peek.
+        """
+        frame = self.stack[-1]
+        current_page = self.tree.read_page(frame.page_number)
+
+        try:
+            v = current_page.cells[frame.child_index]
+            if frame.child_index <= len(current_page.cells):
+                frame.child_index += 1
+
+            return v.record
+        except IndexError:
+            # End of the LeafPage
+            # Walk back up to parent.
+            self.stack.pop()
+            return self.__next__()
+
     @staticmethod
     def page_at_index(page, index):
         if index == len(page.cells):
@@ -279,15 +345,7 @@ class Cursor:
         current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
-            try:
-                v = current_page.cells[frame.child_index]
-                frame.child_index += 1
-                return v.record
-            except IndexError:
-                # End of the LeafPage
-                # Walk back up to parent.
-                self.stack.pop()
-                return self.__next__()
+            self.current()
         else:
             # InteriorPage
             # Here we keep track of each branch we have been down
