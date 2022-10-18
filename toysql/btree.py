@@ -199,18 +199,45 @@ class BTree:
 
 
 class Cursor:
+    """
+    sqlite definition:
+
+
+    #define BTREE_WRCSR     0x00000004     /* read-write cursor */
+    #define BTREE_FORDELETE 0x00000008     /* Cursor is for seek/delete only */
+
+    int sqlite3BtreeCursor(
+      Btree*,                              /* BTree containing table to open */
+      int iTable,                          /* Index of root page */
+      int wrFlag,                          /* 1 for writing.  0 for read-only */
+      struct KeyInfo*,                     /* First argument to compare function */
+      BtCursor *pCursor                    /* Space to write cursor structure */
+    );
+    int sqlite3BtreeCursorSize(void);
+    int sqlite3BtreeCloseCursor(BtCursor*);
+    void sqlite3BtreeClearCursor(BtCursor *);
+    int sqlite3BtreeFirst(BtCursor*, int *pRes);
+    int sqlite3BtreeLast(BtCursor*, int *pRes);
+    int sqlite3BtreeNext(BtCursor*, int *pRes);
+    int sqlite3BtreePrevious(BtCursor*, int *pRes);
+    int sqlite3BtreeEof(BtCursor*);
+    int sqlite3BtreeKeySize(BtCursor*, i64 *pSize);
+    int sqlite3BtreeKey(BtCursor*, u32 offset, u32 amt, void*);
+    const void *sqlite3BtreeKeyFetch(BtCursor*, u32 *pAmt);
+    const void *sqlite3BtreeDataFetch(BtCursor*, u32 *pAmt);
+    int sqlite3BtreeDataSize(BtCursor*, u32 *pSize);
+    int sqlite3BtreeData(BtCursor*, u32 offset, u32 amt, void*);
+    int sqlite3BtreeCount(BtCursor *, i64 *);
+    """
+
     def __init__(self, btree: BTree) -> None:
         self.tree = btree
-        self.current_leaf_cell_index = 0
-        self.current_page_number = self.tree.root.page_number
-        self.stack = [self.tree.root.page_number]
-        self.visited = []
+        self.seek_start()
 
     def seek_start(self):
-        # go to first row.
         self.current_page_number = self.tree.root.page_number
         self.current_leaf_cell_index = 0
-        self.stack = [self.tree.root.page_number]
+        self.stack = [[self.tree.root.page_number, 0]]
         self.visited = []
 
     def __iter__(self):
@@ -245,7 +272,8 @@ class Cursor:
                 # End of the LeafPage
                 # Walk back up to parent.
                 self.current_leaf_cell_index = 0
-                parent_page_number = self.stack.pop()
+
+                [parent_page_number, _] = self.stack.pop()
                 self.current_page_number = parent_page_number
                 return self.__next__()
         else:
@@ -254,18 +282,19 @@ class Cursor:
             # with visited.
             # If we have visited each child
             # We pop off the stack to the parent
-            for page_number in self.child_page_numbers(current_page):
+            for i, page_number in enumerate(self.child_page_numbers(current_page)):
                 if page_number in self.visited:
                     continue
                 else:
-                    self.stack.append(self.current_page_number)
+                    self.stack.append([self.current_page_number, i])
                     self.visited.append(page_number)
                     self.current_page_number = page_number
                     return self.__next__()
 
             # End of the InteriorPage
             # Walk back up to parent.
-            self.current_page_number = self.stack.pop()
+            [current_page_number, _] = self.stack.pop()
+            self.current_page_number = current_page_number
             return self.__next__()
 
     def peek(self):
