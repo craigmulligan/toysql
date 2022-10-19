@@ -1,5 +1,6 @@
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record
+from toysql.exceptions import NotFoundException
 from typing import Optional
 from dataclasses import dataclass
 from copy import deepcopy
@@ -251,13 +252,19 @@ class Cursor:
     def seek_start(self):
         self.stack = [Frame(self.tree.root.page_number, 0)]
         self.visited = []
+        # TODO: Should we call __next__()?
+        # So we always set at a leaf node.
 
     def __iter__(self):
         return self
 
     def seek(self, row_id: int) -> None:
         """
-        Cursor seek to a specified rowid in the Btree
+        Cursor seek to a specified row_id in the Btree
+
+        If the row_id doesn't exist in the btree.
+
+        it'll set the cursor to point at the insert location.
         """
         if len(self.stack) == 0:
             raise StopIteration()
@@ -267,11 +274,14 @@ class Cursor:
 
         if current_page.is_leaf():
             for cell in current_page.cells:
-                # TODO: Handling seeking to not found.
                 if row_id == cell.row_id:
                     return
-                else:
-                    frame.child_index += 1
+
+                frame.child_index += 1
+
+                if frame.child_index == len(current_page.cells):
+                    frame.child_index -= 1
+                    raise NotFoundException(f"Couldn't seek to row {row_id}")
         else:
             # InteriorPage
             # Here we keep track of each branch we have been down

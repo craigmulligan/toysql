@@ -2,6 +2,7 @@ import random
 from snapshottest import TestCase
 
 from toysql.btree import BTree, Cursor
+from toysql.exceptions import NotFoundException
 from toysql.record import Record, DataType
 from tests.fixtures import Fixtures
 
@@ -186,7 +187,7 @@ class TestBTree(Fixtures, TestCase):
 
             next(cursor)
 
-    def test_cursor_seek(self):
+    def test_cursor_seek_x(self):
         """
         Asserts we can seek to a specific key
         """
@@ -212,3 +213,31 @@ class TestBTree(Fixtures, TestCase):
         record = cursor.current()
         assert record
         assert record.row_id == 3
+
+    def test_cursor_seek_not_exists(self):
+        """
+        Asserts we can seek to a key
+        that doesn't exist in the btree.
+
+        It should point the cursor to the leaf node + index where it will in
+        inserted.
+        """
+        btree = BTree(self.pager, self.pager.new())
+        keys = [1, 3, 5, 9, 11]
+
+        random.shuffle(keys)
+        for n in keys:
+            btree.insert(self.create_record(n, f"hello-{n}"))
+
+        keys.sort()
+
+        cursor = Cursor(btree)
+
+        try:
+            cursor.seek(7)
+        except NotFoundException:
+            pass
+
+        record = cursor.current()
+        assert record
+        assert record.row_id == 5
