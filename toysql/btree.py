@@ -309,15 +309,11 @@ class Cursor:
         frame = self.stack[-1]
         current_page = self.tree.read_page(frame.page_number)
 
-        try:
+        if current_page.is_leaf():
             v = current_page.cells[frame.child_index]
-            frame.child_index += 1
             return v.record
-        except IndexError:
-            # End of the LeafPage
-            # Walk back up to parent.
-            self.stack.pop()
-            return self.__next__()
+        else:
+            self.__next__()
 
     @staticmethod
     def page_at_index(page, index):
@@ -341,16 +337,16 @@ class Cursor:
         current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
-            return self.current()
-            # try:
-            #     v = current_page.cells[frame.child_index]
-            #     frame.child_index += 1
-            #     return v.record
-            # except IndexError:
-            #     # End of the LeafPage
-            #     # Walk back up to parent.
-            #     self.stack.pop()
-            #     return self.__next__()
+            try:
+                v = current_page.cells[frame.child_index]
+                frame.child_index += 1
+                return v.record
+            except IndexError:
+                # End of the LeafPage
+                # Walk back up to parent.
+                self.stack.pop()
+                return self.__next__()
+
         else:
             # InteriorPage
             # Here we keep track of each branch we have been down
