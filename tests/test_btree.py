@@ -205,3 +205,10 @@ class TestBTree(Fixtures, TestCase):
         record = cursor.current()
         assert record
         assert record.row_id == 7
+
+        cursor.seek_start()
+        cursor.seek(3)
+
+        record = cursor.current()
+        assert record
+        assert record.row_id == 3

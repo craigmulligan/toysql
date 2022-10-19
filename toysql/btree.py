@@ -255,7 +255,7 @@ class Cursor:
     def __iter__(self):
         return self
 
-    def seek(self, row_id: int):
+    def seek(self, row_id: int) -> None:
         """
         Cursor seek to a specified rowid in the Btree
         """
@@ -266,15 +266,12 @@ class Cursor:
         current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
-            try:
-                v = current_page.cells[frame.child_index]
-                frame.child_index += 1
-                return v.record
-            except IndexError:
-                # End of the LeafPage
-                # Walk back up to parent.
-                self.stack.pop()
-                return self.__next__()
+            for cell in current_page.cells:
+                # TODO: Handling seeking to not found.
+                if row_id == cell.row_id:
+                    return
+                else:
+                    frame.child_index += 1
         else:
             # InteriorPage
             # Here we keep track of each branch we have been down
@@ -282,22 +279,19 @@ class Cursor:
             # we skip it.
             # If we have been down all child paths we pop off the stack
             # and traverse the parent.
-            for i, page_number in enumerate(self.child_page_numbers(current_page)):
-                if not isinstance(page_number, int):
-                    raise Exception("page_number not int")
-
-                # Find the branch we haven't been down yet.
-                if i < frame.child_index:
-                    continue
+            for cell in current_page.cells:
+                if row_id < cell.row_id:
+                    # found branch to follow
+                    self.stack.append(Frame(cell.left_child_page_number, 0))
+                    return self.seek(row_id)
                 else:
                     frame.child_index += 1
-                    self.stack.append(Frame(page_number, 0))
-                    return self.__next__()
 
-            # We have exhausted all child branches
-            # Pop off back up to parent.
-            self.stack.pop()
-            return self.__next__()
+            # Didn't find branch take right most child
+            # Follow the right most branch
+            assert current_page.right_child_page_number
+            self.stack.append(Frame(current_page.right_child_page_number, 0))
+            return self.seek(row_id)
 
     def current(self):
         """
