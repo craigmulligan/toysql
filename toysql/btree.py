@@ -248,20 +248,24 @@ class Cursor:
 
     def __init__(self, btree: BTree) -> None:
         self.tree = btree
-        self.seek_start()
+        self.reset()
 
-    def seek_start(self):
+    def reset(self):
         self.stack = [Frame(self.tree.root.page_number, 0)]
         self.visited = []
 
+    def seek_start(self):
+        self.reset()
+
     def seek_end(self):
-        # Reset.
+        # Reset
         self.seek_start()
         try:
-            self.seek(sys.maxsize)
-        except NotFoundException:
             # Seek to the last value
             # using maxsize
+            self.seek(sys.maxsize)
+        except NotFoundException:
+            # It's always going to raise.
             pass
 
     def __iter__(self):
