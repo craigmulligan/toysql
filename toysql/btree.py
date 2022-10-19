@@ -372,6 +372,9 @@ class Cursor:
             return self.__next__()
 
     def peek(self):
+        """
+        TODO: Likely don't need this as we have .current()
+        """
         # iterate then restore.
         # We need deep copy so we capture
         # Frame objects too.
