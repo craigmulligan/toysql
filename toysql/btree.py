@@ -4,6 +4,7 @@ from toysql.exceptions import NotFoundException
 from typing import Optional
 from dataclasses import dataclass
 from copy import deepcopy
+import sys
 
 
 class BTree:
@@ -254,6 +255,14 @@ class Cursor:
         self.visited = []
         # TODO: Should we call __next__()?
         # So we always set at a leaf node.
+
+    def seek_end(self):
+        try:
+            self.seek(sys.maxsize)
+        except NotFoundException:
+            # Seek to the last value
+            # using maxsize
+            pass
 
     def __iter__(self):
         return self
