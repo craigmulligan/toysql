@@ -244,9 +244,10 @@ class TestBTree(Fixtures, TestCase):
 
     def test_cursor_seek_end(self):
         btree = BTree(self.pager, self.pager.new())
-        keys = [n for n in range(10)]
+        total = 10
+        keys = [n for n in range(total)]
 
-        random.shuffle(keys)
+        # random.shuffle(keys)
         for n in keys:
             btree.insert(self.create_record(n, f"hello-{n}"))
 
@@ -259,7 +260,9 @@ class TestBTree(Fixtures, TestCase):
         assert record.row_id == 0
 
         cursor.seek_end()
+        print(cursor.tree.show())
+        print(cursor.stack[-1])
         record = cursor.current()
         assert record
-        # Last row.
-        assert record.row_id == 9
+        # Last row has key 9
+        assert record.row_id == total - 1

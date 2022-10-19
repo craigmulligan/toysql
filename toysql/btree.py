@@ -253,10 +253,10 @@ class Cursor:
     def seek_start(self):
         self.stack = [Frame(self.tree.root.page_number, 0)]
         self.visited = []
-        # TODO: Should we call __next__()?
-        # So we always set at a leaf node.
 
     def seek_end(self):
+        # Reset.
+        self.seek_start()
         try:
             self.seek(sys.maxsize)
         except NotFoundException:
@@ -326,7 +326,7 @@ class Cursor:
             v = current_page.cells[frame.child_index]
             return v.record
         else:
-            self.__next__()
+            return self.__next__()
 
     @staticmethod
     def page_at_index(page, index):
