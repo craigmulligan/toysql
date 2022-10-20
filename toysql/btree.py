@@ -52,7 +52,7 @@ class BTree:
     def show(self):
         return self.root.show(0, self.read_page)
 
-    def scan(self):
+    def cursor(self):
         return Cursor(self)
 
 
@@ -158,8 +158,8 @@ class Cursor:
         4. Inserts that key into the parent.
         5. If the parent is full it splits that.
         """
-        index = self.order // 2
-        left = self.new_page(PageType.leaf)
+        index = self.tree.order // 2
+        left = self.tree.new_page(PageType.leaf)
 
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
@@ -168,7 +168,7 @@ class Cursor:
         # Pop of self.
         self.stack.pop()
         if len(self.stack) == 0:
-            parent = self.new_page(PageType.interior)
+            parent = self.tree.new_page(PageType.interior)
 
             # Swap page numbers to keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -176,14 +176,14 @@ class Cursor:
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
-            parent = self.read_page(frame.page_number)
+            parent = self.tree.read_page(frame.page_number)
 
         parent.add_cell(InteriorPageCell(key, left.page_number))
 
         for p in [left, page, parent]:
-            self.write_page(p)
+            self.tree.write_page(p)
 
-        if self.is_full(parent):
+        if self.tree.is_full(parent):
             self._split_internal(parent)
 
     def _split_internal(self, page: Page):
@@ -195,9 +195,9 @@ class Cursor:
         3. It makes the left_page.right_child = middle_cell.left_child
         4. It adds the middle_cell.row_id to the parent which points the the left child.
         """
-        index = self.order // 2
+        index = self.tree.order // 2
 
-        left = self.new_page(PageType.interior)
+        left = self.tree.new_page(PageType.interior)
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
 
@@ -208,7 +208,7 @@ class Cursor:
 
         self.stack.pop()
         if len(self.stack) == 0:
-            parent = self.new_page(PageType.interior)
+            parent = self.tree.new_page(PageType.interior)
 
             # Keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -216,14 +216,14 @@ class Cursor:
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
-            parent = self.read_page(frame.page_number)
+            parent = self.tree.read_page(frame.page_number)
 
         parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
 
         for p in [left, page, parent]:
-            self.write_page(p)
+            self.tree.write_page(p)
 
-        if self.is_full(parent):
+        if self.tree.is_full(parent):
             self._split_internal(parent)
 
     def new_row_id(self):
@@ -234,7 +234,7 @@ class Cursor:
         """
         last = None
         try:
-            for record in self.scan():
+            for record in self:
                 last = record
         except StopIteration:
             pass
@@ -257,6 +257,7 @@ class Cursor:
             pass
 
     def __iter__(self):
+        self.reset()
         return self
 
     def find(self, row_id: int) -> Optional[Record]:
@@ -413,8 +414,3 @@ class Cursor:
         self.stack = stack
 
         return v
-
-    def __getattr__(self, name):
-        # Proxy all other calls to btree.
-        # TODO this is a hack.
-        return getattr(self.tree, name)
