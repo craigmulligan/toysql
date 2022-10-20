@@ -40,7 +40,7 @@ class TestVM(Fixtures):
         new_row = records[2]
         assert new_row == [3, table_name, create_stmt, 2]
 
-    def test_insert_and_select(self):
+    def test_insert_and_select_x(self):
         rows = [
             [1, "fred", "fred@flintstone.com"],
             [2, "pebbles", "pebbles@flintstone.com"],

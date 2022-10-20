@@ -49,35 +49,8 @@ class BTree:
 
         return False
 
-    def find_in_interior(self, key, page: Page) -> Page:
-        for cell in page.cells:
-            if key < cell.row_id:
-                return self.read_page(cell.left_child_page_number)
-
-        assert page.right_child_page_number
-        return self.read_page(page.right_child_page_number)
-
-    # def find(self, key) -> Optional[Record]:
-    #     """Returns a value for a given key, and None if the key does not exist."""
-    #     child = self.root
-    #     while not child.is_leaf():
-    #         child = self.find_in_interior(key, child)
-
-    #     if child is None:
-    #         return child
-
-    #     cell = child.find_cell(key)
-    #     if cell:
-    #         return cell.record
-
     def show(self):
         return self.root.show(0, self.read_page)
-
-    def child_pages(self, page):
-        for cell in page.cells:
-            yield self.read_page(cell.left_child_page_number)
-
-        yield self.read_page(page.right_child_page_number)
 
     def scan(self):
         return Cursor(self)
@@ -155,7 +128,6 @@ class Cursor:
             d. If the root splits, create a new root which has one key and two children.
         """
         cell = LeafPageCell(record)
-        self.reset()
 
         try:
             self.seek(record.row_id)
@@ -173,8 +145,9 @@ class Cursor:
         else:
             self.tree.write_page(page)
 
-        print(self.tree.show())
-        # self.reset()
+        # Useful for debugging
+        # To see how the tree changes on insert
+        # print(self.tree.show())
 
     def _split_leaf(self, page):
         """
@@ -275,8 +248,6 @@ class Cursor:
         return new_row_id
 
     def seek_end(self):
-        # Reset
-        self.seek_start()
         try:
             # Seek to the last value
             # using maxsize
@@ -289,7 +260,6 @@ class Cursor:
         return self
 
     def find(self, row_id: int) -> Optional[Record]:
-        self.reset()
         try:
             self.seek(row_id)
             return self.current()
@@ -297,6 +267,10 @@ class Cursor:
             return None
 
     def seek(self, row_id: int) -> None:
+        self.reset()
+        self._seek(row_id)
+
+    def _seek(self, row_id: int) -> None:
         """
         Cursor seek to a specified row_id in the Btree
 
@@ -331,7 +305,7 @@ class Cursor:
                 if row_id < cell.row_id:
                     # found branch to follow
                     self.stack.append(Frame(cell.left_child_page_number, 0))
-                    return self.seek(row_id)
+                    return self._seek(row_id)
                 else:
                     frame.child_index += 1
 
@@ -339,7 +313,7 @@ class Cursor:
             # Follow the right most branch
             assert current_page.right_child_page_number
             self.stack.append(Frame(current_page.right_child_page_number, 0))
-            return self.seek(row_id)
+            return self._seek(row_id)
 
     def current(self):
         """
@@ -352,6 +326,12 @@ class Cursor:
         current_page = self.tree.read_page(frame.page_number)
 
         if current_page.is_leaf():
+            if len(current_page.cells) == 0:
+                # This should only happen when the root page is empty.
+                raise NotFoundException(
+                    f"Couldn't find current row because leaf page is empty"
+                )
+
             v = current_page.cells[frame.child_index]
             return v.record
         else:
