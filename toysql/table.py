@@ -1,5 +1,5 @@
 from typing import Iterable
-from toysql.btree import BTree
+from toysql.btree import BTree, Cursor
 from toysql.record import Record
 
 
@@ -14,9 +14,10 @@ class Table:
         self.name = name
         self.input = input
         self.tree = btree
+        self.cursor = Cursor(btree)
 
     def insert(self, record) -> Record:
-        self.tree.insert(record)
+        self.cursor.insert(record)
         return record
 
     def select(self) -> Iterable[Record]:

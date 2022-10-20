@@ -22,14 +22,16 @@ class BTree:
         - All leaves are at the same level in the tree, so the tree is always height balanced.
     """
 
-    root: Page
-
     def __init__(self, pager, root_page_number) -> None:
         # TODO:
         # order should be variable not 3.
         self.order = 3
         self.pager = pager
-        self.root = self.read_page(root_page_number)
+        self.root_page_number = root_page_number
+
+    @property
+    def root(self) -> Page:
+        return self.read_page(self.root_page_number)
 
     def read_page(self, page_number: int) -> Page:
         return self.pager.read(page_number)
@@ -56,6 +58,7 @@ class BTree:
         4. Inserts that key into the parent.
         5. If the parent is full it splits that.
         """
+        print("splitting leaf of: ", page)
         index = self.order // 2
         left = self.new_page(PageType.leaf)
 
@@ -66,7 +69,6 @@ class BTree:
         parent = page.parent
         if parent is None:
             parent = self.new_page(PageType.interior)
-            self.root = parent
 
             # Swap page numbers to keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -74,6 +76,11 @@ class BTree:
             self.root.right_child_page_number = page.page_number
 
         parent.add_cell(InteriorPageCell(key, left.page_number))
+
+        print("key", key)
+        print("parent", parent, self.is_full(parent))
+        print("left", left)
+        print("page", page)
 
         for p in [left, page, parent]:
             self.write_page(p)
@@ -102,7 +109,6 @@ class BTree:
         parent = page.parent
         if parent is None:
             parent = self.new_page(PageType.interior)
-            self.root = parent
 
             # Keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -143,6 +149,8 @@ class BTree:
             self._split_leaf(child)
         else:
             self.write_page(child)
+
+        print(self.show())
 
     def find_in_interior(self, key, page: Page) -> Page:
         for cell in page.cells:
@@ -289,7 +297,8 @@ class Cursor:
         else:
             self.tree.write_page(page)
 
-        self.reset()
+        print(self.tree.show())
+        # self.reset()
 
     def _split_leaf(self, page):
         """
@@ -311,12 +320,10 @@ class Cursor:
         self.stack.pop()
         if len(self.stack) == 0:
             parent = self.new_page(PageType.interior)
-            self.tree.root = parent
 
             # Swap page numbers to keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
-            self.tree.root.right_child_page_number = page.page_number
-
+            parent.right_child_page_number = page.page_number
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
@@ -353,11 +360,10 @@ class Cursor:
         self.stack.pop()
         if len(self.stack) == 0:
             parent = self.new_page(PageType.interior)
-            self.tree.root = parent
 
             # Keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
-            self.tree.root.right_child_page_number = page.page_number
+            parent.right_child_page_number = page.page_number
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
@@ -370,6 +376,27 @@ class Cursor:
 
         if self.is_full(parent):
             self._split_internal(parent)
+
+    def new_row_id(self):
+        """
+        This retuns the next unused row_id for a btree.
+        TODO: Instead of full table scan, we should just
+        traverse right to the highest record.
+        """
+        last = None
+        try:
+            for record in self.scan():
+                last = record
+        except StopIteration:
+            pass
+
+        new_row_id = 1
+        if last is not None:
+            new_row_id = last.row_id + 1
+
+        record = Record([], row_id=new_row_id)
+        self.insert(record)
+        return new_row_id
 
     def seek_end(self):
         # Reset
