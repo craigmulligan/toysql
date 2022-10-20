@@ -283,7 +283,6 @@ class Cursor:
 
         page = self.tree.read_page(frame.page_number)
         page.add_cell(cell)
-        self.tree.write_page(page)
 
         if self.tree.is_full(page):
             self._split_leaf(page)
@@ -291,6 +290,86 @@ class Cursor:
             self.tree.write_page(page)
 
         self.reset()
+
+    def _split_leaf(self, page):
+        """
+        Given a full leaf page.
+        1. Splits it into two leaf pages.
+        2. If there is no parent it creates a new InteriorPage.
+        3. It then takes the left most key of the right split page.
+        4. Inserts that key into the parent.
+        5. If the parent is full it splits that.
+        """
+        index = self.order // 2
+        left = self.new_page(PageType.leaf)
+
+        left.cells = page.cells[:index]
+        page.cells = page.cells[index:]
+        key = page.cells[0].row_id
+
+        # Pop of self.
+        self.stack.pop()
+        if len(self.stack) == 0:
+            parent = self.new_page(PageType.interior)
+            self.tree.root = parent
+
+            # Swap page numbers to keep the root_page_number static.
+            parent.page_number, page.page_number = page.page_number, parent.page_number
+            self.tree.root.right_child_page_number = page.page_number
+
+            self.stack.append(Frame(parent.page_number, 0))
+        else:
+            frame = self.stack[-1]
+            parent = self.read_page(frame.page_number)
+
+        parent.add_cell(InteriorPageCell(key, left.page_number))
+
+        for p in [left, page, parent]:
+            self.write_page(p)
+
+        if self.is_full(parent):
+            self._split_internal(parent)
+
+    def _split_internal(self, page: Page):
+        """
+        Given a full InteriorPage
+
+        1. Splits the page in half
+        2. Takes the left most cell of the right page (middle cell)
+        3. It makes the left_page.right_child = middle_cell.left_child
+        4. It adds the middle_cell.row_id to the parent which points the the left child.
+        """
+        index = self.order // 2
+
+        left = self.new_page(PageType.interior)
+        left.cells = page.cells[:index]
+        page.cells = page.cells[index:]
+
+        middle = page.cells.pop(0)
+        left.right_child_page_number = middle.left_child_page_number
+
+        parent = page.parent
+
+        self.stack.pop()
+        if len(self.stack) == 0:
+            parent = self.new_page(PageType.interior)
+            self.tree.root = parent
+
+            # Keep the root_page_number static.
+            parent.page_number, page.page_number = page.page_number, parent.page_number
+            self.tree.root.right_child_page_number = page.page_number
+            self.stack.append(Frame(parent.page_number, 0))
+        else:
+            frame = self.stack[-1]
+            parent = self.read_page(frame.page_number)
+
+        parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
+
+        for p in [left, page, parent]:
+            self.write_page(p)
+
+        if self.is_full(parent):
+            self._split_internal(parent)
 
     def seek_end(self):
         # Reset
@@ -422,90 +501,6 @@ class Cursor:
             # Pop off back up to parent.
             self.stack.pop()
             return self.__next__()
-
-    def _split_leaf(self, page):
-        """
-        Given a full leaf page.
-        1. Splits it into two leaf pages.
-        2. If there is no parent it creates a new InteriorPage.
-        3. It then takes the left most key of the right split page.
-        4. Inserts that key into the parent.
-        5. If the parent is full it splits that.
-        """
-        index = self.order // 2
-        left = self.new_page(PageType.leaf)
-
-        left.cells = page.cells[:index]
-        page.cells = page.cells[index:]
-        key = page.cells[0].row_id
-
-        self.stack.pop()
-
-        if len(self.stack) == 0:
-            parent = self.tree.new_page(PageType.interior)
-            self.tree.root = parent
-            # Swap page numbers to keep the root_page_number static.
-            # This is so we don't have to update the SCHEMA_TABLE too.
-            parent.page_number, page.page_number = page.page_number, parent.page_number
-
-            parent.right_child_page_number = page.page_number
-            self.stack.append(Frame(parent.page_number, 0))
-        else:
-            # Parent from stack.
-            frame = self.stack[-1]
-            parent = self.tree.read_page(frame.page_number)
-
-        parent.add_cell(InteriorPageCell(key, left.page_number))
-
-        for p in [left, page, parent]:
-            self.tree.write_page(p)
-
-        if self.tree.is_full(parent):
-            self._split_internal(parent)
-
-    def _split_internal(self, page: Page):
-        """
-        Given a full InteriorPage
-
-        1. Splits the page in half
-        2. Takes the left most cell of the right page (middle cell)
-        3. It makes the left_page.right_child = middle_cell.left_child
-        4. It adds the middle_cell.row_id to the parent which points the the left child.
-        """
-        index = self.order // 2
-
-        left = self.new_page(PageType.interior)
-        left.cells = page.cells[:index]
-        page.cells = page.cells[index:]
-
-        middle = page.cells.pop(0)
-        left.right_child_page_number = middle.left_child_page_number
-
-        self.stack.pop()
-
-        # AKA no parent
-        if len(self.stack) == 0:
-            parent = self.new_page(PageType.interior)
-            self.root = parent
-
-            # Swap page numbers to keep the root_page_number static.
-            # This is so we don't have to update the SCHEMA_TABLE too.
-            parent.page_number, page.page_number = page.page_number, parent.page_number
-
-            parent.right_child_page_number = page.page_number
-            self.stack.append(Frame(parent.page_number, 0))
-        else:
-            # else read parent from stack
-            frame = self.stack[-1]
-            parent = self.tree.read_page(frame.page_number)
-
-        parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
-
-        for p in [left, page, parent]:
-            self.write_page(p)
-
-        if self.is_full(parent):
-            self._split_internal(parent)
 
     def peek(self):
         """
