@@ -21,4 +21,4 @@ class Table:
         return record
 
     def select(self) -> Iterable[Record]:
-        return self.tree.scan()
+        return self.tree.cursor()
