@@ -30,7 +30,7 @@ class TestBTree(Fixtures, TestCase):
         self.assertMatchSnapshot(btree.show())
 
         for key in inputs:
-            record = btree.find(key)
+            record = cursor.find(key)
             assert record
             assert record.row_id == key
 
@@ -47,7 +47,7 @@ class TestBTree(Fixtures, TestCase):
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
         for key in keys:
-            record = btree.find(key)
+            record = cursor.find(key)
             assert record
             assert record.row_id == key
 
@@ -82,13 +82,14 @@ class TestBTree(Fixtures, TestCase):
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
         loaded_tree = BTree(self.pager, page_number)
+        loaded_cursor = Cursor(btree)
 
         # Check we can search all keys.
         records = [r for r in loaded_tree.scan()]
         assert len(records) == len(keys)
 
         for key in keys:
-            record = loaded_tree.find(key)
+            record = loaded_cursor.find(key)
             assert record
             assert record.row_id == key
 
@@ -105,13 +106,14 @@ class TestBTree(Fixtures, TestCase):
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
         loaded_tree = BTree(self.pager, page_number)
+        loaded_cursor = Cursor(btree)
 
         # Check we can search all keys.
         records = [r for r in loaded_tree.scan()]
         assert len(records) == len(keys)
 
         for key in keys:
-            record = loaded_tree.find(key)
+            record = loaded_cursor.find(key)
             assert record
             assert record.row_id == key
 
@@ -198,7 +200,7 @@ class TestBTree(Fixtures, TestCase):
 
             next(cursor)
 
-    def test_cursor_seek_x(self):
+    def test_cursor_seek(self):
         """
         Asserts we can seek to a specific key
         """
