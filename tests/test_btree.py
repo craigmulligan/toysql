@@ -36,13 +36,15 @@ class TestBTree(Fixtures, TestCase):
 
     def test_random(self):
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
 
-        keys = [n for n in range(100)]
-        random.shuffle(keys)
+        keys = [3, 1, 9, 6, 4, 2, 0, 5, 7, 8]
+        # keys = [n for n in range(10)]
+        # random.shuffle(keys)
 
         # insert in random order.
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         for key in keys:
             record = btree.find(key)
@@ -54,10 +56,12 @@ class TestBTree(Fixtures, TestCase):
         Asserts we can get all the values in leaf nodes.
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
+
         inputs = [45, 15, 5, 35, 25]
 
         for n in inputs:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         # sort inputs because thats
         # the order we expect them out of scan.
@@ -68,13 +72,14 @@ class TestBTree(Fixtures, TestCase):
     def test_from_disk_single_page(self):
         page_number = self.pager.new()
         btree = BTree(self.pager, page_number)
+        cursor = Cursor(btree)
 
         keys = [n for n in range(2)]
         # insert in random order.
         random.shuffle(keys)
 
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         loaded_tree = BTree(self.pager, page_number)
 
@@ -90,13 +95,14 @@ class TestBTree(Fixtures, TestCase):
     def test_from_disk(self):
         page_number = self.pager.new()
         btree = BTree(self.pager, page_number)
+        cursor = Cursor(btree)
 
         keys = [n for n in range(100)]
         # insert in random order.
         random.shuffle(keys)
 
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         loaded_tree = BTree(self.pager, page_number)
 
@@ -112,6 +118,7 @@ class TestBTree(Fixtures, TestCase):
     def test_new_row_id(self):
         page_number = self.pager.new()
         btree = BTree(self.pager, page_number)
+        cursor = Cursor(btree)
 
         assert btree.new_row_id() == 1
 
@@ -120,7 +127,7 @@ class TestBTree(Fixtures, TestCase):
         random.shuffle(keys)
 
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         assert btree.new_row_id() == 100
 
@@ -129,11 +136,12 @@ class TestBTree(Fixtures, TestCase):
         Asserts we can get all the values in leaf nodes.
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         keys = [n for n in range(10)]
 
         random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
@@ -193,11 +201,12 @@ class TestBTree(Fixtures, TestCase):
         Asserts we can seek to a specific key
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         keys = [n for n in range(10)]
 
         random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
@@ -224,11 +233,12 @@ class TestBTree(Fixtures, TestCase):
         inserted.
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         keys = [1, 3, 5, 9, 11]
 
         random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
@@ -245,12 +255,13 @@ class TestBTree(Fixtures, TestCase):
 
     def test_cursor_seek_end(self):
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         total = 10
         keys = [n for n in range(total)]
 
         # random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
