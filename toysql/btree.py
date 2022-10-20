@@ -229,19 +229,15 @@ class Cursor:
     def new_row_id(self):
         """
         This retuns the next unused row_id for a btree.
-        TODO: Instead of full table scan, we should just
-        traverse right to the highest record.
         """
-        last = None
-        try:
-            for record in self:
-                last = record
-        except StopIteration:
-            pass
+        self.seek_end()
 
-        new_row_id = 1
-        if last is not None:
-            new_row_id = last.row_id + 1
+        try:
+            record = self.current()
+            new_row_id = record.row_id + 1
+        except NotFoundException:
+            # Happens with an empty db.
+            new_row_id = 1
 
         record = Record([], row_id=new_row_id)
         self.insert(record)
@@ -341,20 +337,6 @@ class Cursor:
         else:
             return self.__next__()
 
-    @staticmethod
-    def page_at_index(page, index):
-        if index == len(page.cells):
-            return page.right_child_page_number
-        else:
-            return page.cells[index].left_child_page_number
-
-    @staticmethod
-    def child_page_numbers(page):
-        for cell in page.cells:
-            yield cell.left_child_page_number
-
-        yield page.right_child_page_number
-
     def __next__(self):
         if len(self.stack) == 0:
             raise StopIteration()
@@ -414,3 +396,17 @@ class Cursor:
         self.stack = stack
 
         return v
+
+    @staticmethod
+    def page_at_index(page, index):
+        if index == len(page.cells):
+            return page.right_child_page_number
+        else:
+            return page.cells[index].left_child_page_number
+
+    @staticmethod
+    def child_page_numbers(page):
+        for cell in page.cells:
+            yield cell.left_child_page_number
+
+        yield page.right_child_page_number
