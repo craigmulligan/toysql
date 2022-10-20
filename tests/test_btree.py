@@ -120,7 +120,7 @@ class TestBTree(Fixtures, TestCase):
         btree = BTree(self.pager, page_number)
         cursor = Cursor(btree)
 
-        assert btree.new_row_id() == 1
+        assert cursor.new_row_id() == 1
 
         keys = [n for n in range(100)]
         # insert in random order.
@@ -129,7 +129,7 @@ class TestBTree(Fixtures, TestCase):
         for n in keys:
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
-        assert btree.new_row_id() == 100
+        assert cursor.new_row_id() == 100
 
     def test_cursor_traverse(self):
         """
@@ -156,11 +156,12 @@ class TestBTree(Fixtures, TestCase):
         Asserts by calling next(iter)
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         keys = [n for n in range(1, 3)]
 
         random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
@@ -179,11 +180,12 @@ class TestBTree(Fixtures, TestCase):
         Asserts by calling next(iter)
         """
         btree = BTree(self.pager, self.pager.new())
+        cursor = Cursor(btree)
         keys = [n for n in range(1, 3)]
 
         random.shuffle(keys)
         for n in keys:
-            btree.insert(self.create_record(n, f"hello-{n}"))
+            cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
 
