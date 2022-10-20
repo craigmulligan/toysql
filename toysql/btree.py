@@ -57,18 +57,18 @@ class BTree:
         assert page.right_child_page_number
         return self.read_page(page.right_child_page_number)
 
-    def find(self, key) -> Optional[Record]:
-        """Returns a value for a given key, and None if the key does not exist."""
-        child = self.root
-        while not child.is_leaf():
-            child = self.find_in_interior(key, child)
+    # def find(self, key) -> Optional[Record]:
+    #     """Returns a value for a given key, and None if the key does not exist."""
+    #     child = self.root
+    #     while not child.is_leaf():
+    #         child = self.find_in_interior(key, child)
 
-        if child is None:
-            return child
+    #     if child is None:
+    #         return child
 
-        cell = child.find_cell(key)
-        if cell:
-            return cell.record
+    #     cell = child.find_cell(key)
+    #     if cell:
+    #         return cell.record
 
     def show(self):
         return self.root.show(0, self.read_page)
@@ -287,6 +287,14 @@ class Cursor:
 
     def __iter__(self):
         return self
+
+    def find(self, row_id: int) -> Optional[Record]:
+        self.reset()
+        try:
+            self.seek(row_id)
+            return self.current()
+        except NotFoundException:
+            return None
 
     def seek(self, row_id: int) -> None:
         """
