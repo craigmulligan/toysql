@@ -49,109 +49,6 @@ class BTree:
 
         return False
 
-    def _split_leaf(self, page):
-        """
-        Given a full leaf page.
-        1. Splits it into two leaf pages.
-        2. If there is no parent it creates a new InteriorPage.
-        3. It then takes the left most key of the right split page.
-        4. Inserts that key into the parent.
-        5. If the parent is full it splits that.
-        """
-        print("splitting leaf of: ", page)
-        index = self.order // 2
-        left = self.new_page(PageType.leaf)
-
-        left.cells = page.cells[:index]
-        page.cells = page.cells[index:]
-        key = page.cells[0].row_id
-
-        parent = page.parent
-        if parent is None:
-            parent = self.new_page(PageType.interior)
-
-            # Swap page numbers to keep the root_page_number static.
-            parent.page_number, page.page_number = page.page_number, parent.page_number
-
-            self.root.right_child_page_number = page.page_number
-
-        parent.add_cell(InteriorPageCell(key, left.page_number))
-
-        print("key", key)
-        print("parent", parent, self.is_full(parent))
-        print("left", left)
-        print("page", page)
-
-        for p in [left, page, parent]:
-            self.write_page(p)
-
-        if self.is_full(parent):
-            self._split_internal(parent)
-
-    def _split_internal(self, page: Page):
-        """
-        Given a full InteriorPage
-
-        1. Splits the page in half
-        2. Takes the left most cell of the right page (middle cell)
-        3. It makes the left_page.right_child = middle_cell.left_child
-        4. It adds the middle_cell.row_id to the parent which points the the left child.
-        """
-        index = self.order // 2
-
-        left = self.new_page(PageType.interior)
-        left.cells = page.cells[:index]
-        page.cells = page.cells[index:]
-
-        middle = page.cells.pop(0)
-        left.right_child_page_number = middle.left_child_page_number
-
-        parent = page.parent
-        if parent is None:
-            parent = self.new_page(PageType.interior)
-
-            # Keep the root_page_number static.
-            parent.page_number, page.page_number = page.page_number, parent.page_number
-
-            self.root.right_child_page_number = page.page_number
-
-        parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
-
-        for p in [left, page, parent]:
-            self.write_page(p)
-
-        if self.is_full(parent):
-            self._split_internal(parent)
-
-    def insert(self, record: Record):
-        """
-        1. Perform a search to determine which leaf node the new key should go into.
-        2. If the node is not full, insert the new key, done!
-        3. Otherwise, split the leaf node.
-            a. Allocate a new leaf node and move half keys to the new node.
-            b. Insert the new leaf's smallest key into the parent node.
-            c. If the parent is full, split it too, repeat the split process above until a parent is found that need not split.
-            d. If the root splits, create a new root which has one key and two children.
-        """
-        parent = None
-        child = self.root
-        cell = LeafPageCell(record)
-
-        # Traverse tree until leaf page is reached.
-        while not child.is_leaf():
-            parent = child
-            child = self.find_in_interior(record.row_id, child)
-            child.parent = parent
-
-        child.add_cell(cell)
-
-        if self.is_full(child):
-            self._split_leaf(child)
-        else:
-            self.write_page(child)
-
-        print(self.show())
-
     def find_in_interior(self, key, page: Page) -> Page:
         for cell in page.cells:
             if key < cell.row_id:
@@ -184,27 +81,6 @@ class BTree:
 
     def scan(self):
         return Cursor(self)
-
-    def new_row_id(self):
-        """
-        This retuns the next unused row_id for a btree.
-        TODO: Instead of full table scan, we should just
-        traverse right to the highest record.
-        """
-        last = None
-        try:
-            for record in self.scan():
-                last = record
-        except StopIteration:
-            pass
-
-        new_row_id = 1
-        if last is not None:
-            new_row_id = last.row_id + 1
-
-        record = Record([], row_id=new_row_id)
-        self.insert(record)
-        return new_row_id
 
 
 @dataclass
