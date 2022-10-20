@@ -2,6 +2,7 @@ from toysql.compiler import Program, Opcode
 from toysql.record import DataType, Record
 from toysql.btree import BTree, Cursor
 from typing import cast
+from toysql.exceptions import NotFoundException
 
 
 class VM:
@@ -85,25 +86,12 @@ class VM:
 
             if instruction.opcode == Opcode.SeekRowid:
                 # TODO propery implement Seek in Btree module.
-                found = False
                 tree = btrees[instruction.p1]
-
-                while True:
-                    next_record = tree.peek()
-
-                    if next_record is None:
-                        break
-
-                    if next_record.row_id == registers[instruction.p3]:
-                        found = True
-                        break
-
-                    next(tree)
-
-                if found is False:
-                    cursor = cast(int, instruction.p2)
-                else:
+                try:
+                    tree.seek(registers[instruction.p3])
                     cursor += 1
+                except NotFoundException:
+                    cursor = cast(int, instruction.p2)
 
             if instruction.opcode == Opcode.MustBeInt:
                 # Force the value in register P1 to be an integer.
