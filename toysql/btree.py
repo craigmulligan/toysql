@@ -260,6 +260,9 @@ class Cursor:
         return self
 
     def find(self, row_id: int) -> Optional[Record]:
+        """
+        Convenience wrapper around seek & current.
+        """
         try:
             self.seek(row_id)
             return self.current()
