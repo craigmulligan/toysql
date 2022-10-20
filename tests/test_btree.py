@@ -27,8 +27,7 @@ class TestBTree(Fixtures, TestCase):
         for n in inputs:
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
-        print(btree.show())
-        # self.assertMatchSnapshot(btree.show())
+        self.assertMatchSnapshot(btree.show())
 
         for key in inputs:
             record = btree.find(key)
