@@ -3,7 +3,6 @@ from toysql.record import Record
 from toysql.exceptions import NotFoundException
 from typing import Optional
 from dataclasses import dataclass
-from copy import deepcopy
 import sys
 
 
@@ -324,7 +323,6 @@ class Cursor:
         Get the current record
         if cursor is pointing a leaf node.
         else move to next record.
-        I think this means we don't need peek.
         """
         frame = self.stack[-1]
         current_page = self.tree.read_page(frame.page_number)
@@ -336,13 +334,7 @@ class Cursor:
                     f"Couldn't find current row because leaf page is empty"
                 )
 
-            try:
-                v = current_page.cells[frame.child_index]
-            except IndexError:
-                # Because next() increments the cell index
-                # we have to gaurd for the last item.
-                v = current_page.cells[-1]
-
+            v = current_page.cells[frame.child_index]
             return v.record
         else:
             return self.__next__()
@@ -388,24 +380,6 @@ class Cursor:
             # Pop off back up to parent.
             self.stack.pop()
             return self.__next__()
-
-    def peek(self):
-        """
-        TODO: Likely don't need this as we have .current()
-        """
-        # iterate then restore.
-        # We need deep copy so we capture
-        # Frame objects too.
-        stack = deepcopy(self.stack)
-
-        try:
-            v = next(self)
-        except StopIteration:
-            return None
-
-        self.stack = stack
-
-        return v
 
     @staticmethod
     def page_at_index(page, index):
