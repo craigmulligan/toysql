@@ -38,9 +38,8 @@ class TestBTree(Fixtures, TestCase):
         btree = BTree(self.pager, self.pager.new())
         cursor = btree.cursor()
 
-        keys = [3, 1, 9, 6, 4, 2, 0, 5, 7, 8]
-        # keys = [n for n in range(10)]
-        # random.shuffle(keys)
+        keys = [n for n in range(10)]
+        random.shuffle(keys)
 
         # insert in random order.
         for n in keys:
@@ -244,7 +243,7 @@ class TestBTree(Fixtures, TestCase):
         total = 10
         keys = [n for n in range(total)]
 
-        # random.shuffle(keys)
+        random.shuffle(keys)
         for n in keys:
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
