@@ -178,9 +178,6 @@ class TestBTree(Fixtures, TestCase):
         assert next(cursor).row_id == 2
         assert cursor.current().row_id == 2
 
-        # assert next(cursor).row_id == 3
-        # assert cursor.current().row_id == 3
-
         with self.assertRaises(StopIteration):
             next(cursor)
 
