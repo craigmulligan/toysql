@@ -108,15 +108,15 @@ class Cursor:
 
     def reset(self):
         self.stack = [Frame(self.tree.root.page_number, 0)]
-        self.visited = []
+        # rewind = True tells us that the cursor
+        # has not moved yet
+        # TODO: Better way to do this?
+        self.rewind = True
 
     def seek_start(self):
         self.reset()
 
     def insert(self, record: Record):
-        # TODO: _split_leaf & _split_internal
-        # Need access to the stack so they can access
-        # parents if needed.
         """
         1. Perform a search to determine which leaf node the new key should go into.
         2. If the node is not full, insert the new key, done!
@@ -281,6 +281,8 @@ class Cursor:
 
         it'll set the cursor to point at the insert location.
         """
+        self.rewind = False
+
         if len(self.stack) == 0:
             raise StopIteration()
 
@@ -323,6 +325,11 @@ class Cursor:
         if cursor is pointing a leaf node.
         else move to next record.
         """
+        if self.rewind:
+            # If we are calling .current()
+            # on a cursor which hasn't moved.
+            return self.__next__()
+
         frame = self.stack[-1]
         current_page = self.tree.read_page(frame.page_number)
 
@@ -341,6 +348,7 @@ class Cursor:
             return self.__next__()
 
     def __next__(self):
+        self.rewind = False
         if len(self.stack) == 0:
             raise StopIteration()
 
