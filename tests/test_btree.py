@@ -256,8 +256,6 @@ class TestBTree(Fixtures, TestCase):
         assert record.row_id == 0
 
         cursor.seek_end()
-        print(cursor.tree.show())
-        print(cursor.stack[-1])
         record = cursor.current()
         assert record
         # Last row has key 9
