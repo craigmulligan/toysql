@@ -289,13 +289,12 @@ class Cursor:
 
         if current_page.is_leaf():
             for cell in current_page.cells:
+                frame.child_index += 1
+
                 if row_id == cell.row_id:
                     return
 
-                frame.child_index += 1
-
                 if frame.child_index == len(current_page.cells):
-                    frame.child_index -= 1
                     raise NotFoundException(f"Couldn't seek to row {row_id}")
         else:
             # InteriorPage
@@ -334,7 +333,9 @@ class Cursor:
                     f"Couldn't find current row because leaf page is empty"
                 )
 
-            v = current_page.cells[frame.child_index]
+            idx = max(0, frame.child_index - 1)
+            v = current_page.cells[idx]
+
             return v.record
         else:
             return self.__next__()
