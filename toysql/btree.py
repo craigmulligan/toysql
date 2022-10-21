@@ -256,6 +256,10 @@ class Cursor:
         self.reset()
         return self
 
+    def row_count(self) -> int:
+        records = [r for r in self]
+        return len(records)
+
     def find(self, row_id: int) -> Optional[Record]:
         """
         Convenience wrapper around seek & current.
@@ -332,7 +336,13 @@ class Cursor:
                     f"Couldn't find current row because leaf page is empty"
                 )
 
-            v = current_page.cells[frame.child_index]
+            try:
+                v = current_page.cells[frame.child_index]
+            except IndexError:
+                # Because next() increments the cell index
+                # we have to gaurd for the last item.
+                v = current_page.cells[-1]
+
             return v.record
         else:
             return self.__next__()

@@ -15,7 +15,7 @@ class TestBTree(Fixtures, TestCase):
         self.create_record = create_record
         return super().setUp()
 
-    def test_btree(self):
+    def test_btree_x(self):
         """
         Given and ordered set of data
         Ensure the tree is the same.
@@ -182,7 +182,7 @@ class TestBTree(Fixtures, TestCase):
         btree = BTree(self.pager, self.pager.new())
         cursor = btree.cursor()
 
-        keys = [n for n in range(1, 3)]
+        keys = [n for n in range(1, 4)]
 
         random.shuffle(keys)
         for n in keys:
@@ -190,12 +190,27 @@ class TestBTree(Fixtures, TestCase):
 
         keys.sort()
 
-        for key in keys:
-            current_row = cursor.current()
-            assert current_row
-            assert current_row.row_id == key
+        # ensure calling it twice without next
+        # returns same row.
+        next(cursor)
+        x = cursor.current()
+        y = cursor.current()
 
-            next(cursor)
+        assert x.row_id == y.row_id
+        assert x.row_id == 1
+
+        next(cursor)
+        assert cursor.current().row_id == 2
+
+        next(cursor)
+        assert cursor.current().row_id == 3
+
+        # for key in keys:
+        #     next(cursor)
+        #     current_row = cursor.current()
+
+        #     assert current_row
+        #     assert current_row.row_id == key
 
     def test_cursor_seek(self):
         """
