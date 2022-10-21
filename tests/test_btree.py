@@ -168,6 +168,10 @@ class TestBTree(Fixtures, TestCase):
 
         keys.sort()
 
+        records = [x for x in cursor]
+        assert len(records) == 3
+
+        cursor.reset()
         # ensure calling it twice without next
         # returns same row.
         next(cursor)
@@ -177,7 +181,7 @@ class TestBTree(Fixtures, TestCase):
         assert x.row_id == y.row_id
         assert x.row_id == 1
 
-        next(cursor)
+        assert next(cursor).row_id == 2
         assert cursor.current().row_id == 2
 
         next(cursor)
