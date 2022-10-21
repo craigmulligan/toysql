@@ -43,10 +43,8 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenWrite:
-                # Open btree with write cursor
-                # TODO: This is different btree object from OpenRead. Btrees should instead have
-                # an iterator that holds state so it can be the same object
-                # Also p4 is unimplemeneted.
+                # Open btree with write cursor (Currently cursors don't have read/write flag)
+                # TODO: Also p4 is unimplemeneted.
                 btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
                 cursor += 1
 
@@ -122,20 +120,24 @@ class VM:
 
             if instruction.opcode == Opcode.Rewind:
                 # If table or index is empty jump to p2
-                if not btrees[instruction.p1].peek():
+                # else rewind the btree cursor to start.
+                tree = btrees[instruction.p1]
+
+                if tree.row_count() == 0:
                     cursor = cast(int, instruction.p2)
                 else:
+                    btrees[instruction.p1].reset()
                     cursor += 1
 
             if instruction.opcode == Opcode.Rowid:
                 # Read column at index p2 and store in register p3
-                row = btrees[instruction.p1].peek()
+                row = btrees[instruction.p1].current()
                 registers[instruction.p2] = row.row_id
                 cursor += 1
 
             if instruction.opcode == Opcode.Column:
                 # Read column at index p2 and store in register p3
-                row = btrees[instruction.p1].peek()
+                row = btrees[instruction.p1].current()
                 v = row.values[instruction.p2][1]
 
                 registers[instruction.p3] = v
@@ -186,12 +188,13 @@ class VM:
                 # Check if btree cursor p1 has next value.
                 # If next continue to address p2
                 # else fall through to next instruction.
-                next(btrees[instruction.p1])
-                v = btrees[instruction.p1].peek()
+                tree = btrees[instruction.p1]
 
-                if v is not None:
+                try:
+                    v = next(tree)
+                    print(v.row_id)
                     cursor = cast(int, instruction.p2)
-                else:
+                except StopIteration:
                     cursor += 1
 
             if instruction.opcode == Opcode.Halt:
@@ -209,4 +212,5 @@ class VM:
                     raise Exception(instruction.p4)
                 break
 
+        print("---end_statement---")
         return

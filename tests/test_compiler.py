@@ -1,6 +1,6 @@
 from toysql.compiler import Compiler, Instruction, Opcode, SCHEMA_TABLE_NAME
 from tests.fixtures import Fixtures
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 
 class TestCompiler(Fixtures):
