@@ -168,31 +168,17 @@ class TestBTree(Fixtures, TestCase):
 
         keys.sort()
 
-        records = [x for x in cursor]
-        assert len(records) == 3
-
-        cursor.reset()
-        # ensure calling it twice without next
-        # returns same row.
-        next(cursor)
-        x = cursor.current()
-        y = cursor.current()
-
-        assert x.row_id == y.row_id
-        assert x.row_id == 1
+        assert cursor.current().row_id == 1
+        assert cursor.current().row_id == 1
 
         assert next(cursor).row_id == 2
         assert cursor.current().row_id == 2
 
-        next(cursor)
+        assert next(cursor).row_id == 3
         assert cursor.current().row_id == 3
 
-        # for key in keys:
-        #     next(cursor)
-        #     current_row = cursor.current()
-
-        #     assert current_row
-        #     assert current_row.row_id == key
+        with self.assertRaises(StopIteration):
+            next(cursor)
 
     def test_cursor_seek(self):
         """

@@ -192,7 +192,6 @@ class VM:
 
                 try:
                     v = next(tree)
-                    print(v.row_id)
                     cursor = cast(int, instruction.p2)
                 except StopIteration:
                     cursor += 1
