@@ -160,13 +160,18 @@ class TestBTree(Fixtures, TestCase):
         btree = BTree(self.pager, self.pager.new())
         cursor = btree.cursor()
 
-        keys = [n for n in range(1, 2)]
+        keys = [n for n in range(1, 3)]
 
         random.shuffle(keys)
         for n in keys:
             cursor.insert(self.create_record(n, f"hello-{n}"))
 
         keys.sort()
+
+        rows = [x for x in cursor]
+        cursor.reset()
+        # ISSUE with inserting 2 rows.
+        assert len(rows) == 2
 
         assert cursor.current().row_id == 1
         assert cursor.current().row_id == 1
