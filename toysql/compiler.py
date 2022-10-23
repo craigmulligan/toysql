@@ -515,7 +515,7 @@ class Compiler:
                 Instruction(Opcode.NotExists, p1=0, p2=make_record, p3=values[-1].p2),
                 # 1555 is the error code for key conflict
                 Instruction(
-                    Opcode.Halt, p1=1555, p2=2, p4=f"{statement.into.value}.id"
+                    Opcode.Halt, p1=1555, p2=2, p4=f"{statement.into.value}.row_id"
                 ),
                 make_record,
                 Instruction(

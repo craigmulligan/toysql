@@ -78,17 +78,15 @@ class TestVM(Fixtures):
         for i, record in enumerate(records):
             assert record[0] == keys[i]
 
-    # def test_vm_duplicate_key(self):
-    #     row = (1, "fred", "fred@flintstone.com")
-    #     row_2 = (1, "pebbles", "pebbles@flintstone.com")
+    def test_vm_duplicate_key(self):
+        row = (1, "fred", "fred@flintstone.com")
+        row_2 = (1, "pebbles", "pebbles@flintstone.com")
 
-    #     program = self.compiler.compile(
-    #         f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
-    #     )
-    #     self.vm.execute(program)
+        self.execute(
+            f"INSERT INTO {self.table_name} VALUES ({row[0]}, '{row[1]}', '{row[2]}');"
+        )
 
-    #     with self.assertRaises(Exception):
-    #         program = self.compiler.compile(
-    #             f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
-    #         )
-    #         self.vm.execute(program)
+        with self.assertRaisesRegex(Exception, "users.row_id"):
+            self.execute(
+                f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
+            )

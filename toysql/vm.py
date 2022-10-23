@@ -110,8 +110,8 @@ class VM:
             if instruction.opcode == Opcode.NotExists:
                 record = btrees[instruction.p1].find(registers[instruction.p3])
 
-                if record:
-                    raise Exception("It found")
+                # if record:
+                #     raise Exception("It found")
 
                 if record is None:
                     cursor = cast(int, instruction.p2)
