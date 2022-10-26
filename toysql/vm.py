@@ -83,7 +83,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.SeekRowid:
-                # TODO propery implement Seek in Btree module.
                 tree = btrees[instruction.p1]
                 try:
                     tree.seek(registers[instruction.p3])
