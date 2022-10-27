@@ -19,3 +19,4 @@
 - https://wizardforcel.gitbooks.io/sqlite-doc-en/content/64.html
 - https://iafisher.com/blog/2021/10/using-sqlite-effectively-in-python
 - https://www.sqlite.org/quirks.html
+- http://chi.cs.uchicago.edu/chidb/index.html
