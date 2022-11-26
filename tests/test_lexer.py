@@ -138,58 +138,49 @@ class TestStatementLexer(TestCase):
         return (token for token in tokens if token.kind == kind)
 
     def test_select(self):
-        query = """
-            select * from "my_table"
-            where x = 'hi'
-            and y = 123;
-        """
+        query = """select * from "my_table"\nwhere x = 'hi'\nand y = 123;"""
 
         tokens = self.lexer.lex(query)
 
-        # TODO cursor Location doesnt work.
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
-            Token("*", Kind.symbol, Location(0, 0)),
-            Token("from", Kind.keyword, Location(0, 0)),
-            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("*", Kind.symbol, Location(0, 7)),
+            Token("from", Kind.keyword, Location(0, 9)),
+            Token("my_table", Kind.identifier, Location(0, 14)),
             Token("where", Kind.keyword, Location(1, 0)),
-            Token("x", Kind.identifier, Location(1, 0)),
-            Token("=", Kind.symbol, Location(1, 0)),
-            Token("hi", Kind.text, Location(1, 0)),
+            Token("x", Kind.identifier, Location(1, 6)),
+            Token("=", Kind.symbol, Location(1, 8)),
+            Token("hi", Kind.text, Location(1, 10)),
             Token("and", Kind.keyword, Location(2, 0)),
-            Token("y", Kind.identifier, Location(2, 0)),
-            Token("=", Kind.symbol, Location(2, 0)),
-            Token(123, Kind.integer, Location(2, 0)),
-            Token(";", Kind.symbol, Location(2, 0)),
+            Token("y", Kind.identifier, Location(2, 4)),
+            Token("=", Kind.symbol, Location(2, 6)),
+            Token(123, Kind.integer, Location(2, 8)),
+            Token(";", Kind.symbol, Location(2, 11)),
         ]
 
         assert tokens == expected_tokens
 
     def test_select_multi_columns(self):
-        query = """
-            select x,y from "my_table"
-            where x = 'hi'
-            and y = 123;
-        """
+        query = """select x,y from "my_table"\nwhere x = 'hi'\nand y = 123;"""
 
         tokens = self.lexer.lex(query)
 
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
-            Token("x", Kind.identifier, Location(0, 0)),
-            Token(",", Kind.symbol, Location(0, 0)),
-            Token("y", Kind.identifier, Location(0, 0)),
-            Token("from", Kind.keyword, Location(0, 0)),
-            Token("my_table", Kind.identifier, Location(0, 0)),
+            Token("x", Kind.identifier, Location(0, 7)),
+            Token(",", Kind.symbol, Location(0, 8)),
+            Token("y", Kind.identifier, Location(0, 9)),
+            Token("from", Kind.keyword, Location(0, 11)),
+            Token("my_table", Kind.identifier, Location(0, 16)),
             Token("where", Kind.keyword, Location(1, 0)),
-            Token("x", Kind.identifier, Location(1, 0)),
-            Token("=", Kind.symbol, Location(1, 0)),
-            Token("hi", Kind.text, Location(1, 0)),
+            Token("x", Kind.identifier, Location(1, 6)),
+            Token("=", Kind.symbol, Location(1, 8)),
+            Token("hi", Kind.text, Location(1, 10)),
             Token("and", Kind.keyword, Location(2, 0)),
-            Token("y", Kind.identifier, Location(2, 0)),
-            Token("=", Kind.symbol, Location(2, 0)),
-            Token(123, Kind.integer, Location(2, 0)),
-            Token(";", Kind.symbol, Location(2, 0)),
+            Token("y", Kind.identifier, Location(2, 4)),
+            Token("=", Kind.symbol, Location(2, 6)),
+            Token(123, Kind.integer, Location(2, 8)),
+            Token(";", Kind.symbol, Location(2, 11)),
         ]
 
         assert tokens == expected_tokens
@@ -199,18 +190,17 @@ class TestStatementLexer(TestCase):
 
         tokens = self.lexer.lex(query)
 
-        # TODO cursor Location doesnt work.
         expected_tokens = [
             Token("create", Kind.keyword, Location(0, 0)),
-            Token("table", Kind.keyword, Location(0, 0)),
-            Token("u", Kind.identifier, Location(0, 0)),
-            Token("(", Kind.symbol, Location(0, 0)),
-            Token("id", Kind.identifier, Location(0, 0)),
-            Token("int", Kind.keyword, Location(0, 0)),
-            Token(",", Kind.symbol, Location(0, 0)),
-            Token("name", Kind.identifier, Location(0, 0)),
-            Token("text", Kind.keyword, Location(0, 0)),
-            Token(")", Kind.symbol, Location(0, 0)),
+            Token("table", Kind.keyword, Location(0, 7)),
+            Token("u", Kind.identifier, Location(0, 13)),
+            Token("(", Kind.symbol, Location(0, 15)),
+            Token("id", Kind.identifier, Location(0, 16)),
+            Token("int", Kind.keyword, Location(0, 19)),
+            Token(",", Kind.symbol, Location(0, 22)),
+            Token("name", Kind.identifier, Location(0, 24)),
+            Token("text", Kind.keyword, Location(0, 29)),
+            Token(")", Kind.symbol, Location(0, 33)),
         ]
 
         assert tokens == expected_tokens
@@ -220,18 +210,17 @@ class TestStatementLexer(TestCase):
 
         tokens = self.lexer.lex(query)
 
-        # TODO cursor Location doesnt work.
         expected_tokens = [
             Token("insert", Kind.keyword, Location(0, 0)),
-            Token("into", Kind.keyword, Location(0, 0)),
-            Token("users", Kind.identifier, Location(0, 0)),
-            Token("values", Kind.keyword, Location(0, 0)),
-            Token("(", Kind.symbol, Location(0, 0)),
-            Token(1, Kind.integer, Location(0, 0)),
-            Token(",", Kind.symbol, Location(0, 0)),
-            Token("Phil", Kind.text, Location(0, 0)),
-            Token(")", Kind.symbol, Location(0, 0)),
-            Token(";", Kind.symbol, Location(0, 0)),
+            Token("into", Kind.keyword, Location(0, 7)),
+            Token("users", Kind.identifier, Location(0, 12)),
+            Token("values", Kind.keyword, Location(0, 18)),
+            Token("(", Kind.symbol, Location(0, 25)),
+            Token(1, Kind.integer, Location(0, 26)),
+            Token(",", Kind.symbol, Location(0, 27)),
+            Token("Phil", Kind.text, Location(0, 29)),
+            Token(")", Kind.symbol, Location(0, 35)),
+            Token(";", Kind.symbol, Location(0, 36)),
         ]
 
         assert tokens == expected_tokens
@@ -239,5 +228,7 @@ class TestStatementLexer(TestCase):
     def test_invalid_sql_symbol(self):
         query = """INSERT $$"""
 
-        with self.assertRaises(LexingException):
+        with self.assertRaises(LexingException) as exec_info:
             self.lexer.lex(query)
+
+        assert str(exec_info.exception) == "Lexing error at location 0:7"
