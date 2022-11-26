@@ -20,3 +20,7 @@
 - https://iafisher.com/blog/2021/10/using-sqlite-effectively-in-python
 - https://www.sqlite.org/quirks.html
 - http://chi.cs.uchicago.edu/chidb/index.html
+
+# Still to be read
+- https://w6113.github.io/files/papers/btreesurvey-graefe.pdf
+- https://www.lei.chat/posts/compilers-and-irs-llvm-ir-spirv-and-mlir/?utm_source=abyteofcodingnewsletter
