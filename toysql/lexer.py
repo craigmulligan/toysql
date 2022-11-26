@@ -126,13 +126,14 @@ class Cursor:
     def peek(self, size=1):
         """
         stringIO doesn't have peek
+        peek reads the current character
+        without advancing the cursor.
         """
-
         pointer = self.reader.tell()
-        line = self.read(size)
+        value = self.read(size)
         self.reader.seek(pointer)
 
-        return line
+        return value
 
     def read(self, size=None):
         """
@@ -160,14 +161,42 @@ class Cursor:
 
     def column_no(self):
         """
-        TODO.
+        Calculates the character count since the last
+        line break.
         """
-        pass
+        pointer = self.reader.tell()
+        start = pointer
+
+        while True:
+            # Find the beginning of the
+            # line
+            self.reader.seek(start)
+            value = self.peek()
+            if start == 0:
+                break
+
+            if value == "\n":
+                # This counts as previous line
+                # so add one char.
+                start += 1
+                break
+
+            start -= 1
+
+        count = pointer - start
+
+        self.reader.seek(pointer)
+
+        return count
 
     @property
     def loc(self):
         """Returns (line_number, col) of `index` in `s`."""
-        return Location(self.line_no(), 0)
+        return Location(self.line_no(), self.column_no())
+
+    def location(self):
+        """Returns (line_number, col) of `index` in `s`."""
+        return Location(self.line_no(), self.column_no())
 
 
 @dataclass
@@ -175,11 +204,6 @@ class Token:
     value: Union[str, int, float]
     kind: Kind
     loc: Optional[Location] = None
-
-    # def __eq__(self, other: Optional["Token"]):  # type: ignore[override]
-    #     if other is None:
-    #         return False
-    #     return self.value == other.value and self.kind == other.kind
 
 
 class Lexer(Protocol):
@@ -189,6 +213,7 @@ class Lexer(Protocol):
 
 class KeywordLexer:
     def lex(self, cursor):
+        cursor_start = cursor.location()
         match = None
         options = [e.value for e in Keyword]
         options.sort(key=len, reverse=True)
@@ -204,7 +229,7 @@ class KeywordLexer:
         if match is None:
             return None
 
-        return Token(match, Kind.keyword, cursor.loc)
+        return Token(match, Kind.keyword, cursor_start)
 
 
 class BoolLexer:
@@ -213,6 +238,7 @@ class BoolLexer:
     """
 
     def lex(self, cursor):
+        cursor_start = cursor.location()
         match = None
         options = ["true", "false"]
         for option in options:
@@ -226,7 +252,7 @@ class BoolLexer:
         if match is None:
             return None
 
-        return Token(match, Kind.bool, cursor.loc)
+        return Token(match, Kind.bool, cursor_start)
 
 
 class NullLexer:
@@ -235,6 +261,8 @@ class NullLexer:
     """
 
     def lex(self, cursor):
+        cursor_start = cursor.location()
+
         search_term = "null"
         l = len(search_term)
         substr = cursor.peek(l)
@@ -245,7 +273,7 @@ class NullLexer:
         else:
             cursor.read(l)
 
-        return Token(search_term, Kind.null, cursor.loc)
+        return Token(search_term, Kind.null, cursor_start)
 
 
 class NumericLexer:
@@ -262,6 +290,7 @@ class NumericLexer:
         return c == "e"
 
     def lex(self, cursor):
+        cursor_start = cursor.location()
         period_found = False
         exp_marker_found = False
 
@@ -310,13 +339,14 @@ class NumericLexer:
         return Token(
             float(value),
             Kind.integer,
-            cursor.loc,
+            cursor_start,
         )
 
 
 class SymbolLexer:
     def lex(self, cursor):
         options = [e.value for e in Symbol]
+        cursor_start = cursor.location()
         current = cursor.peek()
 
         try:
@@ -329,7 +359,7 @@ class SymbolLexer:
         return Token(
             current,
             Kind.symbol,
-            cursor.loc,
+            cursor_start,
         )
 
 
@@ -339,6 +369,7 @@ class DelimitedLexer:
         self.kind = kind
 
     def lex(self, cursor):
+        cursor_start = cursor.location()
         if cursor.peek() != self.delimiter:
             return None
 
@@ -356,7 +387,7 @@ class DelimitedLexer:
                 return Token(
                     value,
                     self.kind,
-                    cursor.loc,
+                    cursor_start,
                 )
 
             value += cursor.read(1)
@@ -375,6 +406,7 @@ class IdentifierLexer:
 
     def lex(self, cursor):
         # Look for double quote texts.
+        cursor_start = cursor.location()
         token = self.double_quote.lex(cursor)
 
         if token:
@@ -404,11 +436,7 @@ class IdentifierLexer:
         if len(value) == 0:
             return None
 
-        return Token(
-            value.lower(),
-            Kind.identifier,
-            cursor.loc,
-        )
+        return Token(value.lower(), Kind.identifier, cursor_start)
 
 
 class StatementLexer:
@@ -446,6 +474,8 @@ class StatementLexer:
                 # Else in a for loop is executed when
                 # it no breaks are called.
                 # Therefore this means no tokens were found.
-                raise LexingException(f"Location {cursor.loc.line}:{cursor.loc.col}")
+                raise LexingException(
+                    f"Lexing error at location {cursor.loc.line}:{cursor.loc.col}"
+                )
 
         return tokens
