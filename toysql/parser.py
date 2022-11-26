@@ -33,7 +33,7 @@ class TokenCursor:
         return self.tokens[self.pointer]
 
     def expect(self, token):
-        if self.peek() == token:
+        if token.match(self.peek()):
             return self.move()
 
         raise LookupError("Unexpected token kind")
@@ -53,11 +53,11 @@ class TokenCursor:
 
         while not self.is_complete():
             for delimiter in delimiters:
-                if delimiter == self.peek():
+                if delimiter.match(self.peek()):
                     return expressions
 
             if len(expressions) > 0:
-                if self.peek() != Token(Symbol.comma.value, Kind.symbol):
+                if not Token(Symbol.comma.value, Kind.symbol).match(self.peek()):
                     raise ParsingException("Expected comma")
 
                 self.move()
@@ -107,7 +107,7 @@ class SelectStatement(Statement):
         $table-name
         """
         # Implement parse for select statement.
-        if cursor.current() != Token(Keyword.select.value, Kind.keyword):
+        if not Token(Keyword.select.value, Kind.keyword).match(cursor.current()):
             # Not a select statement, let's bail.
             raise LookupError()
 
@@ -131,7 +131,7 @@ class SelectStatement(Statement):
         except LookupError:
             raise ParsingException("Expected table name")
 
-        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
             try:
                 cursor.move()
                 cursor.move()
@@ -157,7 +157,7 @@ class InsertStatement(Statement):
         """
         Looks for a comma seperated list of values
         """
-        if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
+        if not Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
             # Not a select statement, let's bail.
             raise LookupError()
 
@@ -166,11 +166,11 @@ class InsertStatement(Statement):
         delimiter = Token(Symbol.right_paren.value, Kind.symbol)
 
         while not cursor.is_complete():
-            if delimiter == cursor.peek():
+            if delimiter.match(cursor.peek()):
                 break
 
             if len(tokens) > 0:
-                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
+                if not Token(Symbol.comma.value, Kind.symbol).match(cursor.peek()):
                     raise ParsingException("Expected comma")
 
                 cursor.move()
@@ -210,7 +210,7 @@ class InsertStatement(Statement):
             INSERT INTO table_name
             VALUES (value1, value2, value3, ...);
         """
-        if cursor.current() != Token(Keyword.insert.value, Kind.keyword):
+        if not Token(Keyword.insert.value, Kind.keyword).match(cursor.current()):
             # Not a select statement, let's bail.
             raise LookupError()
 
@@ -236,7 +236,7 @@ class InsertStatement(Statement):
 
         values = InsertStatement.parse_values(cursor)
 
-        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
             try:
                 cursor.move()
                 cursor.move()
@@ -260,7 +260,7 @@ class CreateStatement(Statement):
 
     @staticmethod
     def parse_columns(cursor: TokenCursor) -> List[ColumnDefinition]:
-        if cursor.peek() != Token(Symbol.left_paren.value, Kind.symbol):
+        if not Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
             raise ParsingException(f"Expected {Symbol.left_paren.value} found")
 
         cursor.move()
@@ -268,11 +268,11 @@ class CreateStatement(Statement):
         delimiter = Token(Symbol.right_paren.value, Kind.symbol)
 
         while not cursor.is_complete():
-            if delimiter == cursor.peek():
+            if delimiter.match(cursor.peek()):
                 break
 
             if len(columns) > 0:
-                if cursor.peek() != Token(Symbol.comma.value, Kind.symbol):
+                if not Token(Symbol.comma.value, Kind.symbol).match(cursor.peek()):
                     raise ParsingException(f"Expected {Symbol.comma.value}")
 
                 cursor.move()
@@ -290,8 +290,9 @@ class CreateStatement(Statement):
 
             length = None
             # Let's look for length which is (<integer)
-            if cursor.peek() == Token(Symbol.left_paren.value, Kind.symbol):
+            if Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
                 cursor.move()
+
                 try:
                     length = cursor.expect_kind(Kind.integer)
                 except LookupError:
@@ -323,7 +324,7 @@ class CreateStatement(Statement):
                ....
             );
         """
-        if cursor.current() != Token(Keyword.create.value, Kind.keyword):
+        if not Token(Keyword.create.value, Kind.keyword).match(cursor.current()):
             # Not a select statement, let's bail.
             raise LookupError()
 
@@ -340,7 +341,7 @@ class CreateStatement(Statement):
 
         columns = CreateStatement.parse_columns(cursor)
 
-        if cursor.peek() == Token(Symbol.semicolon.value, Kind.symbol):
+        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
             try:
                 cursor.move()
                 cursor.move()
