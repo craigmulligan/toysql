@@ -152,15 +152,15 @@ class TestStatementLexer(TestCase):
             Token("*", Kind.symbol, Location(0, 0)),
             Token("from", Kind.keyword, Location(0, 0)),
             Token("my_table", Kind.identifier, Location(0, 0)),
-            Token("where", Kind.keyword, Location(0, 0)),
-            Token("x", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token("hi", Kind.text, Location(0, 0)),
-            Token("and", Kind.keyword, Location(0, 0)),
-            Token("y", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token(123, Kind.integer, Location(0, 0)),
-            Token(";", Kind.symbol, Location(0, 0)),
+            Token("where", Kind.keyword, Location(1, 0)),
+            Token("x", Kind.identifier, Location(1, 0)),
+            Token("=", Kind.symbol, Location(1, 0)),
+            Token("hi", Kind.text, Location(1, 0)),
+            Token("and", Kind.keyword, Location(2, 0)),
+            Token("y", Kind.identifier, Location(2, 0)),
+            Token("=", Kind.symbol, Location(2, 0)),
+            Token(123, Kind.integer, Location(2, 0)),
+            Token(";", Kind.symbol, Location(2, 0)),
         ]
 
         assert tokens == expected_tokens
@@ -174,7 +174,6 @@ class TestStatementLexer(TestCase):
 
         tokens = self.lexer.lex(query)
 
-        # TODO cursor Location doesnt work.
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
             Token("x", Kind.identifier, Location(0, 0)),
@@ -182,15 +181,15 @@ class TestStatementLexer(TestCase):
             Token("y", Kind.identifier, Location(0, 0)),
             Token("from", Kind.keyword, Location(0, 0)),
             Token("my_table", Kind.identifier, Location(0, 0)),
-            Token("where", Kind.keyword, Location(0, 0)),
-            Token("x", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token("hi", Kind.text, Location(0, 0)),
-            Token("and", Kind.keyword, Location(0, 0)),
-            Token("y", Kind.identifier, Location(0, 0)),
-            Token("=", Kind.symbol, Location(0, 0)),
-            Token(123, Kind.integer, Location(0, 0)),
-            Token(";", Kind.symbol, Location(0, 0)),
+            Token("where", Kind.keyword, Location(1, 0)),
+            Token("x", Kind.identifier, Location(1, 0)),
+            Token("=", Kind.symbol, Location(1, 0)),
+            Token("hi", Kind.text, Location(1, 0)),
+            Token("and", Kind.keyword, Location(2, 0)),
+            Token("y", Kind.identifier, Location(2, 0)),
+            Token("=", Kind.symbol, Location(2, 0)),
+            Token(123, Kind.integer, Location(2, 0)),
+            Token(";", Kind.symbol, Location(2, 0)),
         ]
 
         assert tokens == expected_tokens

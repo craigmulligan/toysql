@@ -143,10 +143,31 @@ class Cursor:
     def is_complete(self):
         return self.reader.tell() == len(self)
 
+    def line_no(self):
+        """
+        Calculates the current line number
+        of the cursor.
+        """
+        pointer = self.reader.tell()
+        count = 0
+
+        self.reader.seek(0)
+        buffer = self.reader.read(pointer)
+        count += buffer.count("\n")
+
+        self.reader.seek(pointer)
+        return count
+
+    def column_no(self):
+        """
+        TODO.
+        """
+        pass
+
     @property
     def loc(self):
         """Returns (line_number, col) of `index` in `s`."""
-        return Location(0, 0)
+        return Location(self.line_no(), 0)
 
 
 @dataclass
@@ -155,10 +176,10 @@ class Token:
     kind: Kind
     loc: Optional[Location] = None
 
-    def __eq__(self, other: Optional["Token"]):  # type: ignore[override]
-        if other is None:
-            return False
-        return self.value == other.value and self.kind == other.kind
+    # def __eq__(self, other: Optional["Token"]):  # type: ignore[override]
+    #     if other is None:
+    #         return False
+    #     return self.value == other.value and self.kind == other.kind
 
 
 class Lexer(Protocol):
