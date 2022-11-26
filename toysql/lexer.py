@@ -205,6 +205,20 @@ class Token:
     kind: Kind
     loc: Optional[Location] = None
 
+    def match(self, other: Optional["Token"]):
+        # TODO: Should we take Loc into account when comparing tokens?
+        if other is None:
+            return False
+
+        return self.value == other.value and self.kind == other.kind
+
+    # def __eq__(self, other: Optional["Token"]):
+    #     # TODO: Should we take Loc into account when comparing tokens?
+    #     if other is None:
+    #         return False
+
+    #     return self.value == other.value and self.kind == other.kind
+
 
 class Lexer(Protocol):
     def lex(self, cursor: Cursor) -> Optional[Token]:
