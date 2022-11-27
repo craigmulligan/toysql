@@ -123,7 +123,7 @@ class Cursor:
         """
         return len(self.reader.getvalue())
 
-    def peek(self, size=1):
+    def peek(self, size=1) -> Optional[str]:
         """
         stringIO doesn't have peek
         peek reads the current character
@@ -135,16 +135,16 @@ class Cursor:
 
         return value
 
-    def read(self, size=None):
+    def read(self, size=None) -> str:
         """
         Reads remaining text from current index without moving the cursor
         """
         return self.reader.read(size)
 
-    def is_complete(self):
+    def is_complete(self) -> bool:
         return self.reader.tell() == len(self)
 
-    def line_no(self):
+    def line_no(self) -> int:
         """
         Calculates the current line number
         of the cursor.
@@ -159,7 +159,7 @@ class Cursor:
         self.reader.seek(pointer)
         return count
 
-    def column_no(self):
+    def column_no(self) -> int:
         """
         Calculates the character count since the last
         line break.
@@ -189,12 +189,7 @@ class Cursor:
 
         return count
 
-    @property
-    def loc(self):
-        """Returns (line_number, col) of `index` in `s`."""
-        return Location(self.line_no(), self.column_no())
-
-    def location(self):
+    def location(self) -> Location:
         """Returns (line_number, col) of `index` in `s`."""
         return Location(self.line_no(), self.column_no())
 
@@ -206,18 +201,10 @@ class Token:
     loc: Optional[Location] = None
 
     def match(self, other: Optional["Token"]):
-        # TODO: Should we take Loc into account when comparing tokens?
         if other is None:
             return False
 
         return self.value == other.value and self.kind == other.kind
-
-    # def __eq__(self, other: Optional["Token"]):
-    #     # TODO: Should we take Loc into account when comparing tokens?
-    #     if other is None:
-    #         return False
-
-    #     return self.value == other.value and self.kind == other.kind
 
 
 class Lexer(Protocol):
@@ -488,8 +475,9 @@ class StatementLexer:
                 # Else in a for loop is executed when
                 # it no breaks are called.
                 # Therefore this means no tokens were found.
+                location = cursor.location()
                 raise LexingException(
-                    f"Lexing error at location {cursor.loc.line}:{cursor.loc.col}"
+                    f"Lexing error at location {location.line}:{location.col}"
                 )
 
         return tokens
