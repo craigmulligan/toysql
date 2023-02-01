@@ -110,10 +110,10 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.Integer, p1=0, p2=0),
             Instruction(
                 Opcode.OpenWrite, p1=0, p2=0, p3=5
-            ),  # open write on schema table (root_page_number: 0)
+            ),
             Instruction(
                 Opcode.CreateTable, p1=4
-            ),  # Save new btree root to reg 2
+            ),
             Instruction(
                 Opcode.String, p1=5, p2=1, p4="table"
             ), 
@@ -131,7 +131,6 @@ class TestCompiler(Fixtures):
             ),
             Instruction(Opcode.Integer, p1=1, p2=7),
             Instruction(Opcode.Insert, p1=0, p2=6, p3=7),
-            Instruction(Opcode.Halt),
             Instruction(Opcode.Close, p1=0)
         ]
 
