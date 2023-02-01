@@ -16,6 +16,7 @@ from toysql.exceptions import TableFoundException
 All opcodes can be found here: https://www.sqlite.org/opcode.html
 This is a subset of them implemented for toysqls feature set.
 """
+# http://chi.cs.uchicago.edu/chidb/architecture.html#chidb-dbm
 
 
 class Opcode(Enum):
@@ -43,6 +44,8 @@ class Opcode(Enum):
     CreateBtree: Allocate a new b-tree in the main database file if P1==0 or in the TEMP database file if P1==1 or in an attached database if P1>1. The P3 argument must be 1 (BTREE_INTKEY) for a rowid table it must be 2 (BTREE_BLOBKEY) for an index or WITHOUT ROWID table. The root page number of the new b-tree is stored in register P2.
     """
     CreateBtree = auto()
+    # chidb version of CreateBtree
+    CreateTable = auto()
     """
     OpenWrite
     """
@@ -182,6 +185,8 @@ class Opcode(Enum):
     MustBeInt: Force the value in register P1 to be an integer. If the value in P1 is not an integer and cannot be converted into an integer without data loss, then jump immediately to P2, or if P2==0 raise an SQLITE_MISMATCH exception.
     """
     MustBeInt = auto()
+
+    Close = auto()
     """
     Halt:  Exit immediately. All open cursors, etc are closed automatically.
 

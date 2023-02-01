@@ -2,6 +2,7 @@ from toysql.compiler import Compiler, Instruction, Opcode, SCHEMA_TABLE_NAME
 from tests.fixtures import Fixtures
 from unittest.mock import Mock
 
+# http://chi.cs.uchicago.edu/chidb/architecture.html#chidb-dbm
 
 class TestCompiler(Fixtures):
     def setUp(self) -> None:
@@ -74,39 +75,27 @@ class TestCompiler(Fixtures):
 
     def test_create(self):
         """
-        sqlite> explain create table "people" (id INT, name TEXT, email Text);
-        addr  opcode         p1    p2    p3    p4             p5  comment
-        ----  -------------  ----  ----  ----  -------------  --  -------------
-        0     Init           0     28    0                    0   Start at 28
-        1     ReadCookie     0     3     2                    0
-        2     If             3     5     0                    0
-        3     SetCookie      0     2     4                    0
-        4     SetCookie      0     5     1                    0
-        5     CreateBtree    0     2     1                    0   r[2]=root iDb=0 flags=1
-        6     OpenWrite      0     1     0     5              0   root=1 iDb=0
-        7     NewRowid       0     1     0                    0   r[1]=rowid
-        8     Blob           6     3     0                   0   r[3]= (len=6)
-        9     Insert         0     3     1                    8   intkey=r[1] data=r[3]
-        10    Close          0     0     0                    0
-        11    Close          0     0     0                    0
-        12    Null           0     4     5                    0   r[4..5]=NULL
-        13    Noop           2     0     4                    0
-        14    OpenWrite      1     1     0     5              0   root=1 iDb=0; sqlite_master
-        15    SeekRowid      1     17    1                    0   intkey=r[1]
-        16    Rowid          1     5     0                    0   r[5]= rowid of 1
-        17    IsNull         5     25    0                    0   if r[5]==NULL goto 25
-        18    String8        0     6     0     table          0   r[6]='table'
-        19    String8        0     7     0     people         0   r[7]='people'
-        20    String8        0     8     0     people         0   r[8]='people'
-        21    SCopy          2     9     0                    0   r[9]=r[2]
-        22    String8        0     10    0     CREATE TABLE "people" (id INT, name TEXT, email Text)  0   r[10]='CREATE TABLE "people" (id INT, name TEXT, email Text)'
-        23    MakeRecord     6     5     4     BBBDB          0   r[4]=mkrec(r[6..10])
-        24    Insert         1     4     5                    0   intkey=r[5] data=r[4]
-        25    SetCookie      0     1     2                    0
-        26    ParseSchema    0     0     0     tbl_name='people' AND type!='trigger'  0
-        27    Halt           0     0     0                    0
-        28    Transaction    0     1     1     0              1   usesStmtJournal=1
-        29    Goto           0     1     0                    0
+        # Open the schema table using cursor 0
+        Integer      1  0  _  _  
+        OpenWrite    0  0  5  _
+
+        # Create a new B-Tree, store its root page in register 4
+        CreateTable  4  _  _  _
+
+        # Create the rest of the record
+        String       5  1  _  "table"
+        String       8  2  _  "products"
+        String       8  3  _  "products"
+        String       73 5  _  "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+
+        MakeRecord   1  5  6  _
+        Integer      1  7  _  _
+
+        # Insert the new record
+        Insert       0  6  7  _
+
+        # Close the cursor
+        Close        0  _  _  _
         """
 
         # We are going a fair ways offscript here.
@@ -118,41 +107,32 @@ class TestCompiler(Fixtures):
         # with Transactions
 
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=13),
+            Instruction(Opcode.Integer, p1=0, p2=0),
             Instruction(
-                Opcode.CreateBtree, p1=0, p2=0, p3=1
-            ),  # Save new btree root to reg 2
-            Instruction(
-                Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
+                Opcode.OpenWrite, p1=0, p2=0, p3=5
             ),  # open write on schema table (root_page_number: 0)
             Instruction(
-                Opcode.NewRowid, p1=0, p2=1
-            ),  # get new row_id for table cursor in p1 store it in addr p2
-            Instruction(Opcode.SeekRowid, p1=0, p2=6, p3=1),
+                Opcode.CreateTable, p1=4
+            ),  # Save new btree root to reg 2
             Instruction(
-                Opcode.Rowid, p1=0, p2=2
-            ),  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-            Instruction(Opcode.IsNull, p1=2, p2=12),  # If p1 addr is null jump to p2
+                Opcode.String, p1=5, p2=1, p4="table"
+            ), 
             Instruction(
-                Opcode.String, p1=3, p2=3, p3=0, p4="org"
-            ),  # Store "org" in addr p2
+                Opcode.String, p1=8, p2=2, p4="products"
+            ),
             Instruction(
-                Opcode.String,
-                p1=39,
-                p2=4,
-                p3=0,
-                p4='create table "org" (id INT, name TEXT);',
-            ),  # store sql_text addr p2
+                Opcode.String, p1=8, p2=3, p4="products"
+            ),
             Instruction(
-                Opcode.SCopy, p1=0, p2=5
-            ),  # This is to get root_page_number close in adress space to following values
+                Opcode.String, p1=73, p2=5, p4="CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+            ),
             Instruction(
-                Opcode.MakeRecord, p1=2, p2=4, p3=6, p4="DBBD"
-            ),  # create record
-            Instruction(Opcode.Insert, p2=6, p3=1, p4=SCHEMA_TABLE_NAME),
+                Opcode.MakeRecord, p1=1, p2=5, p3=6
+            ),
+            Instruction(Opcode.Integer, p1=1, p2=7),
+            Instruction(Opcode.Insert, p1=0, p2=6, p3=7),
             Instruction(Opcode.Halt),
-            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+            Instruction(Opcode.Close, p1=0)
         ]
 
     def test_insert(self):
