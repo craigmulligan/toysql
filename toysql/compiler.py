@@ -54,6 +54,7 @@ class Opcode(Enum):
     Set register P1 to have the value NULL as seen by the MakeRecord instruction, but do not free any string or blob memory associated with the register, so that if the value was a string or blob that was previously copied using SCopy, the copies will continue to be valid.
     """
     SoftNull = auto()
+    Null = auto()
     """
     String: The string value P4 of length P1 (bytes) is stored in register P2.
     If P3 is not zero and the content of register P3 is equal to P5, then the datatype of the register P2 is converted to BLOB. The content is the same sequence of bytes, it is merely interpreted as a BLOB instead of a string, as if it had been CAST. In other words:
@@ -402,8 +403,8 @@ class Compiler:
             return 0
 
         for record in self.get_schema():
-            if record[1] == table_name:
-                root_page_number = record[3]
+            if record[2] == table_name:
+                root_page_number = record[5]
                 return root_page_number
 
         raise TableFoundException(f"Table: {table_name} not found")
@@ -458,94 +459,51 @@ class Compiler:
             ]
 
         if isinstance(statement, InsertStatement):
-            transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
-            init = Instruction(Opcode.Init, p2=transaction)
+            table_cursor = 0
             table_page_number = self.get_table_root_page_number(
                 str(statement.into.value)
             )
+            table_page_number_addr = memory.next_addr()
+            program.instructions.append(Instruction(Opcode.Integer, p1=table_page_number, p2=table_page_number_addr, p3=0))
+            # TODO: get number of columns from schema stmt - replace 3.
+            program.instructions.append(Instruction(Opcode.OpenWrite, p1=table_cursor, p2=table_page_number_addr, p3=3))
 
-            # TODO: Don't understand softnull opcode.
-            softnull = Instruction(Opcode.SoftNull, p1=memory.next_addr())
-            open_write = Instruction(
-                Opcode.OpenWrite, p1=0, p2=table_page_number, p3=0, p4=2
-            )
-
-            goto = Instruction(Opcode.Goto, p1=0, p2=open_write, p3=0)
-
-            values = []
-
-            affinities = ""
+            first_column_addr = None
             for token in statement.values:
+                addr = memory.next_addr()
+                if first_column_addr is None: 
+                    first_column_addr = addr
+
                 if token.kind == Kind.integer:
-                    affinities += "D"
-                    values.append(
-                        Instruction(
-                            Opcode.Integer, p1=int(token.value), p2=memory.next_addr()
-                        )
-                    )
+                    program.instructions.append(Instruction(Opcode.Integer, p1=int(token.value), p2=addr))
 
                 if token.kind == Kind.text:
-                    affinities += "B"
-                    values.append(
-                        Instruction(
-                            Opcode.String,
-                            p1=len(str(token.value)),
-                            p2=memory.next_addr(),
-                            p4=str(token.value),
-                        )
-                    )
+                    program.instructions.append(Instruction(Opcode.String, p1=len(str(token.value)), p2=addr, p4=token.value))
 
-            values.reverse()
-            must_be_int = Instruction(Opcode.MustBeInt, p1=values[-1].p2)
-            make_record = Instruction(
-                Opcode.MakeRecord,
-                p1=values[-1].p2,
-                p2=len(affinities),
-                p3=memory.next_addr(),
-                p4=affinities,
+            record_addr = memory.next_addr()
+            program.instructions.append(Instruction(Opcode.MakeRecord, p1=first_column_addr, p2=len(statement.values), p3=record_addr))
+
+            # How is this figured? This means we need to load the btree cursor?
+            assert first_column_addr
+            program.instructions.append(Instruction(Opcode.Insert, p1=table_cursor, p2=record_addr, p3=first_column_addr))
+
+            program.instructions.append(
+                Instruction(Opcode.Close, p1=table_cursor),
             )
-
-            program.instructions = [
-                init,
-                open_write,
-                softnull,
-                *values,
-                # if row_id is null create a new one.
-                Instruction(Opcode.NotNull, p1=values[-1].p2, p2=must_be_int),
-                Instruction(Opcode.NewRowid, p1=0, p2=values[-1].p2),
-                must_be_int,
-                Instruction(Opcode.Noop),
-                # P3 is an integer rowid. If P1 does not contain a record with rowid P3 then jump immediately to P2. Or, if P2 is 0, raise an SQLITE_CORRUPT error. If P1 does contain a record with rowid P3 then leave the cursor pointing at that record and fall through to the next instruction.
-                # The SeekRowid opcode performs the same operation but also allows the P3 register to contain a non-integer value, in which case the jump is always taken. This opcode requires that P3 always contain an integer.
-                Instruction(Opcode.NotExists, p1=0, p2=make_record, p3=values[-1].p2),
-                # 1555 is the error code for key conflict
-                Instruction(
-                    Opcode.Halt, p1=1555, p2=2, p4=f"{statement.into.value}.row_id"
-                ),
-                make_record,
-                Instruction(
-                    Opcode.Insert,
-                    p2=make_record.p3,
-                    p3=values[-1].p2,
-                    p4=statement.into.value,
-                ),
-                Instruction(Opcode.Halt),
-                transaction,
-                goto,
-            ]
 
         if isinstance(statement, CreateStatement):
             instructions = []
+            schema_root_page_num = 0
             schema_root_page_num_addr = memory.next_addr()
             # Layout the registers
             schema_type_addr = memory.next_addr()
             schema_type = "table"
             item_name_addr = memory.next_addr()
-            item_name = "products"
+            item_name = str(statement.table.value) 
             associated_table_name_addr = memory.next_addr()
-            associated_table_name = "products"
+            associated_table_name = str(statement.table.value)
             root_page_num_addr = memory.next_addr()
-            text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+            text = sql_text
             text_addr = memory.next_addr()
 
             column_count = 5
@@ -553,7 +511,7 @@ class Compiler:
             schema_cursor = 0
 
             instructions.append(
-                Instruction(Opcode.Integer, p1=0, p2=schema_root_page_num_addr)
+                Instruction(Opcode.Integer, p1=schema_root_page_num, p2=schema_root_page_num_addr)
             )
             instructions.append(
                 Instruction(
@@ -604,9 +562,9 @@ class Compiler:
                 )
             )
 
-            primary_key_addr = memory.next_addr()
             primary_key = 1
-
+            primary_key_addr = memory.next_addr()
+            # TODO: I'm not sure why we don't use seek end + Key opcodes to get the primary key? 
             instructions.append(Instruction(Opcode.Integer, p1=primary_key, p2=primary_key_addr))
 
             instructions.append(
