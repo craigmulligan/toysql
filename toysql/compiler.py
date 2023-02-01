@@ -103,6 +103,7 @@ class Opcode(Enum):
     P1 can be either an ordinary table or a virtual table. There used to be a separate OP_VRowid opcode for use with virtual tables, but this one opcode now works for both table types.
     """
     Rowid = auto()
+    Key = auto()
     """
     Column: Interpret the data that cursor P1 points to as a structure built using the MakeRecord instruction. (See the MakeRecord opcode for additional information about the format of the data.) Extract the P2-th column from this record. If there are less that (P2+1) values in the record, extract a NULL.
     The value extracted is stored in register P3.
@@ -414,49 +415,77 @@ class Compiler:
         [statement] = self.prepare(sql_text)
         program = Program([])
         memory = Memory()
-
+        
         if isinstance(statement, SelectStatement):
             table_page_number = self.get_table_root_page_number(
                 str(statement._from.value)
             )
-            transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
-            init = Instruction(Opcode.Init, p2=transaction)
-            rewind = Instruction(Opcode.Rewind, p1=0, p2=7, p3=0)
-            open_read = Instruction(
-                Opcode.OpenRead, p1=0, p2=table_page_number, p3=0, p4=2
-            )
-            goto = Instruction(Opcode.Goto, p1=0, p2=open_read, p3=0)
 
-            columns = []
-            for i in self.get_column_indexes(statement):
-                if i == 0:
-                    # We assume for now columns at index 0
-                    # are the row_id
-                    columns.append(
-                        Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
-                    )
-                else:
-                    columns.append(
-                        Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
-                    )
+            column_count = 4
+            table_cursor = 0
+
+            program.instructions.append(Instruction(Opcode.Integer, p1=table_page_number, p2=0))
+            program.instructions.append(Instruction(Opcode.OpenRead, p1=table_cursor, p2=0, p3=column_count))
+
+            halt_index = 9 # TODO allow jumps
+            program.instructions.append(Instruction(Opcode.Rewind, p1=0, p2=halt_index))
+
+            assert False
+            program.instructions.append(Instruction(Opcode.Key, p1=0, p2=1))
 
             program.instructions = [
-                init,
-                open_read,
-                rewind,
-                *columns,
-                Instruction(
-                    # TODO this assumes columns[0] is always a RowId
-                    Opcode.ResultRow,
-                    p1=columns[0].p2,
-                    p2=columns[-1].p3,
-                    p3=0,
-                ),
-                Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
-                Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
-                transaction,
-                goto,
+                Instruction(Opcode.Key, p1=0, p2=1),
+                Instruction(Opcode.Column, p1=0, p2=1, p3=2),
+                Instruction(Opcode.Column, p1=0, p2=2, p3=3),
+                Instruction(Opcode.Column, p1=0, p2=2, p3=4),
+                Instruction(Opcode.ResultRow, p1=1, p2=4),
+                Instruction(Opcode.Next, p1=0, p2=3),
+                Instruction(Opcode.Close, p1=0),
+                Instruction(Opcode.Halt, p1=0, p2=0),
             ]
+
+
+            # table_page_number = self.get_table_root_page_number(
+            #     str(statement._from.value)
+            # )
+            # transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
+            # init = Instruction(Opcode.Init, p2=transaction)
+            # rewind = Instruction(Opcode.Rewind, p1=0, p2=7, p3=0)
+            # open_read = Instruction(
+            #     Opcode.OpenRead, p1=0, p2=table_page_number, p3=0, p4=2
+            # )
+            # goto = Instruction(Opcode.Goto, p1=0, p2=open_read, p3=0)
+
+            # columns = []
+            # for i in self.get_column_indexes(statement):
+            #     if i == 0:
+            #         # We assume for now columns at index 0
+            #         # are the row_id
+            #         columns.append(
+            #             Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
+            #         )
+            #     else:
+            #         columns.append(
+            #             Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
+            #         )
+
+            # program.instructions = [
+            #     init,
+            #     open_read,
+            #     rewind,
+            #     *columns,
+            #     Instruction(
+            #         # TODO this assumes columns[0] is always a RowId
+            #         Opcode.ResultRow,
+            #         p1=columns[0].p2,
+            #         p2=columns[-1].p3,
+            #         p3=0,
+            #     ),
+            #     Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
+            #     Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
+            #     transaction,
+            #     goto,
+            # ]
 
         if isinstance(statement, InsertStatement):
             table_cursor = 0
@@ -577,6 +606,6 @@ class Compiler:
 
             program.instructions = instructions
 
-        program.resolve_refs()
+        # program.resolve_refs()
 
         return program

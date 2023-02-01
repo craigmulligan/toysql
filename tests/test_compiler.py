@@ -23,7 +23,7 @@ class TestCompiler(Fixtures):
     def test_schema_select(self):
         program = self.compiler.compile(f"select * from {SCHEMA_TABLE_NAME};")
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=10),
+            Instruction(Opcode.Integer, p1=2, p2=0),
             Instruction(Opcode.OpenRead, p1=0, p2=0, p3=0, p4=2),
             Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
             Instruction(Opcode.Rowid, p1=0, p2=0),
@@ -39,38 +39,41 @@ class TestCompiler(Fixtures):
 
     def test_select(self):
         """
-        select * from artist;
+        # Open the courses table using cursor 0
+        Integer      2  0  _  _  
+        OpenRead     0  0  4  _
 
-        addr  opcode         p1    p2    p3    p4             p5  comment
-        ----  -------------  ----  ----  ----  -------------  --  -------------
-        0     Init           0     8     0                    0   Start at 8
-        1     OpenRead       0     3     0     2              0   root=3 iDb=0; artist
-        2     Rewind         0     7     0                    0
-        3       Rowid          0     1     0                    0   r[1]=user.rowid
-        4       Column         0     1     1                    0   r[2]=user.name
-        4       Column         0     2     2                    0   r[3]=user.email
-        5       ResultRow      1     2     0                    0   output=r[1..2]
-        6     Next           0     3     0                    1
-        7     Halt           0     0     0                    0
-        8     Transaction    0     0     21    0              1   usesStmtJournal=0
-        9     Goto           0     1     0                    0
+        # Go to the first entry. If the database is empty,
+        # jump to the end of the program
+        Rewind       0  9  _  _
 
-        Given statements we should create a VM instructions to execute the query.
+        # Fetch the key of the row, plus the values
+        # of "name", "prof", and "dept"
+        Key          0  1  _  _
+        Column       0  1  2  _ 
+        Column       0  2  3  _ 
+        Column       0  3  4  _ 
+        ResultRow    1  4  _  _
+        Next         0  3  _  _
+
+        # Close the cursor
+        Close        0  _  _  _
+        Halt         _  _  _  _
         """
-        program = self.compiler.compile("select * from user;")
+        program = self.compiler.compile("select * from products;")
 
         assert program.instructions == [
-            Instruction(Opcode.Init, p2=9),
-            Instruction(Opcode.OpenRead, p1=0, p2=self.root_page_number, p3=0, p4=2),
-            Instruction(Opcode.Rewind, p1=0, p2=7),
-            Instruction(Opcode.Rowid, p1=0, p2=0),
-            Instruction(Opcode.Column, p1=0, p2=1, p3=1),
-            Instruction(Opcode.Column, p1=0, p2=2, p3=2),
-            Instruction(Opcode.ResultRow, p1=0, p2=2),
-            Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
+            Instruction(Opcode.Integer, p1=2, p2=0),
+            Instruction(Opcode.OpenRead, p1=0, p2=0, p3=4),
+            Instruction(Opcode.Rewind, p1=0, p2=9),
+            Instruction(Opcode.Key, p1=0, p2=1),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=2),
+            Instruction(Opcode.Column, p1=0, p2=2, p3=3),
+            Instruction(Opcode.Column, p1=0, p2=2, p3=4),
+            Instruction(Opcode.ResultRow, p1=1, p2=4),
+            Instruction(Opcode.Next, p1=0, p2=3),
+            Instruction(Opcode.Close, p1=0),
             Instruction(Opcode.Halt, p1=0, p2=0),
-            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-            Instruction(Opcode.Goto, p1=0, p2=1),
         ]
 
     def test_create(self):
