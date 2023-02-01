@@ -535,75 +535,89 @@ class Compiler:
             ]
 
         if isinstance(statement, CreateStatement):
-            transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
-            goto = Instruction(Opcode.Goto, p1=0, p2=1, p3=0)
+            instructions = []
+            schema_root_page_num_addr = memory.next_addr()
+            # Layout the registers
+            schema_type_addr = memory.next_addr()
+            schema_type = "table"
+            item_name_addr = memory.next_addr()
+            item_name = "products"
+            associated_table_name_addr = memory.next_addr()
+            associated_table_name = "products"
+            root_page_num_addr = memory.next_addr()
+            text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+            text_addr = memory.next_addr()
 
-            init = Instruction(Opcode.Init, p2=transaction)
+            column_count = 5
 
-            create_btree = Instruction(
-                Opcode.CreateBtree, p1=0, p2=memory.next_addr(), p3=1
+            schema_cursor = 0
+
+            instructions.append(
+                Instruction(Opcode.Integer, p1=0, p2=schema_root_page_num_addr)
             )
-
-            new_row_id = Instruction(Opcode.NewRowid, p1=0, p2=memory.next_addr())
-            row_id = Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
-            halt = Instruction(Opcode.Halt)
-            is_null = Instruction(Opcode.IsNull, p1=row_id.p2, p2=halt)
-            seek_row_id = Instruction(
-                Opcode.SeekRowid, p1=0, p2=is_null, p3=new_row_id.p2
-            )
-            # affinities are always the same for schema table.
-            # eg row_id, table_name, sql_text, root_page_number
-            affinities = "DBBD"
-
-            table_name_col = Instruction(
-                Opcode.String,
-                p1=len(str(statement.table.value)),
-                p2=memory.next_addr(),
-                p3=0,
-                p4=str(statement.table.value),
-            )  # Store "org" in addr p2
-
-            sql_text_col = Instruction(
-                Opcode.String,
-                p1=len(sql_text),
-                p2=memory.next_addr(),
-                p3=0,
-                p4=sql_text,
-            )  # store sql_text addr p2
-
-            root_page_number_col = Instruction(
-                Opcode.SCopy, p1=create_btree.p2, p2=memory.next_addr()
-            )  # This is to get root_page_number close in adress space to following values
-
-            make_record = Instruction(
-                Opcode.MakeRecord,
-                p1=row_id.p2,
-                p2=len(affinities),
-                p3=memory.next_addr(),
-                p4=affinities,
-            )
-
-            program.instructions = [
-                init,
-                create_btree,  # Save new btree root to reg 2
+            instructions.append(
                 Instruction(
-                    Opcode.OpenWrite, p1=0, p2=0, p3=0, p4=2
-                ),  # open write on schema table (root_page_number: 0)
-                new_row_id,  # get new row_id for table cursor in p1 store it in addr p2
-                seek_row_id,  # Seek cursor
-                row_id,  # Store in register P2 an integer which is the key of the table entry that P1 is currently point to.
-                is_null,  # If p1 addr is null jump to 11
-                table_name_col,
-                sql_text_col,
-                root_page_number_col,
-                make_record,
+                    Opcode.OpenWrite,
+                    p1=schema_cursor,
+                    p2=schema_root_page_num_addr,
+                    p3=column_count,
+                )
+            )
+            instructions.append(Instruction(Opcode.CreateTable, p1=root_page_num_addr))
+            instructions.append(
                 Instruction(
-                    Opcode.Insert, p2=make_record.p3, p3=1, p4=SCHEMA_TABLE_NAME
-                ),
-                halt,
-                transaction,
-                goto,
-            ]
+                    Opcode.String,
+                    p1=len(schema_type),
+                    p2=schema_type_addr,
+                    p4=schema_type,
+                )
+            )
+            instructions.append(
+                Instruction(
+                    Opcode.String, p1=len(item_name), p2=item_name_addr, p4=item_name
+                )
+            )
+            instructions.append(
+                Instruction(
+                    Opcode.String,
+                    p1=len(associated_table_name),
+                    p2=associated_table_name_addr,
+                    p4=associated_table_name,
+                )
+            )
+            instructions.append(
+                Instruction(
+                    Opcode.String,
+                    p1=len(text),
+                    p2=text_addr,
+                    p4=text,
+                )
+            )
+
+            record_addr = memory.next_addr()
+            instructions.append(
+                Instruction(
+                    Opcode.MakeRecord,
+                    p1=schema_type_addr,
+                    p2=column_count,
+                    p3=record_addr,
+                )
+            )
+
+            primary_key_addr = memory.next_addr()
+            primary_key = 1
+
+            instructions.append(Instruction(Opcode.Integer, p1=primary_key, p2=primary_key_addr))
+
+            instructions.append(
+                Instruction(Opcode.Insert, p1=schema_cursor, p2=record_addr, p3=primary_key_addr),
+            )
+
+            instructions.append(
+                Instruction(Opcode.Close, p1=schema_cursor),
+            )
+
+            program.instructions = instructions
 
         program.resolve_refs()
 
