@@ -174,7 +174,7 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.Integer, p1=self.root_page_number, p2=0, p3=0),
             Instruction(Opcode.OpenWrite, p1=0, p2=0, p3=3),
             Instruction(Opcode.Integer, p1=1, p2=1),
-            # Instruction(Opcode.Null, p2=2), TODO: Not sure why Null is necessary.
+            # Instruction(Opcode.Null, p2=2), TODO: Not sure why Null is necessary here?
             Instruction(Opcode.String, p1=10, p2=2, p4="Hard Drive"),
             Instruction(Opcode.Integer, p1=240, p2=3),
             Instruction(Opcode.MakeRecord, p1=1, p2=3, p3=4),
