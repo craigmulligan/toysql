@@ -7,8 +7,8 @@ from unittest.mock import Mock
 class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
+#        sql_text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
         sql_text = "CREATE TABLE products(code INT, name TEXT, price INT)"
-        # sql_text = "CREATE TABLE user (id INT, name text(12), email text(255));"
         self.root_page_number = 2
         self.vm = Mock()
         self.vm.execute = Mock(return_value=[])
@@ -23,18 +23,19 @@ class TestCompiler(Fixtures):
     def test_schema_select(self):
         program = self.compiler.compile(f"select * from {SCHEMA_TABLE_NAME};")
         assert program.instructions == [
-            Instruction(Opcode.Integer, p1=2, p2=0),
-            Instruction(Opcode.OpenRead, p1=0, p2=0, p3=0, p4=2),
-            Instruction(Opcode.Rewind, p1=0, p2=7, p3=0),
-            Instruction(Opcode.Rowid, p1=0, p2=0),
-            Instruction(Opcode.Column, p1=0, p2=1, p3=1),
-            Instruction(Opcode.Column, p1=0, p2=2, p3=2),
-            Instruction(Opcode.Column, p1=0, p2=3, p3=3),
-            Instruction(Opcode.ResultRow, p1=0, p2=3, p3=0),
-            Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
-            Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
-            Instruction(Opcode.Transaction, p1=0, p2=0, p3=21),
-            Instruction(Opcode.Goto, p1=0, p2=1, p3=0),
+            Instruction(Opcode.Integer, p1=0, p2=0),
+            Instruction(Opcode.OpenRead, p1=0, p2=0, p3=4),
+            Instruction(Opcode.Rewind, p1=0, p2=10),
+            Instruction(Opcode.Key, p1=0, p2=1),
+            Instruction(Opcode.Column, p1=0, p2=0, p3=2),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=3),
+            Instruction(Opcode.Column, p1=0, p2=2, p3=4),
+            Instruction(Opcode.Column, p1=0, p2=3, p3=5),
+            Instruction(Opcode.ResultRow, p1=1, p2=5),
+            Instruction(Opcode.Next, p1=0, p2=3),
+            Instruction(Opcode.Close, p1=0),
+            Instruction(Opcode.Halt, p1=0, p2=0),
+
         ]
 
     def test_select(self):
@@ -67,8 +68,8 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.OpenRead, p1=0, p2=0, p3=4),
             Instruction(Opcode.Rewind, p1=0, p2=9),
             Instruction(Opcode.Key, p1=0, p2=1),
-            Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-            Instruction(Opcode.Column, p1=0, p2=2, p3=3),
+            Instruction(Opcode.Column, p1=0, p2=0, p3=2),
+            Instruction(Opcode.Column, p1=0, p2=1, p3=3),
             Instruction(Opcode.Column, p1=0, p2=2, p3=4),
             Instruction(Opcode.ResultRow, p1=1, p2=4),
             Instruction(Opcode.Next, p1=0, p2=3),

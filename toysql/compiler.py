@@ -378,8 +378,8 @@ class Compiler:
             return self.get_column_names_from_sql_text(SCHEMA_TABLE_SQL_TEXT)
 
         for values in self.get_schema():
-            if values[1] == table_name:
-                sql_text = values[2]
+            if values[2] == table_name:
+                sql_text = values[4]
                 return self.get_column_names_from_sql_text(sql_text)
 
         raise TableFoundException(f"Table: {table_name} not found")
@@ -424,68 +424,30 @@ class Compiler:
             column_count = 4
             table_cursor = 0
 
-            program.instructions.append(Instruction(Opcode.Integer, p1=table_page_number, p2=0))
+            program.instructions.append(Instruction(Opcode.Integer, p1=table_page_number, p2=memory.next_addr()))
             program.instructions.append(Instruction(Opcode.OpenRead, p1=table_cursor, p2=0, p3=column_count))
 
-            halt_index = 9 # TODO allow jumps
-            program.instructions.append(Instruction(Opcode.Rewind, p1=0, p2=halt_index))
+            close = Instruction(Opcode.Close, p1=0)
+            program.instructions.append(Instruction(Opcode.Rewind, p1=0, p2=close))
 
-            assert False
-            program.instructions.append(Instruction(Opcode.Key, p1=0, p2=1))
+            key_addr = memory.next_addr()
+            program.instructions.append(Instruction(Opcode.Key, p1=0, p2=key_addr))
 
-            program.instructions = [
-                Instruction(Opcode.Key, p1=0, p2=1),
-                Instruction(Opcode.Column, p1=0, p2=1, p3=2),
-                Instruction(Opcode.Column, p1=0, p2=2, p3=3),
-                Instruction(Opcode.Column, p1=0, p2=2, p3=4),
-                Instruction(Opcode.ResultRow, p1=1, p2=4),
-                Instruction(Opcode.Next, p1=0, p2=3),
-                Instruction(Opcode.Close, p1=0),
-                Instruction(Opcode.Halt, p1=0, p2=0),
-            ]
+            columns = [] 
+            for i in self.get_column_indexes(statement):
+                columns.append(
+                    Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
+                )
 
 
-            # table_page_number = self.get_table_root_page_number(
-            #     str(statement._from.value)
-            # )
-            # transaction = Instruction(Opcode.Transaction, p1=0, p2=0, p3=21)
-            # init = Instruction(Opcode.Init, p2=transaction)
-            # rewind = Instruction(Opcode.Rewind, p1=0, p2=7, p3=0)
-            # open_read = Instruction(
-            #     Opcode.OpenRead, p1=0, p2=table_page_number, p3=0, p4=2
-            # )
-            # goto = Instruction(Opcode.Goto, p1=0, p2=open_read, p3=0)
+            program.instructions.extend(columns)
+            program.instructions.append(Instruction(Opcode.ResultRow, p1=key_addr, p2=len(columns) + 1))
+            program.instructions.append(Instruction(Opcode.Next, p1=0, p2=3))
+            program.instructions.extend([
+               close, 
+               Instruction(Opcode.Halt, p1=0, p2=0)
+            ])
 
-            # columns = []
-            # for i in self.get_column_indexes(statement):
-            #     if i == 0:
-            #         # We assume for now columns at index 0
-            #         # are the row_id
-            #         columns.append(
-            #             Instruction(Opcode.Rowid, p1=0, p2=memory.next_addr())
-            #         )
-            #     else:
-            #         columns.append(
-            #             Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
-            #         )
-
-            # program.instructions = [
-            #     init,
-            #     open_read,
-            #     rewind,
-            #     *columns,
-            #     Instruction(
-            #         # TODO this assumes columns[0] is always a RowId
-            #         Opcode.ResultRow,
-            #         p1=columns[0].p2,
-            #         p2=columns[-1].p3,
-            #         p3=0,
-            #     ),
-            #     Instruction(Opcode.Next, p1=0, p2=3, p3=0, p5=1),
-            #     Instruction(Opcode.Halt, p1=0, p2=0, p3=0),
-            #     transaction,
-            #     goto,
-            # ]
 
         if isinstance(statement, InsertStatement):
             table_cursor = 0
@@ -606,6 +568,6 @@ class Compiler:
 
             program.instructions = instructions
 
-        # program.resolve_refs()
+        program.resolve_refs()
 
         return program
