@@ -24,7 +24,7 @@ class Opcode(Enum):
     Integer = auto()
     String = auto()
     Null = auto()
-    Scopy = auto()
+    SCopy = auto()
 
     # Control Flow Instructions
     Eq = auto()
