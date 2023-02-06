@@ -10,6 +10,7 @@ from toysql.lexer import StatementLexer, Kind
 from enum import Enum, auto
 from dataclasses import dataclass
 from toysql.exceptions import TableFoundException
+from toysql.btree import BTree, Cursor
 
 
 """
@@ -152,7 +153,7 @@ class Program:
 
 
 SCHEMA_TABLE_NAME = "schema"
-SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INT, name text(12), sql_text text(500), root_page_number INT);"
+SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INT, schema_type TEXT, name TEXT, t_name TEXT, sql_text TEXT, root_page_number INT);"
 
 # Fancy counter
 @dataclass
@@ -179,20 +180,16 @@ class Compiler:
         self.parser = Parser()
         # VM is used for internal programs
         # Like reading + writing to the schema table
-        self.vm = vm
         self.init_schema_table()
 
     def init_schema_table(self):
-        if len(self.pager) > 0:
-            return
-
-        program = self.compile(SCHEMA_TABLE_SQL_TEXT)
-        [row for row in self.vm.execute(program)]
+        if len(self.pager) == 0:
+            self.pager.new()
 
     def get_schema(self) -> List[List[Any]]:
         # Gets the current schema table values
-        program = self.compile(f"SELECT * from {SCHEMA_TABLE_NAME}")
-        values = [v for v in self.vm.execute(program)]
+        cursor = Cursor(BTree(self.pager, 0))
+        values = [v for v in cursor]
         return values
 
     def prepare(self, sql_text: str):
@@ -383,6 +380,14 @@ class Compiler:
                     p4=associated_table_name,
                 )
             )
+
+            instructions.append(
+                Instruction(
+                    Opcode.Integer,
+                    p2=root_page_num_addr,
+                )
+            )
+
             instructions.append(
                 Instruction(
                     Opcode.String,

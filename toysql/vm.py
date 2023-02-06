@@ -2,7 +2,6 @@ from toysql.compiler import Program, Opcode
 from toysql.record import DataType, Record
 from toysql.btree import BTree, Cursor
 from typing import cast
-from toysql.exceptions import NotFoundException
 
 
 class VM:
@@ -13,10 +12,10 @@ class VM:
         btrees = {}
         registers = {}
         cursor = 0
+        print(program)
 
-        while True:
+        while len(program.instructions) < cursor:
             instruction = program.instructions[cursor]
-            print(instruction.opcode)
             if instruction.opcode == Opcode.CreateTable:
                 # old
                 # TODO: Should be able to roll this back.
@@ -85,20 +84,16 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.MakeRecord:
-                # old
-                assert instruction.p4
                 values = []
 
                 for i in range(instruction.p2):
-                    v = []
-                    type_affinity = instruction.p4[i]
+                    c = []
+                    v = registers[instruction.p1 - 1 + i]
 
-                    # Add column datatype (from affinity)
-                    v.append(DataType.from_affinity(type_affinity))
-
-                    # Add column value
-                    v.append(registers[instruction.p1 + i])
-                    values.append(v)
+                    t = DataType.integer if isinstance(v, int) else DataType.text  
+                    c.append(t)
+                    c.append(registers[instruction.p1 - 1 + i])
+                    values.append(c)
 
                 record = Record(values)
 
@@ -121,7 +116,6 @@ class VM:
                 yield values
 
             if instruction.opcode == Opcode.Insert:
-                # old
                 record = registers[instruction.p2]
                 btrees[instruction.p1].insert(record)
                 registers[instruction.p3] = record.row_id
@@ -140,6 +134,11 @@ class VM:
                     cursor = cast(int, instruction.p2)
                 except StopIteration:
                     cursor += 1
+
+
+            if instruction.opcode == Opcode.Close:
+                del btrees[instruction.p1]
+                cursor += 1
 
             if instruction.opcode == Opcode.Halt:
                 # old

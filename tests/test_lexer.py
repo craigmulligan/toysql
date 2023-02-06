@@ -232,3 +232,14 @@ class TestStatementLexer(TestCase):
             self.lexer.lex(query)
 
         assert str(exec_info.exception) == "Lexing error at location 0:7"
+
+
+    def test_partial_keywork(self):
+        query = """CREATE TABLE schema (id INT, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INT);"""
+
+        x = self.lexer.lex(query)
+        # TODO assert assert keyword as is not pulled for associated_table_name
+        assert False
+
+
+

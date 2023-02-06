@@ -9,7 +9,7 @@ class TestVM(Fixtures):
         super().setUp()
         self.table_name = "users"
         create_stmt = (
-            f"CREATE TABLE {self.table_name} (id INT, name TEXT(32), email TEXT(255));"
+            f"CREATE TABLE {self.table_name} (id INT, name TEXT, email TEXT);"
         )
 
         self.vm = VM(self.pager)
