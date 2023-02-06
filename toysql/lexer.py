@@ -221,6 +221,7 @@ class KeywordLexer:
 
         for option in options:
             l = len(option)
+
             substr = cursor.peek(l)
             lower_substr = substr.lower()
             if lower_substr == option:
