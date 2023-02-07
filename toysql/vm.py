@@ -30,16 +30,16 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenWrite:
-                # old
                 # Open btree with write cursor (Currently cursors don't have read/write flag)
                 # TODO: Also p4 is unimplemeneted.
-                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
+                root_page_number = registers[instruction.p2]
+                btrees[instruction.p1] = Cursor(BTree(self.pager, root_page_number))
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenRead:
-                # old
                 # Open a cursor with root page p2 and assign its refname to val p1
-                btrees[instruction.p1] = Cursor(BTree(self.pager, instruction.p2))
+                root_page_number = registers[instruction.p2]
+                btrees[instruction.p1] = Cursor(BTree(self.pager, root_page_number))
                 cursor += 1
 
             if instruction.opcode == Opcode.String:

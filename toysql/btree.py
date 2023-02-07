@@ -63,35 +63,6 @@ class Frame:
 
 class Cursor:
     """
-    sqlite definition:
-
-
-    #define BTREE_WRCSR     0x00000004     /* read-write cursor */
-    #define BTREE_FORDELETE 0x00000008     /* Cursor is for seek/delete only */
-
-    int sqlite3BtreeCursor(
-      Btree*,                              /* BTree containing table to open */
-      int iTable,                          /* Index of root page */
-      int wrFlag,                          /* 1 for writing.  0 for read-only */
-      struct KeyInfo*,                     /* First argument to compare function */
-      BtCursor *pCursor                    /* Space to write cursor structure */
-    );
-    int sqlite3BtreeCursorSize(void);
-    int sqlite3BtreeCloseCursor(BtCursor*);
-    void sqlite3BtreeClearCursor(BtCursor *);
-    int sqlite3BtreeFirst(BtCursor*, int *pRes);
-    int sqlite3BtreeLast(BtCursor*, int *pRes);
-    int sqlite3BtreeNext(BtCursor*, int *pRes);
-    int sqlite3BtreePrevious(BtCursor*, int *pRes);
-    int sqlite3BtreeEof(BtCursor*);
-    int sqlite3BtreeKeySize(BtCursor*, i64 *pSize);
-    int sqlite3BtreeKey(BtCursor*, u32 offset, u32 amt, void*);
-    const void *sqlite3BtreeKeyFetch(BtCursor*, u32 *pAmt);
-    const void *sqlite3BtreeDataFetch(BtCursor*, u32 *pAmt);
-    int sqlite3BtreeDataSize(BtCursor*, u32 *pSize);
-    int sqlite3BtreeData(BtCursor*, u32 offset, u32 amt, void*);
-    int sqlite3BtreeCount(BtCursor *, i64 *);
-
     StackBased cursor.
 
     As we move to each node we will keep the
