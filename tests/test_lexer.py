@@ -1,4 +1,3 @@
-import unittest
 from typing import List
 from toysql.lexer import (
     StatementLexer,
@@ -10,7 +9,6 @@ from toysql.lexer import (
     NumericLexer,
     StringLexer,
     KeywordLexer,
-    NullLexer,
     IdentifierLexer,
 )
 from unittest import TestCase
@@ -26,11 +24,10 @@ class TestSymbolLexer(TestCase):
             cursor = Cursor(source)
             token = lexer.lex(cursor)
 
+            assert cursor.pointer == pointer
             if token:
-                assert cursor.pointer == pointer
                 assert token.value == value
             else:
-                assert cursor.pointer == pointer
                 assert value is None
 
 
@@ -69,27 +66,8 @@ class TestKeywordLexer(TestCase):
         for source, value in cases:
             cursor = Cursor(source)
             token = lexer.lex(cursor)
+
             if token:
-                assert token.value == value
-            else:
-                assert value is None
-
-
-class TestLiteralLexer(TestCase):
-    def test_lex(self):
-        lexer = NullLexer()
-        cases = [
-            ("NULL", "null"),
-            ("null", "null"),
-            (" null", None),
-            ("null tablename", "null"),
-        ]
-
-        for source, value in cases:
-            cursor = Cursor(source)
-            token = lexer.lex(cursor)
-            if token:
-                assert token.kind == Kind.null
                 assert token.value == value
             else:
                 assert value is None
@@ -235,13 +213,8 @@ class TestStatementLexer(TestCase):
         assert str(exec_info.exception) == "Lexing error at location 0:7"
 
 
-    @unittest.skip("TODO: test partial keyword")
     def test_partial_keywork(self):
         query = """CREATE TABLE schema (id INT, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INT);"""
+        tokens = self.lexer.lex(query)
 
-        x = self.lexer.lex(query)
-        # TODO assert assert keyword as is not pulled for associated_table_name
-        assert False
-
-
-
+        assert Token(value='as', kind=Kind.keyword, loc=Location(line=0, col=58)) not in tokens 
