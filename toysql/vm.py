@@ -83,8 +83,7 @@ class VM:
                 for i in range(instruction.p2):
                     c = []
                     v = registers[instruction.p1 + i]
-
-                    t = DataType.integer if isinstance(v, int) else DataType.text  
+                    t = DataType.infer(v)
                     c.append(t)
                     c.append(registers[instruction.p1 + i])
                     values.append(c)
