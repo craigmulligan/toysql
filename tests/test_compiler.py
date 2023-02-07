@@ -14,7 +14,7 @@ class TestCompiler(Fixtures):
         self.vm.execute = Mock(return_value=[])
         self.compiler = Compiler(self.pager, self.vm)
         self.compiler.get_schema = Mock(
-            return_value=[[1, "table", "products", "products", sql_text, self.root_page_number]]
+            return_value=[[1, "table", "products", "products", self.root_page_number, sql_text]]
         )
 
     def tearDown(self) -> None:

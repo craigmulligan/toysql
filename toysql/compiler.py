@@ -189,9 +189,9 @@ class Compiler:
     def get_schema(self) -> List[List[Any]]:
         # Gets the current schema table values
         cursor = Cursor(BTree(self.pager, 0))
-        values = [record.values for record in cursor]
+        rows = [[r[1] for r in record.values] for record in cursor]
 
-        return [v[1] for v in values]
+        return rows 
 
     def get_next_schema_key(self):
         cursor = Cursor(BTree(self.pager, 0))
@@ -230,7 +230,7 @@ class Compiler:
 
         for values in self.get_schema():
             if values[2] == table_name:
-                sql_text = values[4]
+                sql_text = values[5]
                 return self.get_column_names_from_sql_text(sql_text)
 
         raise TableFoundException(f"Table: {table_name} not found")
@@ -256,7 +256,7 @@ class Compiler:
 
         for record in self.get_schema():
             if record[2] == table_name:
-                root_page_number = record[5]
+                root_page_number = record[4]
                 return root_page_number
 
         raise TableFoundException(f"Table: {table_name} not found")
@@ -305,6 +305,7 @@ class Compiler:
                 str(statement.into.value)
             )
             table_page_number_addr = memory.next_addr()
+
             program.instructions.append(Instruction(Opcode.Integer, p1=table_page_number, p2=table_page_number_addr, p3=0))
             # TODO: get number of columns from schema stmt - replace 3.
             program.instructions.append(Instruction(Opcode.OpenWrite, p1=table_cursor, p2=table_page_number_addr, p3=3))
