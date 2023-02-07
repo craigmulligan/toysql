@@ -277,13 +277,16 @@ class Compiler:
             program.instructions.append(Instruction(Opcode.Key, p1=0, p2=key_addr))
 
             columns = [] 
-            for i in self.get_column_indexes(statement):
-                columns.append(
-                    Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
-                )
+            column_indexes = self.get_column_indexes(statement)
+            for i in column_indexes:
+                if i > 0:
+                    columns.append(
+                        Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
+                    )
 
+            first_column_addr = key_addr if 0 in column_indexes else columns[0].p3 
             program.instructions.extend(columns)
-            program.instructions.append(Instruction(Opcode.ResultRow, p1=key_addr, p2=len(columns) + 1))
+            program.instructions.append(Instruction(Opcode.ResultRow, p1=first_column_addr, p2=len(columns) + 1))
             program.instructions.append(Instruction(Opcode.Next, p1=0, p2=3))
             program.instructions.extend([
                close, 

@@ -25,8 +25,6 @@ class TestVM(Fixtures):
         program = self.compiler.compile(create_stmt)
         [row for row in self.vm.execute(program)]
 
-        self.root_page_number = 1
-
     def test_create(self):
         """
         When we init the VM we should auto
@@ -40,7 +38,7 @@ class TestVM(Fixtures):
         assert len(records) == 2
         new_row = records[1]
         # TODO: Listing key here twice.
-        assert new_row == [2, 2, "table", table_name, table_name, 2,  create_stmt]
+        assert new_row == [2, "table", table_name, table_name, 2,  create_stmt]
 
     def test_insert_and_select_x(self):
         rows = [
