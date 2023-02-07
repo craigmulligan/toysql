@@ -24,7 +24,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.SCopy:
-                # old
                 # shallow copy register value p1 -> p2.
                 registers[instruction.p2] = registers[instruction.p1]
                 cursor += 1
@@ -43,12 +42,10 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.String:
-                # old
                 registers[instruction.p2] = instruction.p4
                 cursor += 1
 
             if instruction.opcode == Opcode.Integer:
-                # old
                 registers[instruction.p2] = instruction.p1
                 cursor += 1
 
@@ -56,7 +53,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.Rewind:
-                # old
                 # If table or index is empty jump to p2
                 # else rewind the btree cursor to start.
                 tree = btrees[instruction.p1]
@@ -68,7 +64,6 @@ class VM:
                     cursor += 1
 
             if instruction.opcode == Opcode.Key:
-                # old
                 # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].current()
                 registers[instruction.p2] = row.row_id
@@ -99,7 +94,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.ResultRow:
-                # old
                 # Take all the stored values in registers p1 - p2 and yield them
                 # to the caller.
                 values = []
@@ -124,10 +118,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.Next:
-                # old
-                # Check if btree cursor p1 has next value.
-                # If next continue to address p2
-                # else fall through to next instruction.
                 tree = btrees[instruction.p1]
 
                 try:
@@ -142,16 +132,6 @@ class VM:
                 cursor += 1
 
             if instruction.opcode == Opcode.Halt:
-                # old
-                # Immediate exit.
-                # P1 is the result code returned by sqlite3_exec(),
-                # sqlite3_reset(), or sqlite3_finalize().
-                # For a normal halt, this should be SQLITE_OK (0).
-                # For errors, it can be some other value.
-                # If P1!=0 then P2 will determine whether or not to rollback the current transaction.
-                # Do not rollback if P2==OE_Fail. Do the rollback if P2==OE_Rollback.
-                # If P2==OE_Abort, then back out all changes that have occurred during this execution of the VDBE,
-                # but do not rollback the transaction.
                 if instruction.p1 != 0:
                     # We have an error
                     raise Exception(instruction.p4)
