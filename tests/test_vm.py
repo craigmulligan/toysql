@@ -36,9 +36,9 @@ class TestVM(Fixtures):
         self.execute(create_stmt)
         records = self.execute(f"SELECT * FROM {SCHEMA_TABLE_NAME}")
 
-        assert len(records) == 3
-        new_row = records[2]
-        assert new_row == [3, table_name, create_stmt, 2]
+        assert len(records) == 2
+        new_row = records[1]
+        assert new_row == [2, "table", table_name, table_name, 0,  create_stmt]
 
     def test_insert_and_select_x(self):
         rows = [
