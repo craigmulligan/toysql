@@ -193,10 +193,6 @@ class Compiler:
 
         return rows 
 
-    def get_next_schema_key(self):
-        cursor = Cursor(BTree(self.pager, 0))
-        return cursor.row_count() + 1
-
     def prepare(self, sql_text: str):
         tokens = self.lexer.lex(sql_text)
         stmts = self.parser.parse(tokens)
@@ -405,7 +401,7 @@ class Compiler:
                 )
             )
 
-            primary_key = self.get_next_schema_key()
+            primary_key = len(self.get_schema()) + 1
             primary_key_addr = memory.next_addr()
             # TODO: I'm not sure why we don't use seek end + Key opcodes to get the primary key? 
             instructions.append(Instruction(Opcode.Integer, p1=primary_key, p2=primary_key_addr))

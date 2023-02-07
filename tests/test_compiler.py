@@ -1,6 +1,6 @@
 from toysql.compiler import Compiler, Instruction, Opcode, SCHEMA_TABLE_NAME
 from tests.fixtures import Fixtures
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 # http://chi.cs.uchicago.edu/chidb/architecture.html#chidb-dbm
 
@@ -8,6 +8,7 @@ class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
 #        sql_text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+
         sql_text = "CREATE TABLE products(code INT, name TEXT, price INT)"
         self.root_page_number = 2
         self.vm = Mock()
@@ -110,10 +111,9 @@ class TestCompiler(Fixtures):
         # program = self.compiler.compile('create table "org" (id INT, name TEXT);')
         # TODO: This should be CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)
         stmt = "CREATE TABLE products(code INT, name TEXT, price INT)"
-        program = self.compiler.compile(stmt)
 
-        # TODO CreateBtree will write to disk. We need to check that we can recover
-        # with Transactions
+        with patch.object(self.compiler, "get_schema", return_value=[]):
+            program = self.compiler.compile(stmt)
 
         assert program.instructions == [
             Instruction(Opcode.Integer, p1=0, p2=0),
