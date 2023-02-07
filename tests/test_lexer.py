@@ -7,7 +7,7 @@ from toysql.lexer import (
     Cursor,
     Location,
     NumericLexer,
-    StringLexer,
+    TextLexer,
     KeywordLexer,
     IdentifierLexer,
 )
@@ -75,7 +75,7 @@ class TestKeywordLexer(TestCase):
 
 class TestStringLexer(TestCase):
     def test_lex(self):
-        lexer = StringLexer()
+        lexer = TextLexer()
         cases = [("'abc'", "abc", 5), (" 'abc'", None, 0), ("select", None, 0)]
 
         for source, value, index in cases:

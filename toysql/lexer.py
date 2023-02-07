@@ -348,7 +348,7 @@ class DelimitedLexer:
         return None
 
 
-class StringLexer(DelimitedLexer):
+class TextLexer(DelimitedLexer):
     def __init__(self):
         super().__init__("'", Kind.text)
 
@@ -405,7 +405,7 @@ class StatementLexer:
             KeywordLexer(),  # Note keyword should always have first pick.
             SymbolLexer(),
             NumericLexer(),
-            StringLexer(),
+            TextLexer(),
             IdentifierLexer(),
         ]
 
