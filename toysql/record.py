@@ -129,7 +129,10 @@ class Integer:
 class Record:
     def __init__(self, payload, row_id=None):
         self.values = payload
-        self.row_id = row_id or payload[0][1] or 0
+        try:
+            self.row_id = row_id or payload[0][1] or 0
+        except:
+            self.row_id = 0
 
         if len(payload) == 0:
             # Always ensure values is set.

@@ -12,16 +12,15 @@ class VM:
         btrees = {}
         registers = {}
         cursor = 0
-        print(program)
+        print("\n".join([str(instruct) for instruct in (program.instructions)]))
 
-        while len(program.instructions) < cursor:
+        while len(program.instructions) > cursor:
             instruction = program.instructions[cursor]
             if instruction.opcode == Opcode.CreateTable:
-                # old
                 # TODO: Should be able to roll this back.
                 # RN: pager.new() will write to disk.
                 page_number = self.pager.new()
-                registers[instruction.p2] = page_number
+                registers[instruction.p1] = page_number
                 cursor += 1
 
             if instruction.opcode == Opcode.SCopy:
@@ -78,8 +77,8 @@ class VM:
             if instruction.opcode == Opcode.Column:
                 # Read column at index p2 and store in register p3
                 row = btrees[instruction.p1].current()
-                v = row.values[instruction.p2][1]
 
+                v = row.values[instruction.p2][1]
                 registers[instruction.p3] = v
                 cursor += 1
 
@@ -88,11 +87,11 @@ class VM:
 
                 for i in range(instruction.p2):
                     c = []
-                    v = registers[instruction.p1 - 1 + i]
+                    v = registers[instruction.p1 + i]
 
                     t = DataType.integer if isinstance(v, int) else DataType.text  
                     c.append(t)
-                    c.append(registers[instruction.p1 - 1 + i])
+                    c.append(registers[instruction.p1 + i])
                     values.append(c)
 
                 record = Record(values)
@@ -103,9 +102,10 @@ class VM:
 
             if instruction.opcode == Opcode.ResultRow:
                 # old
-                # Take all the stored values in registers p1 - p2 and yeild them
+                # Take all the stored values in registers p1 - p2 and yield them
                 # to the caller.
                 values = []
+
                 for i in range(
                     cast(int, instruction.p1), cast(int, instruction.p2) + 1
                 ):
@@ -117,9 +117,12 @@ class VM:
 
             if instruction.opcode == Opcode.Insert:
                 record = registers[instruction.p2]
+                record.row_id = registers[instruction.p3]
+                record.values.insert(0, [DataType.integer, record.row_id ])
+
                 btrees[instruction.p1].insert(record)
-                registers[instruction.p3] = record.row_id
                 registers[instruction.p2] = record
+
                 cursor += 1
 
             if instruction.opcode == Opcode.Next:

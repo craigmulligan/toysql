@@ -189,8 +189,13 @@ class Compiler:
     def get_schema(self) -> List[List[Any]]:
         # Gets the current schema table values
         cursor = Cursor(BTree(self.pager, 0))
-        values = [v for v in cursor]
-        return values
+        values = [record.values for record in cursor]
+
+        return [v[1] for v in values]
+
+    def get_next_schema_key(self):
+        cursor = Cursor(BTree(self.pager, 0))
+        return cursor.row_count() + 1
 
     def prepare(self, sql_text: str):
         tokens = self.lexer.lex(sql_text)
@@ -284,7 +289,6 @@ class Compiler:
                 columns.append(
                     Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
                 )
-
 
             program.instructions.extend(columns)
             program.instructions.append(Instruction(Opcode.ResultRow, p1=key_addr, p2=len(columns) + 1))
@@ -383,13 +387,6 @@ class Compiler:
 
             instructions.append(
                 Instruction(
-                    Opcode.Integer,
-                    p2=root_page_num_addr,
-                )
-            )
-
-            instructions.append(
-                Instruction(
                     Opcode.String,
                     p1=len(text),
                     p2=text_addr,
@@ -407,7 +404,7 @@ class Compiler:
                 )
             )
 
-            primary_key = 1
+            primary_key = self.get_next_schema_key()
             primary_key_addr = memory.next_addr()
             # TODO: I'm not sure why we don't use seek end + Key opcodes to get the primary key? 
             instructions.append(Instruction(Opcode.Integer, p1=primary_key, p2=primary_key_addr))
