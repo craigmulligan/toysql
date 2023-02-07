@@ -168,18 +168,14 @@ class Memory:
 class Compiler:
     """
     Given a Statement the compiler will produce a Program for the VM to execute.
-
-    It's a vm itself to look up the internal schema table.
     """
 
-    def __init__(self, pager: Pager, vm):
+    def __init__(self, pager: Pager):
         self.pager = pager
         # These are needed to parse schema_table.sql_text
         # values to interpret column names and types
         self.lexer = StatementLexer()
         self.parser = Parser()
-        # VM is used for internal programs
-        # Like reading + writing to the schema table
         self.init_schema_table()
 
     def init_schema_table(self):
