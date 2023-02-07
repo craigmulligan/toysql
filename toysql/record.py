@@ -114,7 +114,6 @@ class Integer:
     @staticmethod
     def from_bytes(value: bytes):
         """Read a varint from bytes"""
-        # result = int.from_bytes(value, "little", signed=True)
         shift = 0
         result = 0
         for b in value:

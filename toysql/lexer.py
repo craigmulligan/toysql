@@ -4,6 +4,8 @@ from io import StringIO
 from toysql.exceptions import LexingException
 from typing import List, Protocol, Optional, Union
 
+def is_alphabetical(c: str):
+    return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
 class Keyword(Enum):
     select = "select"
@@ -19,6 +21,7 @@ class Keyword(Enum):
     int = "int"
     bool = "bool"
     text = "text"
+    null = "null"
 
 
 class Symbol(Enum):
@@ -183,8 +186,21 @@ class KeywordLexer:
             substr = cursor.peek(l)
             lower_substr = substr.lower()
             if lower_substr == option:
-                cursor.read(l)
-                match = lower_substr
+                # matched.
+
+                # Now we need to make sure it's either
+                # a full word OR it's the end of the string.
+                # cursor.peek will return as much as it can 
+                # even if you give a length greater than 
+                # the underlying string. That's why we
+                # check l == len(with_next_char)
+                with_next_char = cursor.peek(l + 1)
+                
+                if l == len(with_next_char) or not is_alphabetical(with_next_char[-1]):
+                    # now makesure it's a complete word 
+                    # but checking the next char is a space.
+                    cursor.read(l)
+                    match = lower_substr
 
         if match is None:
             return None
@@ -192,25 +208,25 @@ class KeywordLexer:
         return Token(match, Kind.keyword, cursor_start)
 
 
-class NullLexer:
-    """
-    Matches against literals currently only for NULL.
-    """
+# class NullLexer:
+#     """
+#     Matches against literals currently only for NULL.
+#     """
 
-    def lex(self, cursor):
-        cursor_start = cursor.location()
+#     def lex(self, cursor):
+#         cursor_start = cursor.location()
 
-        search_term = "null"
-        l = len(search_term)
-        substr = cursor.peek(l)
-        lower_substr = substr.lower()
+#         search_term = "null"
+#         l = len(search_term)
+#         substr = cursor.peek(l)
+#         lower_substr = substr.lower()
 
-        if lower_substr != search_term:
-            return
-        else:
-            cursor.read(l)
+#         if lower_substr != search_term:
+#             return
+#         else:
+#             cursor.read(l)
 
-        return Token(search_term, Kind.null, cursor_start)
+#         return Token(search_term, Kind.null, cursor_start)
 
 
 class NumericLexer:
@@ -337,6 +353,8 @@ class StringLexer(DelimitedLexer):
         super().__init__("'", Kind.text)
 
 
+
+
 class IdentifierLexer:
     def __init__(self) -> None:
         self.double_quote = DelimitedLexer('"', Kind.identifier)
@@ -351,9 +369,8 @@ class IdentifierLexer:
 
         c = cursor.peek()
 
-        is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
-
-        if not is_alphabetical:
+        
+        if not is_alphabetical(c):
             return None
 
         value = cursor.read(1)
@@ -361,10 +378,9 @@ class IdentifierLexer:
         while not cursor.is_complete():
             c = cursor.peek()
 
-            is_alphabetical = (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
             is_numeric = c >= "0" and c <= "9"
 
-            if is_alphabetical or is_numeric or c == "$" or c == "_":
+            if is_alphabetical(c) or is_numeric or c == "$" or c == "_":
                 value += cursor.read(1)
                 continue
 
@@ -387,7 +403,6 @@ class StatementLexer:
         # So we ensure each of these is a lexer.
         lexers: List[Lexer] = [
             KeywordLexer(),  # Note keyword should always have first pick.
-            NullLexer(),
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
