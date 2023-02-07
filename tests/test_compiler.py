@@ -11,9 +11,7 @@ class TestCompiler(Fixtures):
 
         sql_text = "CREATE TABLE products(code INT, name TEXT, price INT)"
         self.root_page_number = 2
-        self.vm = Mock()
-        self.vm.execute = Mock(return_value=[])
-        self.compiler = Compiler(self.pager, self.vm)
+        self.compiler = Compiler(self.pager)
         self.compiler.get_schema = Mock(
             return_value=[[1, "table", "products", "products", self.root_page_number, sql_text]]
         )

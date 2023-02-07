@@ -14,7 +14,7 @@ class TestVM(Fixtures):
         )
 
         self.vm = VM(self.pager)
-        self.compiler = Compiler(self.pager, self.vm)
+        self.compiler = Compiler(self.pager)
 
         def execute(sql: str):
             program = self.compiler.compile(sql)
