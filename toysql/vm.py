@@ -88,7 +88,6 @@ class VM:
                     c.append(registers[instruction.p1 + i])
                     values.append(c)
 
-                # Not sure if this is right.
                 registers[instruction.p3] = values 
                 cursor += 1
 
