@@ -10,10 +10,6 @@ class TableFoundException(NotFoundException):
     pass
 
 
-class CellNotFoundException(NotFoundException):
-    pass
-
-
 class PageNotFoundException(NotFoundException):
     pass
 
@@ -23,8 +19,4 @@ class LexingException(Exception):
 
 
 class ParsingException(Exception):
-    pass
-
-
-class PageFullException(Exception):
     pass

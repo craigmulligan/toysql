@@ -38,44 +38,11 @@ class DataType(Enum):
     """
     NULL. The value is a NULL value.
     INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
-    REAL. The value is a floating point value, stored as an 8-byte IEEE floating point number.
     TEXT. The value is a text text, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
-    BLOB. The value is a blob of data, stored exactly as it was input.
     """
-
     null = auto()
     integer = auto()
-    numeric = auto()
     text = auto()
-
-    def to_affinity(self) -> str:
-        # Taken from https://github.com/sqlcipher/sqlcipher/blob/master/src/sqliteInt.h#L2173-L2178
-        ###
-        # define SQLITE_AFF_NONE     0x40  /* '@' */
-        # define SQLITE_AFF_BLOB     0x41  /* 'A' */
-        # define SQLITE_AFF_TEXT     0x42  /* 'B' */
-        # define SQLITE_AFF_NUMERIC  0x43  /* 'C' */
-        # define SQLITE_AFF_INTEGER  0x44  /* 'D' */
-        # define SQLITE_AFF_REAL     0x45  /* 'E' */
-        ###
-        if self == DataType.text:
-            return "B"
-
-        if self == DataType.integer:
-            return "D"
-
-        raise Exception("Unmapped DataType affinity")
-
-    @staticmethod
-    def from_affinity(affinity: str) -> "DataType":
-        if affinity == "B":
-            return DataType.text
-
-        if affinity == "D":
-            return DataType.integer
-
-        raise Exception("Unmapped DataType affinity")
-
 
 class Kind(Enum):
     """
@@ -88,17 +55,10 @@ class Kind(Enum):
     symbol = auto()
     identifier = auto()
 
-    # might not need bool.
-    # Sqlite just uses into under the hood.
-    bool = auto()
-    null = auto()
-
-    integer = auto()
-    # TODO should have REAL for floating point
-    text = auto()
-    blob = auto()
-
-    # TODO maybe cleanest is to have a datatype property?
+    # datatypes
+    null = DataType.null 
+    integer = DataType.integer 
+    text = DataType.text
 
 
 @dataclass
@@ -230,29 +190,6 @@ class KeywordLexer:
             return None
 
         return Token(match, Kind.keyword, cursor_start)
-
-
-class BoolLexer:
-    """
-    Matches against bool literals
-    """
-
-    def lex(self, cursor):
-        cursor_start = cursor.location()
-        match = None
-        options = ["true", "false"]
-        for option in options:
-            l = len(option)
-            substr = cursor.peek(l)
-            lower_substr = substr.lower()
-            if lower_substr == option:
-                cursor.read(l)
-                match = lower_substr
-
-        if match is None:
-            return None
-
-        return Token(match, Kind.bool, cursor_start)
 
 
 class NullLexer:
@@ -451,7 +388,6 @@ class StatementLexer:
         lexers: List[Lexer] = [
             KeywordLexer(),  # Note keyword should always have first pick.
             NullLexer(),
-            BoolLexer(),
             SymbolLexer(),
             NumericLexer(),
             StringLexer(),
