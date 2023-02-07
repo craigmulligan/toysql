@@ -1,6 +1,7 @@
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record
 from toysql.exceptions import NotFoundException
+from toysql.lexer import DataType
 from typing import Optional
 from dataclasses import dataclass
 import sys
@@ -209,7 +210,7 @@ class Cursor:
             # Happens with an empty db.
             new_row_id = 1
 
-        record = Record([], row_id=new_row_id)
+        record = Record([[DataType.integer, new_row_id]])
         self.insert(record)
         return new_row_id
 

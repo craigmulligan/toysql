@@ -94,10 +94,8 @@ class VM:
                     c.append(registers[instruction.p1 + i])
                     values.append(c)
 
-                record = Record(values)
-
                 # Not sure if this is right.
-                registers[instruction.p3] = record
+                registers[instruction.p3] = values 
                 cursor += 1
 
             if instruction.opcode == Opcode.ResultRow:
@@ -116,13 +114,13 @@ class VM:
                 yield values
 
             if instruction.opcode == Opcode.Insert:
-                record = registers[instruction.p2]
-                record.row_id = registers[instruction.p3]
-                record.values.insert(0, [DataType.integer, record.row_id ])
+                values = registers[instruction.p2]
+                key_with_values = [[DataType.integer, registers[instruction.p3]], *values]
+
+                record = Record(key_with_values)
 
                 btrees[instruction.p1].insert(record)
                 registers[instruction.p2] = record
-
                 cursor += 1
 
             if instruction.opcode == Opcode.Next:

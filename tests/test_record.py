@@ -16,7 +16,7 @@ class TestRecord(TestCase):
         assert record.values == payload
 
     def test_empty(self):
-        raw_bytes = Record([], row_id=3).to_bytes()
+        raw_bytes = Record([[DataType.integer, 3]]).to_bytes()
         assert raw_bytes
         record = Record.from_bytes(raw_bytes)
         assert record.row_id == 3
