@@ -127,16 +127,17 @@ class Integer:
 
 
 class Record:
-    def __init__(self, payload, row_id=None):
+    def __init__(self, payload):
         self.values = payload
-        try:
-            self.row_id = row_id or payload[0][1] or 0
-        except:
-            self.row_id = 0
 
         if len(payload) == 0:
-            # Always ensure values is set.
-            self.values = [[DataType.integer, self.row_id]]
+            raise Exception("Empty record")
+
+        # row_id is always the first value in row.
+        if not isinstance(payload[0][1], int):
+            raise Exception("Key is not an integer")
+
+        self.row_id = payload[0][1]
 
     def __eq__(self, o: "Record") -> bool:
         return o.row_id == self.row_id
