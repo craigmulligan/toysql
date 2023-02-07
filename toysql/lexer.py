@@ -46,9 +46,7 @@ class DataType(Enum):
     null = auto()
     integer = auto()
     numeric = auto()
-    real = auto()
     text = auto()
-    blob = auto()
 
     def to_affinity(self) -> str:
         # Taken from https://github.com/sqlcipher/sqlcipher/blob/master/src/sqliteInt.h#L2173-L2178
