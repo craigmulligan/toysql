@@ -4,8 +4,6 @@ from io import StringIO
 from toysql.exceptions import LexingException
 from typing import List, Protocol, Optional, Union
 
-def is_alphabetical(c: str):
-    return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
 class Keyword(Enum):
     select = "select"
@@ -42,25 +40,39 @@ class DataType(Enum):
     NULL. The value is a NULL value.
     INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
     TEXT. The value is a text text, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
+
+    DataType is a superset of Kind 
     """
     null = auto()
     integer = auto()
     text = auto()
 
+    @staticmethod
+    def infer(v):
+
+        if isinstance(v, str): 
+            return DataType.text
+
+        if v == None:
+            return DataType.null
+
+        if isinstance(v, int):
+            return DataType.integer
+
+        raise Exception(f"Unable to infer datatype of {v}")
+        
+
 class Kind(Enum):
     """
     Kind is a superset of datatypes
-
-    You can't nicely extend Enums in python.
     """
-
     keyword = auto()
     symbol = auto()
     identifier = auto()
 
     # datatypes
-    null = DataType.null 
-    integer = DataType.integer 
+    null = DataType.null
+    integer = DataType.integer
     text = DataType.text
 
 
@@ -168,6 +180,11 @@ class Token:
         return self.value == other.value and self.kind == other.kind
 
 
+
+def is_alphabetical(c: str):
+    return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
+
+
 class Lexer(Protocol):
     def lex(self, cursor: Cursor) -> Optional[Token]:
         ...
@@ -206,27 +223,6 @@ class KeywordLexer:
             return None
 
         return Token(match, Kind.keyword, cursor_start)
-
-
-# class NullLexer:
-#     """
-#     Matches against literals currently only for NULL.
-#     """
-
-#     def lex(self, cursor):
-#         cursor_start = cursor.location()
-
-#         search_term = "null"
-#         l = len(search_term)
-#         substr = cursor.peek(l)
-#         lower_substr = substr.lower()
-
-#         if lower_substr != search_term:
-#             return
-#         else:
-#             cursor.read(l)
-
-#         return Token(search_term, Kind.null, cursor_start)
 
 
 class NumericLexer:
@@ -351,8 +347,6 @@ class DelimitedLexer:
 class TextLexer(DelimitedLexer):
     def __init__(self):
         super().__init__("'", Kind.text)
-
-
 
 
 class IdentifierLexer:

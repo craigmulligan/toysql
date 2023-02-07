@@ -317,6 +317,8 @@ class Compiler:
                 if token.kind == Kind.text:
                     program.instructions.append(Instruction(Opcode.String, p1=len(str(token.value)), p2=addr, p4=token.value))
 
+                # TODO: handle NULL.
+
             record_addr = memory.next_addr()
             program.instructions.append(Instruction(Opcode.MakeRecord, p1=first_column_addr, p2=len(statement.values), p3=record_addr))
 
