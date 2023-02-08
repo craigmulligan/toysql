@@ -2,7 +2,15 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from io import StringIO
 from toysql.exceptions import LexingException
-from typing import List, Protocol, Optional, Union
+from typing import List, Optional, Union
+
+
+class Identifier(Enum):
+    # Only one type of identifier
+    long = auto()
+    # Dont support delimited
+    # identifiers yet.
+    # delimited = auto()
 
 
 class Keyword(Enum):
@@ -40,8 +48,6 @@ class DataType(Enum):
     NULL. The value is a NULL value.
     INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
     TEXT. The value is a text text, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
-
-    DataType is a superset of Kind
     """
 
     null = auto()
@@ -62,19 +68,14 @@ class DataType(Enum):
         raise Exception(f"Unable to infer datatype of {v}")
 
 
-class Kind(Enum):
-    """
-    Kind is a superset of datatypes
-    """
+TokenType = Union[DataType, Symbol, Keyword, Identifier]
 
+
+class Kind(Enum):
     keyword = auto()
     symbol = auto()
     identifier = auto()
-
-    # datatypes
-    null = DataType.null
-    integer = DataType.integer
-    text = DataType.text
+    datatype = auto()
 
 
 @dataclass
@@ -168,18 +169,46 @@ class Cursor:
         return Location(self.line_no(), self.column_no())
 
 
-@dataclass
 class Token:
-    # TODO should only be str/int/None?
-    value: Union[str, int, float]
-    kind: Kind
-    loc: Optional[Location] = None
+    value: str
+    type: TokenType
+    loc: Location
+
+    def __init__(self, *, type: TokenType, loc: Location, value=None):
+        # TODO we can do this with dataclass __post_init__
+        self.type = type
+        self.loc = loc
+
+        if isinstance(type, Keyword):
+            self.kind = Kind.keyword
+        elif isinstance(type, Symbol):
+            self.kind = Kind.keyword
+        elif isinstance(type, Identifier):
+            self.kind = Kind.identifier
+        elif isinstance(type, DataType):
+            self.kind = Kind.datatype
+        else:
+            raise Exception("Unknown token type -> kind mapping")
+
+        if value is None:
+            self.value = self.type.value
+        else:
+            self.value = value
+
+    def __eq__(self, other: "Token"):
+        return (
+            self.value == other.value
+            and self.type == other.type
+            and self.kind == other.kind
+            and self.loc == other.loc
+        )
 
     def match(self, other: Optional["Token"]):
+        # TODO match on str.
         if other is None:
             return False
 
-        return self.value == other.value and self.kind == other.kind
+        return self.value == other.value and self.type == other.type
 
 
 def is_alphabetical(c: str):
@@ -196,11 +225,6 @@ def is_period(c: str):
 
 def is_exp_marker(c: str):
     return c == "e"
-
-
-class Lexer(Protocol):
-    def lex(self, cursor: Cursor) -> Optional[Token]:
-        ...
 
 
 def keyword_lexer(cursor: Cursor) -> Optional[Token]:
@@ -234,10 +258,13 @@ def keyword_lexer(cursor: Cursor) -> Optional[Token]:
     if match is None:
         return None
 
-    return Token(match, Kind.keyword, cursor_start)
+    return Token(type=Keyword(match), loc=cursor_start)
 
 
 def numeric_lexer(cursor: Cursor):
+    # TODO - this currently handles
+    # floating points - we should 
+    # instead just do floats.
     cursor_start = cursor.location()
     period_found = False
     exp_marker_found = False
@@ -284,11 +311,7 @@ def numeric_lexer(cursor: Cursor):
     if len(value) == 0:
         return None
 
-    return Token(
-        float(value),
-        Kind.integer,
-        cursor_start,
-    )
+    return Token(type=DataType.integer, loc=cursor_start, value=value)
 
 
 def symbol_lexer(cursor: Cursor):
@@ -304,15 +327,15 @@ def symbol_lexer(cursor: Cursor):
     cursor.read(1)
 
     return Token(
-        current,
-        Kind.symbol,
-        cursor_start,
+        type=Symbol(current),
+        loc=cursor_start,
     )
 
 
 class DelimitedLexer:
-    def __init__(self, delimiter: str, kind: Kind) -> None:
+    def __init__(self, delimiter: str, type: TokenType, kind: Kind) -> None:
         self.delimiter = delimiter
+        self.type = type
         self.kind = kind
 
     def lex(self, cursor: Cursor):
@@ -331,11 +354,7 @@ class DelimitedLexer:
                 # Move over the delimiter.
                 cursor.read(1)
 
-                return Token(
-                    value,
-                    self.kind,
-                    cursor_start,
-                )
+                return Token(type=self.type, loc=cursor_start, value=value)
 
             value += cursor.read(1)
 
@@ -343,14 +362,14 @@ class DelimitedLexer:
 
 
 def text_lexer(cursor: Cursor):
-    lexer = DelimitedLexer("'", Kind.text)
+    lexer = DelimitedLexer("'", DataType.text, Kind.datatype)
     return lexer.lex(cursor)
 
 
 def identifier_lexer(cursor: Cursor):
     # Look for double quote texts.
     cursor_start = cursor.location()
-    token = DelimitedLexer('"', Kind.identifier).lex(cursor)
+    token = DelimitedLexer('"', Identifier.long, Kind.identifier).lex(cursor)
 
     if token:
         return token
@@ -376,7 +395,7 @@ def identifier_lexer(cursor: Cursor):
     if len(value) == 0:
         return None
 
-    return Token(value.lower(), Kind.identifier, cursor_start)
+    return Token(type=Identifier.long, loc=cursor_start, value=value.lower())
 
 
 def lex(source: str) -> List[Token]:
