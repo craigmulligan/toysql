@@ -39,7 +39,6 @@ class TestCell(TestCase):
 
 class TestPage(TestCase):
     def test_leaf_page(self):
-        cells = []
         page_number = 1
 
         leaf_page = Page(PageType.leaf, page_number)
@@ -67,7 +66,6 @@ class TestPage(TestCase):
         Bug where only adding one cell caused issues.
         """
         interior_page = Page(PageType.interior, 2, right_child_page_number=3)
-        cells = []
 
         for n in [5, 3, 1]:
             interior_page.add_cell(InteriorPageCell(n, n + 1))
@@ -93,14 +91,3 @@ class TestPage(TestCase):
             cells.append(leaf_page.add(payload))
 
         assert sorted(cells) == leaf_page.cells
-
-    # def test_duplicate_row_id(self):
-    #     leaf_page = Page(PageType.leaf, 1)
-    #     payload = [
-    #         [DataType.integer, 3],
-    #     ]
-
-    #     leaf_page.add(payload)
-
-    #     with self.assertRaises(DuplicateKeyException):
-    #         leaf_page.add(payload)

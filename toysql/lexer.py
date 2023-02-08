@@ -169,13 +169,13 @@ class Cursor:
         return Location(self.line_no(), self.column_no())
 
 
+@dataclass
 class Token:
     value: str
     type: TokenType
-    loc: Location
+    loc: Optional[Location]
 
-    def __init__(self, *, type: TokenType, loc: Location, value=None):
-        # TODO we can do this with dataclass __post_init__
+    def __init__(self, type: TokenType, loc: Optional[Location] = None, value=None):
         self.type = type
         self.loc = loc
 
@@ -194,21 +194,6 @@ class Token:
             self.value = self.type.value
         else:
             self.value = value
-
-    def __eq__(self, other: "Token"):
-        return (
-            self.value == other.value
-            and self.type == other.type
-            and self.kind == other.kind
-            and self.loc == other.loc
-        )
-
-    def match(self, other: Optional["Token"]):
-        # TODO match on str.
-        if other is None:
-            return False
-
-        return self.value == other.value and self.type == other.type
 
 
 def is_alphabetical(c: str):
@@ -263,7 +248,7 @@ def keyword_lexer(cursor: Cursor) -> Optional[Token]:
 
 def numeric_lexer(cursor: Cursor):
     # TODO - this currently handles
-    # floating points - we should 
+    # floating points - we should
     # instead just do floats.
     cursor_start = cursor.location()
     period_found = False

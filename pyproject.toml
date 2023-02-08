@@ -34,5 +34,5 @@ build-backend = "pdm.pep517.api"
 log_cli = true
 
 [tool.pyright]
-extraPaths = ["__pypackages__/<major.minor>/lib/"]
+extraPaths = ["__pypackages__/3.10/lib/"]
 exclude = ["__pypackages__"]

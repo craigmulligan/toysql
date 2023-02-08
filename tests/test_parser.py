@@ -1,4 +1,4 @@
-from toysql.lexer import Token, Kind, Location
+from toysql.lexer import Token, Keyword, Symbol, Identifier, DataType
 from toysql.parser import (
     parse,
     SelectStatement,
@@ -11,56 +11,59 @@ from unittest import TestCase
 
 
 class TestParser(TestCase):
-    def test_found_x(self):
+    def test_found_multi_statement(self):
         create = [
-            Token("create", Kind.keyword),
-            Token("table", Kind.keyword),
-            Token("users", Kind.identifier),
-            Token("(", Kind.symbol),
-            Token("id", Kind.identifier),
-            Token("int", Kind.keyword),
-            Token(",", Kind.symbol),
-            Token("name", Kind.identifier),
-            Token("text", Kind.keyword),
-            Token("(", Kind.symbol),
-            Token(255, Kind.integer),
-            Token(")", Kind.symbol),
-            Token(")", Kind.symbol),
-            Token(";", Kind.symbol),
+            Token(Keyword.create),
+            Token(Keyword.table),
+            Token(Identifier.long, value="users"),
+            Token(Symbol.left_paren),
+            Token(Identifier.long, value="id"),
+            Token(Keyword.int),
+            Token(Symbol.comma),
+            Token(Identifier.long, value="name"),
+            Token(Keyword.text),
+            Token(Symbol.left_paren),
+            Token(DataType.integer, value="255"),
+            Token(Symbol.right_paren),
+            Token(Symbol.right_paren),
+            Token(Symbol.semicolon),
         ]
         insert = [
-            Token("insert", Kind.keyword),
-            Token("into", Kind.keyword),
-            Token("users", Kind.identifier),
-            Token("values", Kind.keyword),
-            Token("(", Kind.symbol),
-            Token(1, Kind.integer),
-            Token(",", Kind.symbol),
-            Token("Phil", Kind.text),
-            Token(")", Kind.symbol),
-            Token(";", Kind.symbol),
+            Token(Keyword.insert),
+            Token(Keyword.into),
+            Token(Identifier.long, value="users"),
+            Token(Keyword.values),
+            Token(Symbol.left_paren),
+            Token(DataType.integer, value="1"),
+            Token(Symbol.comma),
+            Token(DataType.text, value="Phil"),
+            Token(Symbol.right_paren),
+            Token(Symbol.semicolon),
         ]
         select = [
-            Token("select", Kind.keyword),
-            Token("a", Kind.identifier),
-            Token("from", Kind.keyword),
-            Token("my_table", Kind.identifier),
-            Token(";", Kind.symbol),
+            Token(Keyword.select),
+            Token(Identifier.long, value="a"),
+            Token(Keyword._from),
+            Token(Identifier.long, value="my_table"),
+            Token(Symbol.semicolon),
         ]
 
         tokens = create + insert + select
         stmts = parse(tokens)
+
+        assert len(stmts) == 3
         assert isinstance(stmts[0], CreateStatement)
         assert isinstance(stmts[1], InsertStatement)
         assert isinstance(stmts[2], SelectStatement)
 
     def test_found_not_terminator(self):
         tokens = [
-            Token("select", Kind.keyword),
-            Token("*", Kind.identifier),
-            Token("from", Kind.keyword),
-            Token("my_table", Kind.identifier),
+            Token(Keyword.select),
+            Token(Symbol.asterisk),
+            Token(Keyword._from),
+            Token(Identifier.long, value="my_table"),
         ]
+
         [stmt] = parse(tokens)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
@@ -68,23 +71,24 @@ class TestParser(TestCase):
 
 
 class TestCreateParser(TestCase):
-    def test_found(self):
+    def test_create(self):
         tokens = [
-            Token("create", Kind.keyword),
-            Token("table", Kind.keyword),
-            Token("users", Kind.identifier),
-            Token("(", Kind.symbol),
-            Token("id", Kind.identifier),
-            Token("int", Kind.keyword),
-            Token(",", Kind.symbol),
-            Token("name", Kind.identifier),
-            Token("text", Kind.keyword),
-            Token("(", Kind.symbol),
-            Token(255, Kind.integer),
-            Token(")", Kind.symbol),
-            Token(")", Kind.symbol),
-            Token(";", Kind.symbol),
+            Token(Keyword.create),
+            Token(Keyword.table),
+            Token(Identifier.long, value="users"),
+            Token(Symbol.left_paren),
+            Token(Identifier.long, value="id"),
+            Token(Keyword.int),
+            Token(Symbol.comma),
+            Token(Identifier.long, value="name"),
+            Token(Keyword.text),
+            Token(Symbol.left_paren),
+            Token(DataType.integer, value="255"),
+            Token(Symbol.right_paren),
+            Token(Symbol.right_paren),
+            Token(Symbol.semicolon),
         ]
+
         cursor = TokenCursor(tokens)
         stmt = CreateStatement.parse(cursor)
         assert isinstance(stmt, CreateStatement)
@@ -96,18 +100,30 @@ class TestCreateParser(TestCase):
 
 
 class TestInsertParser(TestCase):
-    def test_found(self):
+    def test_insert(self):
+        # tokens = [
+        #     Token("insert", Kind.keyword),
+        #     Token("into", Kind.keyword),
+        #     Token("users", Kind.identifier),
+        #     Token("values", Kind.keyword),
+        #     Token("(", Kind.symbol),
+        #     Token(1, Kind.integer),
+        #     Token(",", Kind.symbol),
+        #     Token("Phil", Kind.text),
+        #     Token(")", Kind.symbol),
+        #     Token(";", Kind.symbol),
+        # ]
         tokens = [
-            Token("insert", Kind.keyword),
-            Token("into", Kind.keyword),
-            Token("users", Kind.identifier),
-            Token("values", Kind.keyword),
-            Token("(", Kind.symbol),
-            Token(1, Kind.integer),
-            Token(",", Kind.symbol),
-            Token("Phil", Kind.text),
-            Token(")", Kind.symbol),
-            Token(";", Kind.symbol),
+            Token(Keyword.insert),
+            Token(Keyword.into),
+            Token(Identifier.long, value="users"),
+            Token(Keyword.values),
+            Token(Symbol.left_paren),
+            Token(DataType.integer, value="1"),
+            Token(Symbol.comma),
+            Token(DataType.text, value="Phil"),
+            Token(Symbol.right_paren),
+            Token(Symbol.semicolon),
         ]
         cursor = TokenCursor(tokens)
         stmt = InsertStatement.parse(cursor)
@@ -118,21 +134,21 @@ class TestInsertParser(TestCase):
 
 
 class TestSelectParser(TestCase):
-    def test_found_astrix(self):
+    def test_select_astrix(self):
         tokens = [
-            Token("select", Kind.keyword),
-            Token("*", Kind.symbol),
-            Token("from", Kind.keyword),
-            Token("my_table", Kind.identifier),
-            Token("where", Kind.keyword),
-            Token("x", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token("hi", Kind.text),
-            Token("and", Kind.keyword),
-            Token("y", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token(123, Kind.integer),
-            Token(";", Kind.symbol),
+            Token(Keyword.select),
+            Token(Symbol.asterisk),
+            Token(Keyword._from),
+            Token(Identifier.long, value="my_table"),
+            Token(Keyword.where),
+            Token(Identifier.long, value="x"),
+            Token(Symbol.equal),
+            Token(DataType.text, value="hi"),
+            Token(Keyword._and),
+            Token(Identifier.long, value="y"),
+            Token(Symbol.equal),
+            Token(DataType.integer, value="123"),
+            Token(Symbol.semicolon),
         ]
         cursor = TokenCursor(tokens)
         stmt = SelectStatement.parse(cursor)
@@ -140,23 +156,23 @@ class TestSelectParser(TestCase):
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "*"
 
-    def test_multi_columns(self):
+    def test_select_multi_columns(self):
         tokens = [
-            Token("select", Kind.keyword),
-            Token("a", Kind.identifier),
-            Token(",", Kind.symbol),
-            Token("b", Kind.identifier),
-            Token("from", Kind.keyword),
-            Token("my_table", Kind.identifier),
-            Token("where", Kind.keyword),
-            Token("x", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token("hi", Kind.text),
-            Token("and", Kind.keyword),
-            Token("y", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token(123, Kind.integer),
-            Token(";", Kind.symbol),
+            Token(Keyword.select),
+            Token(Identifier.long, value="a"),
+            Token(Symbol.comma),
+            Token(Identifier.long, value="b"),
+            Token(Keyword._from),
+            Token(Identifier.long, value="my_table"),
+            Token(Keyword.where),
+            Token(Identifier.long, value="x"),
+            Token(Symbol.equal),
+            Token(DataType.text, value="hi"),
+            Token(Keyword._and),
+            Token(Identifier.long, value="y"),
+            Token(Symbol.equal),
+            Token(DataType.integer, value="123"),
+            Token(Symbol.semicolon),
         ]
         cursor = TokenCursor(tokens)
         stmt = SelectStatement.parse(cursor)
@@ -165,40 +181,18 @@ class TestSelectParser(TestCase):
         assert stmt.items[0].value == "a"
         assert stmt.items[1].value == "b"
 
-    def test_found(self):
+    def test_insert_not_found(self):
         tokens = [
-            Token("select", Kind.keyword),
-            Token("a", Kind.identifier),
-            Token("from", Kind.keyword),
-            Token("my_table", Kind.identifier),
-            Token("where", Kind.keyword),
-            Token("x", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token("hi", Kind.text),
-            Token("and", Kind.keyword),
-            Token("y", Kind.identifier),
-            Token("=", Kind.symbol),
-            Token(123, Kind.integer),
-            Token(";", Kind.symbol),
-        ]
-        cursor = TokenCursor(tokens)
-        stmt = SelectStatement.parse(cursor)
-        assert isinstance(stmt, SelectStatement)
-        assert stmt._from.value == "my_table"
-        assert stmt.items[0].value == "a"
-
-    def test_not_found(self):
-        tokens = [
-            Token("insert", Kind.keyword),
-            Token("into", Kind.keyword),
-            Token("users", Kind.identifier),
-            Token("values", Kind.keyword),
-            Token("(", Kind.symbol),
-            Token(1, Kind.integer),
-            Token(",", Kind.symbol),
-            Token("Phil", Kind.text),
-            Token(")", Kind.symbol),
-            Token(";", Kind.symbol),
+            Token(Keyword.insert),
+            Token(Keyword.into),
+            Token(Identifier.long, value="users"),
+            Token(Keyword.values),
+            Token(Symbol.right_paren),
+            Token(DataType.integer, value="1"),
+            Token(Symbol.comma),
+            Token(DataType.text, value="Phil"),
+            Token(Symbol.left_paren),
+            Token(Symbol.semicolon),
         ]
         cursor = TokenCursor(tokens)
 
