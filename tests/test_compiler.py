@@ -4,16 +4,19 @@ from unittest.mock import Mock, patch
 
 # http://chi.cs.uchicago.edu/chidb/architecture.html#chidb-dbm
 
+
 class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-#        sql_text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
+        #        sql_text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
 
         sql_text = "CREATE TABLE products(code INT, name TEXT, price INT)"
         self.root_page_number = 2
         self.compiler = Compiler(self.pager)
         self.compiler.get_schema = Mock(
-            return_value=[[1, "table", "products", "products", self.root_page_number, sql_text]]
+            return_value=[
+                [1, "table", "products", "products", self.root_page_number, sql_text]
+            ]
         )
 
     def tearDown(self) -> None:
@@ -35,13 +38,12 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.Next, p1=0, p2=3),
             Instruction(Opcode.Close, p1=0),
             Instruction(Opcode.Halt, p1=0, p2=0),
-
         ]
 
     def test_select(self):
         """
         # Open the courses table using cursor 0
-        Integer      2  0  _  _  
+        Integer      2  0  _  _
         OpenRead     0  0  4  _
 
         # Go to the first entry. If the database is empty,
@@ -51,9 +53,9 @@ class TestCompiler(Fixtures):
         # Fetch the key of the row, plus the values
         # of "name", "prof", and "dept"
         Key          0  1  _  _
-        Column       0  1  2  _ 
-        Column       0  2  3  _ 
-        Column       0  3  4  _ 
+        Column       0  1  2  _
+        Column       0  2  3  _
+        Column       0  3  4  _
         ResultRow    1  4  _  _
         Next         0  3  _  _
 
@@ -79,7 +81,7 @@ class TestCompiler(Fixtures):
     def test_create(self):
         """
         # Open the schema table using cursor 0
-        Integer      1  0  _  _  
+        Integer      1  0  _  _
         OpenWrite    0  0  5  _
 
         # Create a new B-Tree, store its root page in register 4
@@ -113,36 +115,22 @@ class TestCompiler(Fixtures):
 
         assert program.instructions == [
             Instruction(Opcode.Integer, p1=0, p2=0),
-            Instruction(
-                Opcode.OpenWrite, p1=0, p2=0, p3=5
-            ),
-            Instruction(
-                Opcode.CreateTable, p1=4
-            ),
-            Instruction(
-                Opcode.String, p1=5, p2=1, p4="table"
-            ), 
-            Instruction(
-                Opcode.String, p1=8, p2=2, p4="products"
-            ),
-            Instruction(
-                Opcode.String, p1=8, p2=3, p4="products"
-            ),
-            Instruction(
-                Opcode.String, p1=len(stmt), p2=5, p4=stmt
-            ),
-            Instruction(
-                Opcode.MakeRecord, p1=1, p2=5, p3=6
-            ),
+            Instruction(Opcode.OpenWrite, p1=0, p2=0, p3=5),
+            Instruction(Opcode.CreateTable, p1=4),
+            Instruction(Opcode.String, p1=5, p2=1, p4="table"),
+            Instruction(Opcode.String, p1=8, p2=2, p4="products"),
+            Instruction(Opcode.String, p1=8, p2=3, p4="products"),
+            Instruction(Opcode.String, p1=len(stmt), p2=5, p4=stmt),
+            Instruction(Opcode.MakeRecord, p1=1, p2=5, p3=6),
             Instruction(Opcode.Integer, p1=1, p2=7),
             Instruction(Opcode.Insert, p1=0, p2=6, p3=7),
-            Instruction(Opcode.Close, p1=0)
+            Instruction(Opcode.Close, p1=0),
         ]
 
     def test_insert(self):
         """
         # Open the "products" table using cursor 0
-        Integer      2  0  _  _  
+        Integer      2  0  _  _
         OpenWrite    0  0  3  _
 
         # Create the record
@@ -168,9 +156,7 @@ class TestCompiler(Fixtures):
         """
         stmt = """INSERT INTO products VALUES(1, 'Hard Drive', 240)"""
 
-        program = self.compiler.compile(
-           stmt 
-        )
+        program = self.compiler.compile(stmt)
 
         assert program.instructions == [
             Instruction(Opcode.Integer, p1=self.root_page_number, p2=0, p3=0),

@@ -1,20 +1,36 @@
-[tool.poetry]
+[project]
 name = "toysql"
 version = "0.1.0"
 description = "A toy database"
-authors = ["Craig Mulligan <hey@hobochild.com>"]
+authors = [
+    {name = "Craig Mulligan", email = "git@craigmulligan.com"},
+]
+dependencies = []
+requires-python = ">=3.8,<4.0"
+license = {text = "MIT"}
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest<8.0.0,>=7.1.1",
+    "pyright<2.0.0,>=1.1.247",
+    "snapshottest<1.0.0,>=0.6.0",
+    "black>=23.1.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.1"
-pyright = "^1.1.247"
-snapshottest = "^0.6.0"
+[tool.pdm.build]
+includes = []
+[tool.pdm.scripts]
+test = "pytest"
+pyright = "pyright"
+ci = {composite = ["typetest", "pyright"]}
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
 
 [tool.pytest.ini_options]
 log_cli = true
+
+[tool.pyright]
+extraPaths = ["__pypackages__/<major.minor>/lib/"]
+exclude = ["__pypackages__"]

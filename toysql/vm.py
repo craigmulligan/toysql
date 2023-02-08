@@ -88,7 +88,7 @@ class VM:
                     c.append(registers[instruction.p1 + i])
                     values.append(c)
 
-                registers[instruction.p3] = values 
+                registers[instruction.p3] = values
                 cursor += 1
 
             if instruction.opcode == Opcode.ResultRow:
@@ -107,7 +107,10 @@ class VM:
 
             if instruction.opcode == Opcode.Insert:
                 values = registers[instruction.p2]
-                key_with_values = [[DataType.integer, registers[instruction.p3]], *values]
+                key_with_values = [
+                    [DataType.integer, registers[instruction.p3]],
+                    *values,
+                ]
 
                 record = Record(key_with_values)
 
@@ -123,7 +126,6 @@ class VM:
                     cursor = cast(int, instruction.p2)
                 except StopIteration:
                     cursor += 1
-
 
             if instruction.opcode == Opcode.Close:
                 del btrees[instruction.p1]
