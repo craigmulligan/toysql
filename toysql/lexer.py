@@ -41,16 +41,16 @@ class DataType(Enum):
     INTEGER. The value is a signed integer, stored in 0, 1, 2, 3, 4, 6, or 8 bytes depending on the magnitude of the value.
     TEXT. The value is a text text, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
 
-    DataType is a superset of Kind 
+    DataType is a superset of Kind
     """
+
     null = auto()
     integer = auto()
     text = auto()
 
     @staticmethod
     def infer(v):
-
-        if isinstance(v, str): 
+        if isinstance(v, str):
             return DataType.text
 
         if v == None:
@@ -60,12 +60,13 @@ class DataType(Enum):
             return DataType.integer
 
         raise Exception(f"Unable to infer datatype of {v}")
-        
+
 
 class Kind(Enum):
     """
     Kind is a superset of datatypes
     """
+
     keyword = auto()
     symbol = auto()
     identifier = auto()
@@ -180,7 +181,6 @@ class Token:
         return self.value == other.value and self.kind == other.kind
 
 
-
 def is_alphabetical(c: str):
     return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
@@ -207,14 +207,14 @@ class KeywordLexer:
 
                 # Now we need to make sure it's either
                 # a full word OR it's the end of the string.
-                # cursor.peek will return as much as it can 
-                # even if you give a length greater than 
+                # cursor.peek will return as much as it can
+                # even if you give a length greater than
                 # the underlying string. That's why we
                 # check l == len(with_next_char)
                 with_next_char = cursor.peek(l + 1)
-                
+
                 if l == len(with_next_char) or not is_alphabetical(with_next_char[-1]):
-                    # now makesure it's a complete word 
+                    # now makesure it's a complete word
                     # but checking the next char is a space.
                     cursor.read(l)
                     match = lower_substr
@@ -363,7 +363,6 @@ class IdentifierLexer:
 
         c = cursor.peek()
 
-        
         if not is_alphabetical(c):
             return None
 

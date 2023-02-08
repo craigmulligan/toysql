@@ -1,4 +1,3 @@
 __pycache__
-.testmondata
-venv
-__testdb__.db
+.pdm.toml
+__pypackages__

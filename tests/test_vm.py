@@ -9,9 +9,7 @@ class TestVM(Fixtures):
     def setUp(self) -> None:
         super().setUp()
         self.table_name = "users"
-        create_stmt = (
-            f"CREATE TABLE {self.table_name} (id INT, name TEXT, email TEXT);"
-        )
+        create_stmt = f"CREATE TABLE {self.table_name} (id INT, name TEXT, email TEXT);"
 
         self.vm = VM(self.pager)
         self.compiler = Compiler(self.pager)
@@ -38,7 +36,7 @@ class TestVM(Fixtures):
         assert len(records) == 2
         new_row = records[1]
         # TODO: Listing key here twice.
-        assert new_row == [2, "table", table_name, table_name, 2,  create_stmt]
+        assert new_row == [2, "table", table_name, table_name, 2, create_stmt]
 
     def test_insert_and_select_x(self):
         rows = [
@@ -92,8 +90,6 @@ class TestVM(Fixtures):
                 f"INSERT INTO {self.table_name} VALUES ({row_2[0]}, '{row_2[1]}', '{row_2[2]}');"
             )
 
-
     @unittest.skip("TODO: table doesnt exist")
     def test_vm_table_not_exists(self):
         pass
-
