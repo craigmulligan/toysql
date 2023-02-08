@@ -23,6 +23,7 @@ includes = []
 test = "pytest"
 pyright = "pyright"
 black_check = "black . --check"
+black = "black ."
 ci = {composite = ["pyright", "black_check", "test"]}
 
 [build-system]

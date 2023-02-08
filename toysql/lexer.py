@@ -185,11 +185,14 @@ class Token:
 def is_alphabetical(c: str):
     return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
+
 def is_digit(c: str):
     return c >= "0" and c <= "9"
 
+
 def is_period(c: str):
     return c == "."
+
 
 def is_exp_marker(c: str):
     return c == "e"
@@ -198,6 +201,7 @@ def is_exp_marker(c: str):
 class Lexer(Protocol):
     def lex(self, cursor: Cursor) -> Optional[Token]:
         ...
+
 
 def keyword_lexer(cursor: Cursor) -> Optional[Token]:
     cursor_start = cursor.location()
@@ -341,6 +345,7 @@ class DelimitedLexer:
 def text_lexer(cursor: Cursor):
     lexer = DelimitedLexer("'", Kind.text)
     return lexer.lex(cursor)
+
 
 def identifier_lexer(cursor: Cursor):
     # Look for double quote texts.

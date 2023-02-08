@@ -9,7 +9,7 @@ from toysql.lexer import (
     text_lexer,
     keyword_lexer,
     identifier_lexer,
-    lex
+    lex,
 )
 from unittest import TestCase
 from toysql.exceptions import LexingException
