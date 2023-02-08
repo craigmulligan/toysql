@@ -101,18 +101,6 @@ class TestCreateParser(TestCase):
 
 class TestInsertParser(TestCase):
     def test_insert(self):
-        # tokens = [
-        #     Token("insert", Kind.keyword),
-        #     Token("into", Kind.keyword),
-        #     Token("users", Kind.identifier),
-        #     Token("values", Kind.keyword),
-        #     Token("(", Kind.symbol),
-        #     Token(1, Kind.integer),
-        #     Token(",", Kind.symbol),
-        #     Token("Phil", Kind.text),
-        #     Token(")", Kind.symbol),
-        #     Token(";", Kind.symbol),
-        # ]
         tokens = [
             Token(Keyword.insert),
             Token(Keyword.into),
