@@ -6,7 +6,7 @@ from toysql.parser import (
     CreateStatement,
     Parser,
 )
-from toysql.lexer import StatementLexer, Kind
+from toysql.lexer import lex, Kind
 from enum import Enum, auto
 from dataclasses import dataclass
 from toysql.exceptions import TableFoundException
@@ -173,7 +173,6 @@ class Compiler:
         self.pager = pager
         # These are needed to parse schema_table.sql_text
         # values to interpret column names and types
-        self.lexer = StatementLexer()
         self.parser = Parser()
         self.init_schema_table()
 
@@ -189,7 +188,7 @@ class Compiler:
         return rows
 
     def prepare(self, sql_text: str):
-        tokens = self.lexer.lex(sql_text)
+        tokens = lex(sql_text)
         stmts = self.parser.parse(tokens)
 
         return stmts

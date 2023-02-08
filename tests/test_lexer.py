@@ -1,15 +1,15 @@
 from typing import List
 from toysql.lexer import (
-    StatementLexer,
     Kind,
     Token,
-    SymbolLexer,
     Cursor,
     Location,
-    NumericLexer,
-    TextLexer,
-    KeywordLexer,
-    IdentifierLexer,
+    symbol_lexer,
+    numeric_lexer,
+    text_lexer,
+    keyword_lexer,
+    identifier_lexer,
+    lex
 )
 from unittest import TestCase
 from toysql.exceptions import LexingException
@@ -17,12 +17,11 @@ from toysql.exceptions import LexingException
 
 class TestSymbolLexer(TestCase):
     def test_lex(self):
-        lexer = SymbolLexer()
         cases = [(",b", ",", 1), ("*", "*", 1), (" *", None, 0), ("select", None, 0)]
 
         for source, value, pointer in cases:
             cursor = Cursor(source)
-            token = lexer.lex(cursor)
+            token = symbol_lexer(cursor)
 
             assert cursor.pointer == pointer
             if token:
@@ -33,7 +32,6 @@ class TestSymbolLexer(TestCase):
 
 class TestNumericLexer(TestCase):
     def test_lex(self):
-        lexer = NumericLexer()
         cases = [
             ("123 adf", 123, 3),
             ("123 ", 123, 3),
@@ -44,7 +42,7 @@ class TestNumericLexer(TestCase):
 
         for source, value, pointer in cases:
             cursor = Cursor(source)
-            token = lexer.lex(cursor)
+            token = numeric_lexer(cursor)
             if token:
                 assert token.value == value
                 assert cursor.pointer == pointer
@@ -55,7 +53,6 @@ class TestNumericLexer(TestCase):
 
 class TestKeywordLexer(TestCase):
     def test_lex(self):
-        lexer = KeywordLexer()
         cases = [
             ("select", "select"),
             (" select", None),
@@ -65,7 +62,7 @@ class TestKeywordLexer(TestCase):
 
         for source, value in cases:
             cursor = Cursor(source)
-            token = lexer.lex(cursor)
+            token = keyword_lexer(cursor)
 
             if token:
                 assert token.value == value
@@ -75,12 +72,11 @@ class TestKeywordLexer(TestCase):
 
 class TestStringLexer(TestCase):
     def test_lex(self):
-        lexer = TextLexer()
         cases = [("'abc'", "abc", 5), (" 'abc'", None, 0), ("select", None, 0)]
 
         for source, value, index in cases:
             cursor = Cursor(source)
-            token = lexer.lex(cursor)
+            token = text_lexer(cursor)
             if token:
                 assert token.value == value
                 assert cursor.pointer == index
@@ -91,7 +87,6 @@ class TestStringLexer(TestCase):
 
 class TestIdentifierLexer(TestCase):
     def test_lex(self):
-        lexer = IdentifierLexer()
         cases = [
             ("my_table", "my_table"),
             ('"hello"', "hello"),
@@ -100,7 +95,7 @@ class TestIdentifierLexer(TestCase):
 
         for source, value in cases:
             cursor = Cursor(source)
-            token = lexer.lex(cursor)
+            token = identifier_lexer(cursor)
             if token:
                 assert token.value == value
             else:
@@ -108,10 +103,6 @@ class TestIdentifierLexer(TestCase):
 
 
 class TestStatementLexer(TestCase):
-    def __init__(self, methodName) -> None:
-        self.lexer = StatementLexer()
-        super().__init__(methodName)
-
     @staticmethod
     def get_token_by_kind(tokens: List[Token], kind: Kind):
         return (token for token in tokens if token.kind == kind)
@@ -119,7 +110,7 @@ class TestStatementLexer(TestCase):
     def test_select(self):
         query = """select * from "my_table"\nwhere x = 'hi'\nand y = 123;"""
 
-        tokens = self.lexer.lex(query)
+        tokens = lex(query)
 
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
@@ -142,7 +133,7 @@ class TestStatementLexer(TestCase):
     def test_select_multi_columns(self):
         query = """select x,y from "my_table"\nwhere x = 'hi'\nand y = 123;"""
 
-        tokens = self.lexer.lex(query)
+        tokens = lex(query)
 
         expected_tokens = [
             Token("select", Kind.keyword, Location(0, 0)),
@@ -167,7 +158,7 @@ class TestStatementLexer(TestCase):
     def test_create_table(self):
         query = """CREATE TABLE u (id INT, name TEXT)"""
 
-        tokens = self.lexer.lex(query)
+        tokens = lex(query)
 
         expected_tokens = [
             Token("create", Kind.keyword, Location(0, 0)),
@@ -187,7 +178,7 @@ class TestStatementLexer(TestCase):
     def test_insert(self):
         query = """INSERT INTO users VALUES (1, 'Phil');"""
 
-        tokens = self.lexer.lex(query)
+        tokens = lex(query)
 
         expected_tokens = [
             Token("insert", Kind.keyword, Location(0, 0)),
@@ -208,13 +199,13 @@ class TestStatementLexer(TestCase):
         query = """INSERT $$"""
 
         with self.assertRaises(LexingException) as exec_info:
-            self.lexer.lex(query)
+            lex(query)
 
         assert str(exec_info.exception) == "Lexing error at location 0:7"
 
     def test_partial_keywork(self):
         query = """CREATE TABLE schema (id INT, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INT);"""
-        tokens = self.lexer.lex(query)
+        tokens = lex(query)
 
         assert (
             Token(value="as", kind=Kind.keyword, loc=Location(line=0, col=58))

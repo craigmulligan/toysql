@@ -170,6 +170,7 @@ class Cursor:
 
 @dataclass
 class Token:
+    # TODO should only be str/int/None?
     value: Union[str, int, float]
     kind: Kind
     loc: Optional[Location] = None
@@ -184,132 +185,125 @@ class Token:
 def is_alphabetical(c: str):
     return (c >= "A" and c <= "Z") or (c >= "a" and c <= "z")
 
+def is_digit(c: str):
+    return c >= "0" and c <= "9"
+
+def is_period(c: str):
+    return c == "."
+
+def is_exp_marker(c: str):
+    return c == "e"
+
 
 class Lexer(Protocol):
     def lex(self, cursor: Cursor) -> Optional[Token]:
         ...
 
+def keyword_lexer(cursor: Cursor) -> Optional[Token]:
+    cursor_start = cursor.location()
+    match = None
+    options = [e.value for e in Keyword]
+    options.sort(key=len, reverse=True)
 
-class KeywordLexer:
-    def lex(self, cursor):
-        cursor_start = cursor.location()
-        match = None
-        options = [e.value for e in Keyword]
-        options.sort(key=len, reverse=True)
+    for option in options:
+        l = len(option)
 
-        for option in options:
-            l = len(option)
+        substr = cursor.peek(l)
+        lower_substr = substr.lower()
+        if lower_substr == option:
+            # matched.
 
-            substr = cursor.peek(l)
-            lower_substr = substr.lower()
-            if lower_substr == option:
-                # matched.
+            # Now we need to make sure it's either
+            # a full word OR it's the end of the string.
+            # cursor.peek will return as much as it can
+            # even if you give a length greater than
+            # the underlying string. That's why we
+            # check l == len(with_next_char)
+            with_next_char = cursor.peek(l + 1)
 
-                # Now we need to make sure it's either
-                # a full word OR it's the end of the string.
-                # cursor.peek will return as much as it can
-                # even if you give a length greater than
-                # the underlying string. That's why we
-                # check l == len(with_next_char)
-                with_next_char = cursor.peek(l + 1)
+            if l == len(with_next_char) or not is_alphabetical(with_next_char[-1]):
+                # now makesure it's a complete word
+                # but checking the next char is a space.
+                cursor.read(l)
+                match = lower_substr
 
-                if l == len(with_next_char) or not is_alphabetical(with_next_char[-1]):
-                    # now makesure it's a complete word
-                    # but checking the next char is a space.
-                    cursor.read(l)
-                    match = lower_substr
+    if match is None:
+        return None
 
-        if match is None:
-            return None
-
-        return Token(match, Kind.keyword, cursor_start)
+    return Token(match, Kind.keyword, cursor_start)
 
 
-class NumericLexer:
-    @staticmethod
-    def is_digit(c: str):
-        return c >= "0" and c <= "9"
+def numeric_lexer(cursor: Cursor):
+    cursor_start = cursor.location()
+    period_found = False
+    exp_marker_found = False
 
-    @staticmethod
-    def is_period(c: str):
-        return c == "."
+    c = cursor.peek()
+    value = ""
 
-    @staticmethod
-    def is_exp_marker(c: str):
-        return c == "e"
+    if not is_digit(c) and not is_period(c):
+        return None
 
-    def lex(self, cursor):
-        cursor_start = cursor.location()
-        period_found = False
-        exp_marker_found = False
-
+    while not cursor.is_complete():
         c = cursor.peek()
-        value = ""
 
-        if not self.is_digit(c) and not self.is_period(c):
-            return None
+        if is_period(c):
+            if period_found:
+                # What cases would you have ".."?
+                return None
 
-        while not cursor.is_complete():
-            c = cursor.peek()
+            period_found = True
+            value += cursor.read(1)
+            continue
 
-            if self.is_period(c):
-                if period_found:
-                    # What cases would you have ".."?
-                    return None
+        if is_exp_marker(c):
+            if exp_marker_found:
+                return None
 
-                period_found = True
+            # No periods allowed after expMarker
+            period_found = True
+            exp_marker_found = True
+
+            c_next = cursor.peek()
+            if c_next == "-" or c_next == "+":
                 value += cursor.read(1)
-                continue
-
-            if self.is_exp_marker(c):
-                if exp_marker_found:
-                    return None
-
-                # No periods allowed after expMarker
-                period_found = True
-                exp_marker_found = True
-
-                c_next = cursor.peek()
-                if c_next == "-" or c_next == "+":
-                    value += cursor.read(1)
-
-                value += cursor.read(1)
-                continue
-
-            if not self.is_digit(c):
-                break
 
             value += cursor.read(1)
+            continue
 
-        # No characters accumulated
-        if len(value) == 0:
-            return None
+        if not is_digit(c):
+            break
 
-        return Token(
-            float(value),
-            Kind.integer,
-            cursor_start,
-        )
+        value += cursor.read(1)
+
+    # No characters accumulated
+    if len(value) == 0:
+        return None
+
+    return Token(
+        float(value),
+        Kind.integer,
+        cursor_start,
+    )
 
 
-class SymbolLexer:
-    def lex(self, cursor):
-        options = [e.value for e in Symbol]
-        cursor_start = cursor.location()
-        current = cursor.peek()
+def symbol_lexer(cursor: Cursor):
+    options = [e.value for e in Symbol]
+    cursor_start = cursor.location()
+    current = cursor.peek()
 
-        try:
-            options.index(current)
-        except ValueError:
-            return None
+    try:
+        options.index(current)
+    except ValueError:
+        return None
 
-        cursor.read(1)
+    cursor.read(1)
 
-        return Token(
-            current,
-            Kind.symbol,
-            cursor_start,
-        )
+    return Token(
+        current,
+        Kind.symbol,
+        cursor_start,
+    )
 
 
 class DelimitedLexer:
@@ -317,7 +311,7 @@ class DelimitedLexer:
         self.delimiter = delimiter
         self.kind = kind
 
-    def lex(self, cursor):
+    def lex(self, cursor: Cursor):
         cursor_start = cursor.location()
         if cursor.peek() != self.delimiter:
             return None
@@ -344,83 +338,76 @@ class DelimitedLexer:
         return None
 
 
-class TextLexer(DelimitedLexer):
-    def __init__(self):
-        super().__init__("'", Kind.text)
+def text_lexer(cursor: Cursor):
+    lexer = DelimitedLexer("'", Kind.text)
+    return lexer.lex(cursor)
 
+def identifier_lexer(cursor: Cursor):
+    # Look for double quote texts.
+    cursor_start = cursor.location()
+    token = DelimitedLexer('"', Kind.identifier).lex(cursor)
 
-class IdentifierLexer:
-    def __init__(self) -> None:
-        self.double_quote = DelimitedLexer('"', Kind.identifier)
+    if token:
+        return token
 
-    def lex(self, cursor):
-        # Look for double quote texts.
-        cursor_start = cursor.location()
-        token = self.double_quote.lex(cursor)
+    c = cursor.peek()
 
-        if token:
-            return token
+    if not is_alphabetical(c):
+        return None
 
+    value = cursor.read(1)
+
+    while not cursor.is_complete():
         c = cursor.peek()
 
-        if not is_alphabetical(c):
-            return None
+        is_numeric = c >= "0" and c <= "9"
 
-        value = cursor.read(1)
+        if is_alphabetical(c) or is_numeric or c == "$" or c == "_":
+            value += cursor.read(1)
+            continue
 
-        while not cursor.is_complete():
-            c = cursor.peek()
+        break
 
-            is_numeric = c >= "0" and c <= "9"
+    if len(value) == 0:
+        return None
 
-            if is_alphabetical(c) or is_numeric or c == "$" or c == "_":
-                value += cursor.read(1)
-                continue
-
-            break
-
-        if len(value) == 0:
-            return None
-
-        return Token(value.lower(), Kind.identifier, cursor_start)
+    return Token(value.lower(), Kind.identifier, cursor_start)
 
 
-class StatementLexer:
-    @staticmethod
-    def lex(source: str) -> List[Token]:
-        source = source.strip()
-        discard_characters = [" ", "\n", "\r"]
-        tokens = []
-        cursor = Cursor(source)
-        # Explicitly describe type here
-        # So we ensure each of these is a lexer.
-        lexers: List[Lexer] = [
-            KeywordLexer(),  # Note keyword should always have first pick.
-            SymbolLexer(),
-            NumericLexer(),
-            TextLexer(),
-            IdentifierLexer(),
-        ]
+def lex(source: str) -> List[Token]:
+    source = source.strip()
+    discard_characters = [" ", "\n", "\r"]
+    tokens = []
+    cursor = Cursor(source)
+    # Explicitly describe type here
+    # So we ensure each of these is a lexer.
+    lexers = [
+        keyword_lexer,  # Note keyword should always have first pick.
+        symbol_lexer,
+        numeric_lexer,
+        text_lexer,
+        identifier_lexer,
+    ]
 
-        while not cursor.is_complete():
-            if cursor.peek() in discard_characters:
-                # move the cursor forward
-                # when discarding things.
-                cursor.read(1)
-                continue
+    while not cursor.is_complete():
+        if cursor.peek() in discard_characters:
+            # move the cursor forward
+            # when discarding things.
+            cursor.read(1)
+            continue
 
-            for lexer in lexers:
-                token = lexer.lex(cursor)
-                if token:
-                    tokens.append(token)
-                    break
-            else:
-                # Else in a for loop is executed when
-                # it no breaks are called.
-                # Therefore this means no tokens were found.
-                location = cursor.location()
-                raise LexingException(
-                    f"Lexing error at location {location.line}:{location.col}"
-                )
+        for lexer in lexers:
+            token = lexer(cursor)
+            if token:
+                tokens.append(token)
+                break
+        else:
+            # Else in a for loop is executed when
+            # it no breaks are called.
+            # Therefore this means no tokens were found.
+            location = cursor.location()
+            raise LexingException(
+                f"Lexing error at location {location.line}:{location.col}"
+            )
 
-        return tokens
+    return tokens
