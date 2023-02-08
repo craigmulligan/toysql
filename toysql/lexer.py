@@ -91,13 +91,13 @@ class Cursor:
     def pointer(self):
         return self.reader.tell()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         length of underlying str.
         """
         return len(self.reader.getvalue())
 
-    def peek(self, size=1) -> Optional[str]:
+    def peek(self, size=1) -> str:
         """
         stringIO doesn't have peek
         peek reads the current character
