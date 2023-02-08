@@ -6,7 +6,7 @@ from toysql.parser import (
     CreateStatement,
     parse,
 )
-from toysql.lexer import lex, Kind
+from toysql.lexer import lex, DataType 
 from enum import Enum, auto
 from dataclasses import dataclass
 from toysql.exceptions import TableFoundException
@@ -321,12 +321,12 @@ class Compiler:
                 if first_column_addr is None:
                     first_column_addr = addr
 
-                if token.kind == Kind.integer:
+                if token.type == DataType.integer:
                     program.instructions.append(
                         Instruction(Opcode.Integer, p1=int(token.value), p2=addr)
                     )
 
-                if token.kind == Kind.text:
+                if token.type == DataType.text:
                     program.instructions.append(
                         Instruction(
                             Opcode.String,
