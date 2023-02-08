@@ -1,6 +1,6 @@
 from toysql.lexer import Token, Kind, Location
 from toysql.parser import (
-    Parser,
+    parse,
     SelectStatement,
     InsertStatement,
     CreateStatement,
@@ -49,7 +49,7 @@ class TestParser(TestCase):
         ]
 
         tokens = create + insert + select
-        stmts = Parser().parse(tokens)
+        stmts = parse(tokens)
         assert isinstance(stmts[0], CreateStatement)
         assert isinstance(stmts[1], InsertStatement)
         assert isinstance(stmts[2], SelectStatement)
@@ -61,7 +61,7 @@ class TestParser(TestCase):
             Token("from", Kind.keyword),
             Token("my_table", Kind.identifier),
         ]
-        [stmt] = Parser().parse(tokens)
+        [stmt] = parse(tokens)
         assert isinstance(stmt, SelectStatement)
         assert stmt._from.value == "my_table"
         assert stmt.items[0].value == "*"

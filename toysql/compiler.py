@@ -4,7 +4,7 @@ from toysql.parser import (
     SelectStatement,
     InsertStatement,
     CreateStatement,
-    Parser,
+    parse,
 )
 from toysql.lexer import lex, Kind
 from enum import Enum, auto
@@ -173,7 +173,6 @@ class Compiler:
         self.pager = pager
         # These are needed to parse schema_table.sql_text
         # values to interpret column names and types
-        self.parser = Parser()
         self.init_schema_table()
 
     def init_schema_table(self):
@@ -189,7 +188,7 @@ class Compiler:
 
     def prepare(self, sql_text: str):
         tokens = lex(sql_text)
-        stmts = self.parser.parse(tokens)
+        stmts = parse(tokens)
 
         return stmts
 

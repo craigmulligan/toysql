@@ -351,22 +351,21 @@ class CreateStatement(Statement):
         return CreateStatement(table=table_identifier, columns=columns)
 
 
-class Parser:
-    def parse(self, tokens: List[Token]):
-        stmts = []
-        parsers: List[Statement] = [SelectStatement, CreateStatement, InsertStatement]
-        cursor = TokenCursor(tokens)
+def parse(tokens: List[Token]):
+    stmts = []
+    parsers: List[Statement] = [SelectStatement, CreateStatement, InsertStatement]
+    cursor = TokenCursor(tokens)
 
-        while not cursor.is_complete():
-            pointer = cursor.pointer
-            for parser in parsers:
-                try:
-                    stmt = parser.parse(cursor)
-                    stmts.append(stmt)
-                    break
-                except LookupError:
-                    continue
-
-            if pointer == cursor.pointer:
+    while not cursor.is_complete():
+        pointer = cursor.pointer
+        for parser in parsers:
+            try:
+                stmt = parser.parse(cursor)
+                stmts.append(stmt)
                 break
-        return stmts
+            except LookupError:
+                continue
+
+        if pointer == cursor.pointer:
+            break
+    return stmts
