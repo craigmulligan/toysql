@@ -6,7 +6,7 @@ from toysql.parser import (
     CreateStatement,
     parse,
 )
-from toysql.lexer import lex, DataType 
+from toysql.lexer import lex, DataType
 from enum import Enum, auto
 from dataclasses import dataclass
 from toysql.exceptions import TableFoundException

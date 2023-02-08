@@ -1,9 +1,40 @@
 from typing import Optional, List, Protocol
 from dataclasses import dataclass
-from toysql.lexer import Token, Kind, Keyword, Symbol
+from toysql.lexer import Token, Kind, Keyword, Symbol, DataType
 from toysql.exceptions import ParsingException
 
 Expression = Token
+
+
+def expect(token: Optional[Token], **kwargs):
+    """
+    utility function to match a token
+    against a set of attr + values.
+
+    match(token, type=Keyword._from)
+    """
+    if token is None:
+        raise LookupError(f"Unexpected - token is None")
+
+    for key, value in kwargs.items():
+        if getattr(token, key) != value:
+            raise LookupError(
+                f"Unexpected {token.value} for {key} was expecting {value}"
+            )
+
+    return
+
+
+def match(token: Optional[Token], **kwargs) -> bool:
+    """
+    Same as expect but doesnt raise, always returns bool.
+    """
+    try:
+        expect(token, **kwargs)
+    except LookupError:
+        return False
+
+    return True
 
 
 class TokenCursor:
@@ -32,57 +63,8 @@ class TokenCursor:
 
         return self.tokens[self.pointer]
 
-    def expect(self, token):
-        if token.match(self.peek()):
-            return self.move()
-
-        raise LookupError("Unexpected token kind")
-
-    def expect_kind(self, kind: Kind):
-        next_token = self.peek()
-        if next_token and next_token.kind == kind:
-            return self.move()
-
-        raise LookupError("Unexpected token kind")
-
     def is_complete(self):
         return self.pointer >= len(self.tokens)
-
-    def parse_expressions(self, delimiters: List[Token]) -> List[Expression]:
-        expressions = []
-
-        while not self.is_complete():
-            for delimiter in delimiters:
-                if delimiter.match(self.peek()):
-                    return expressions
-
-            if len(expressions) > 0:
-                if not Token(Symbol.comma.value, Kind.symbol).match(self.peek()):
-                    raise ParsingException("Expected comma")
-
-                self.move()
-
-            # Now look for one of identifier kind
-            exp = None
-            kinds = [Kind.integer, Kind.text, Kind.identifier]
-
-            for kind in kinds:
-                try:
-                    exp = self.expect_kind(kind)
-                except LookupError:
-                    pass
-
-            if not exp:
-                # Didn't find an identifier
-                # Let's look for a asterisk
-                try:
-                    exp = self.expect(Token("*", Kind.symbol))
-                except:
-                    raise ParsingException("Expected expression")
-
-            expressions.append(exp)
-
-        return expressions
 
 
 class Statement(Protocol):
@@ -97,6 +79,47 @@ class SelectStatement(Statement):
     items: List[Expression]
 
     @staticmethod
+    def parse_expressions(cursor: TokenCursor, delimiters: List[Token]) -> List[Token]:
+        expressions = []
+
+        while not cursor.is_complete():
+            for delimiter in delimiters:
+                if match(cursor.peek(), type=delimiter.type):
+                    return expressions
+
+            if len(expressions) > 0:
+                try:
+                    expect(cursor.peek(), type=Symbol.comma)
+                    cursor.move()
+                except LookupError:
+                    raise ParsingException("Expected comma")
+
+            # Now look for one of identifier kind
+            exp = None
+            kinds = [Kind.datatype, Kind.identifier]
+
+            for kind in kinds:
+                try:
+                    expect(cursor.peek(), kind=kind)
+                    exp = cursor.move()
+                    break
+                except LookupError:
+                    pass
+
+            if not exp:
+                # Didn't find an identifier
+                # Let's look for a asterisk
+                try:
+                    expect(cursor.peek(), type=Symbol.asterisk)
+                    exp = cursor.move()
+                except:
+                    raise ParsingException("Expected expression")
+
+            expressions.append(exp)
+
+        return expressions
+
+    @staticmethod
     def parse(cursor: TokenCursor) -> "SelectStatement":
         """
         Parsing SELECT statements is easy. We'll look for the following token pattern:
@@ -107,14 +130,14 @@ class SelectStatement(Statement):
         $table-name
         """
         # Implement parse for select statement.
-        if not Token(Keyword.select.value, Kind.keyword).match(cursor.current()):
-            # Not a select statement, let's bail.
-            raise LookupError()
+        expect(cursor.current(), type=Keyword.select)
 
-        select_items = cursor.parse_expressions(
+        # TODO come back to this.
+        select_items = SelectStatement.parse_expressions(
+            cursor,
             [
-                Token(Keyword._from.value, Kind.keyword),
-                Token(Symbol.semicolon.value, Kind.symbol),
+                Token(type=Keyword._from),
+                Token(type=Symbol.semicolon),
             ],
         )
 
@@ -122,16 +145,18 @@ class SelectStatement(Statement):
             raise LookupError()
 
         try:
-            cursor.expect(Token(Keyword._from.value, Kind.keyword))
+            expect(cursor.peek(), type=Keyword._from)
+            cursor.move()
         except LookupError:
             raise ParsingException("Expected FROM keyword")
 
         try:
-            from_identifier = cursor.expect_kind(Kind.identifier)
+            expect(cursor.peek(), kind=Kind.identifier)
+            from_identifier = cursor.move()
         except LookupError:
             raise ParsingException("Expected table name")
 
-        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
+        if match(cursor.peek(), type=Symbol.semicolon):
             try:
                 cursor.move()
                 cursor.move()
@@ -157,33 +182,31 @@ class InsertStatement(Statement):
         """
         Looks for a comma seperated list of values
         """
-        if not Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
-            # Not a select statement, let's bail.
-            raise LookupError()
+        expect(cursor.peek(), type=Symbol.left_paren)
 
         cursor.move()
         tokens = []
-        delimiter = Token(Symbol.right_paren.value, Kind.symbol)
+        delimiter = Token(type=Symbol.right_paren)
 
         while not cursor.is_complete():
-            if delimiter.match(cursor.peek()):
+            if match(cursor.peek(), type=delimiter.type):
                 break
 
             if len(tokens) > 0:
-                if not Token(Symbol.comma.value, Kind.symbol).match(cursor.peek()):
+                if not match(cursor.peek(), type=Symbol.comma):
                     raise ParsingException("Expected comma")
 
                 cursor.move()
 
             # Now look for one of identifier kind
             token = None
-            kinds = [Kind.integer, Kind.text, Kind.identifier]
+            kinds = [Kind.datatype, Kind.identifier]
 
             for kind in kinds:
-                try:
-                    token = cursor.expect_kind(kind)
-                except LookupError:
-                    pass
+                m = match(cursor.peek(), kind=kind)
+                if m:
+                    token = cursor.move()
+                    break
 
             if token is None:
                 raise LookupError()
@@ -191,7 +214,8 @@ class InsertStatement(Statement):
             tokens.append(token)
 
         try:
-            cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+            expect(cursor.peek(), type=Symbol.right_paren)
+            cursor.move()
         except LookupError:
             raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
@@ -210,23 +234,24 @@ class InsertStatement(Statement):
             INSERT INTO table_name
             VALUES (value1, value2, value3, ...);
         """
-        if not Token(Keyword.insert.value, Kind.keyword).match(cursor.current()):
-            # Not a select statement, let's bail.
-            raise LookupError()
+        expect(cursor.current(), type=Keyword.insert)
 
         try:
-            cursor.expect(Token(Keyword.into.value, Kind.keyword))
+            expect(cursor.peek(), type=Keyword.into)
+            cursor.move()
         except LookupError:
             raise ParsingException("Expected into keyword")
 
         try:
-            table_identifier = cursor.expect_kind(Kind.identifier)
+            expect(cursor.peek(), kind=Kind.identifier)
+            table_identifier = cursor.move()
         except LookupError:
             raise ParsingException("Expected table name")
 
         columns = []
         try:
-            cursor.expect(Token(Keyword.values.value, Kind.keyword))
+            expect(cursor.peek(), type=Keyword.values)
+            cursor.move()
         except LookupError:
             # if next token is not VALUES it might be declaring columns
             try:
@@ -236,7 +261,7 @@ class InsertStatement(Statement):
 
         values = InsertStatement.parse_values(cursor)
 
-        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
+        if match(cursor.peek(), type=Symbol.semicolon):
             try:
                 cursor.move()
                 cursor.move()
@@ -260,46 +285,56 @@ class CreateStatement(Statement):
 
     @staticmethod
     def parse_columns(cursor: TokenCursor) -> List[ColumnDefinition]:
-        if not Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
+        try:
+            expect(cursor.peek(), type=Symbol.left_paren)
+        except LookupError:
             raise ParsingException(f"Expected {Symbol.left_paren.value} found")
 
         cursor.move()
         columns = []
-        delimiter = Token(Symbol.right_paren.value, Kind.symbol)
+        delimiter = Token(type=Symbol.right_paren)
 
         while not cursor.is_complete():
-            if delimiter.match(cursor.peek()):
+            if match(cursor.peek(), type=delimiter.type):
                 break
 
             if len(columns) > 0:
-                if not Token(Symbol.comma.value, Kind.symbol).match(cursor.peek()):
+                try:
+                    expect(cursor.peek(), type=Symbol.comma)
+                except LookupError:
                     raise ParsingException(f"Expected {Symbol.comma.value}")
 
                 cursor.move()
 
             # Now look for one of identifier kind
             try:
-                name = cursor.expect_kind(Kind.identifier)
+                expect(cursor.peek(), kind=Kind.identifier)
+                name = cursor.move()
             except LookupError:
                 raise ParsingException(f"Expected {Kind.identifier.value}")
 
             try:
-                datatype = cursor.expect_kind(Kind.keyword)
+                expect(cursor.peek(), kind=Kind.keyword)
+                datatype = cursor.move()
             except LookupError:
                 raise ParsingException(f"Expected {Kind.keyword.value}")
 
             length = None
             # Let's look for length which is (<integer)
-            if Token(Symbol.left_paren.value, Kind.symbol).match(cursor.peek()):
+            # TODO: we can remove this. As our SQL only has
+            # varints and text which don't need a length.
+            if match(cursor.peek(), type=Symbol.left_paren):
                 cursor.move()
 
                 try:
-                    length = cursor.expect_kind(Kind.integer)
+                    expect(cursor.peek(), type=DataType.integer)
+                    length = cursor.move()
                 except LookupError:
-                    raise ParsingException(f"Expected {Kind.integer.value} found")
+                    raise ParsingException(f"Expected {DataType.integer}")
 
                 try:
-                    cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+                    expect(cursor.peek(), type=Symbol.right_paren)
+                    cursor.move()
                 except LookupError:
                     raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
@@ -307,7 +342,8 @@ class CreateStatement(Statement):
             columns.append(column)
 
         try:
-            cursor.expect(Token(Symbol.right_paren.value, Kind.symbol))
+            expect(cursor.peek(), type=Symbol.right_paren)
+            cursor.move()
         except LookupError:
             raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
@@ -324,24 +360,23 @@ class CreateStatement(Statement):
                ....
             );
         """
-        if not Token(Keyword.create.value, Kind.keyword).match(cursor.current()):
-            # Not a select statement, let's bail.
-            raise LookupError()
+        expect(cursor.current(), type=Keyword.create)
 
-        # First look for a TABLE keyword.
         try:
-            cursor.expect(Token(Keyword.table.value, Kind.keyword))
+            expect(cursor.peek(), type=Keyword.table)
+            cursor.move()
         except LookupError:
             raise ParsingException(f"Expected table keyword")
 
         try:
-            table_identifier = cursor.expect_kind(Kind.identifier)
+            expect(cursor.peek(), kind=Kind.identifier)
+            table_identifier = cursor.move()
         except LookupError:
             raise ParsingException(f"Expected table name")
 
         columns = CreateStatement.parse_columns(cursor)
 
-        if Token(Symbol.semicolon.value, Kind.symbol).match(cursor.peek()):
+        if match(cursor.peek(), type=Symbol.semicolon):
             try:
                 cursor.move()
                 cursor.move()

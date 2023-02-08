@@ -117,19 +117,19 @@ class TestStatementLexer(TestCase):
         tokens = lex(query)
 
         expected_tokens = [
-            Token(type=Keyword.select, loc=Location(0, 0)),
-            Token(type=Symbol.asterisk, loc=Location(0, 7)),
-            Token(type=Keyword._from, loc=Location(0, 9)),
-            Token(type=Identifier.long, value="my_table", loc=Location(0, 14)),
-            Token(type=Keyword.where, loc=Location(1, 0)),
-            Token(value="x", type=Identifier.long, loc=Location(1, 6)),
-            Token(type=Symbol.equal, loc=Location(1, 8)),
-            Token(value="hi", type=DataType.text, loc=Location(1, 10)),
-            Token(type=Keyword._and, loc=Location(2, 0)),
-            Token(value="y", type=Identifier.long, loc=Location(2, 4)),
-            Token(type=Symbol.equal, loc=Location(2, 6)),
-            Token(value="123", type=DataType.integer, loc=Location(2, 8)),
-            Token(type=Symbol.semicolon, loc=Location(2, 11)),
+            Token(Keyword.select, loc=Location(0, 0)),
+            Token(Symbol.asterisk, loc=Location(0, 7)),
+            Token(Keyword._from, loc=Location(0, 9)),
+            Token(Identifier.long, value="my_table", loc=Location(0, 14)),
+            Token(Keyword.where, loc=Location(1, 0)),
+            Token(Identifier.long, value="x", loc=Location(1, 6)),
+            Token(Symbol.equal, loc=Location(1, 8)),
+            Token(DataType.text, value="hi", loc=Location(1, 10)),
+            Token(Keyword._and, loc=Location(2, 0)),
+            Token(Identifier.long, value="y", loc=Location(2, 4)),
+            Token(Symbol.equal, loc=Location(2, 6)),
+            Token(DataType.integer, value="123", loc=Location(2, 8)),
+            Token(Symbol.semicolon, loc=Location(2, 11)),
         ]
 
         assert tokens == expected_tokens
@@ -140,21 +140,21 @@ class TestStatementLexer(TestCase):
         tokens = lex(query)
 
         expected_tokens = [
-            Token(type=Keyword.select, loc=Location(0, 0)),
-            Token(value="x", type=Identifier.long, loc=Location(0, 7)),
-            Token(type=Symbol.comma, loc=Location(0, 8)),
-            Token(type=Identifier.long, value="y", loc=Location(0, 9)),
-            Token(type=Keyword._from, loc=Location(0, 11)),
-            Token(value="my_table", type=Identifier.long, loc=Location(0, 16)),
-            Token(type=Keyword.where, loc=Location(1, 0)),
-            Token(value="x", type=Identifier.long, loc=Location(1, 6)),
-            Token(type=Symbol.equal, loc=Location(1, 8)),
-            Token(value="hi", type=DataType.text, loc=Location(1, 10)),
-            Token(type=Keyword._and, loc=Location(2, 0)),
-            Token(value="y", type=Identifier.long, loc=Location(2, 4)),
-            Token(type=Symbol.equal, loc=Location(2, 6)),
-            Token(value="123", type=DataType.integer, loc=Location(2, 8)),
-            Token(type=Symbol.semicolon, loc=Location(2, 11)),
+            Token(Keyword.select, loc=Location(0, 0)),
+            Token(Identifier.long, value="x", loc=Location(0, 7)),
+            Token(Symbol.comma, loc=Location(0, 8)),
+            Token(Identifier.long, value="y", loc=Location(0, 9)),
+            Token(Keyword._from, loc=Location(0, 11)),
+            Token(Identifier.long, value="my_table", loc=Location(0, 16)),
+            Token(Keyword.where, loc=Location(1, 0)),
+            Token(Identifier.long, value="x", loc=Location(1, 6)),
+            Token(Symbol.equal, loc=Location(1, 8)),
+            Token(DataType.text, value="hi", loc=Location(1, 10)),
+            Token(Keyword._and, loc=Location(2, 0)),
+            Token(Identifier.long, value="y", loc=Location(2, 4)),
+            Token(Symbol.equal, loc=Location(2, 6)),
+            Token(DataType.integer, value="123", loc=Location(2, 8)),
+            Token(Symbol.semicolon, loc=Location(2, 11)),
         ]
 
         assert tokens == expected_tokens
@@ -165,16 +165,16 @@ class TestStatementLexer(TestCase):
         tokens = lex(query)
 
         expected_tokens = [
-            Token(type=Keyword.create, loc=Location(0, 0)),
-            Token(type=Keyword.table, loc=Location(0, 7)),
-            Token(value="u", type=Identifier.long, loc=Location(0, 13)),
-            Token(type=Symbol.left_paren, loc=Location(0, 15)),
-            Token(value="id", type=Identifier.long, loc=Location(0, 16)),
-            Token(type=Keyword.int, loc=Location(0, 19)),
-            Token(type=Symbol.comma, loc=Location(0, 22)),
-            Token(value="name", type=Identifier.long, loc=Location(0, 24)),
-            Token(type=Keyword.text, loc=Location(0, 29)),
-            Token(type=Symbol.right_paren, loc=Location(0, 33)),
+            Token(Keyword.create, loc=Location(0, 0)),
+            Token(Keyword.table, loc=Location(0, 7)),
+            Token(Identifier.long, value="u", loc=Location(0, 13)),
+            Token(Symbol.left_paren, loc=Location(0, 15)),
+            Token(Identifier.long, value="id", loc=Location(0, 16)),
+            Token(Keyword.int, loc=Location(0, 19)),
+            Token(Symbol.comma, loc=Location(0, 22)),
+            Token(Identifier.long, value="name", loc=Location(0, 24)),
+            Token(Keyword.text, loc=Location(0, 29)),
+            Token(Symbol.right_paren, loc=Location(0, 33)),
         ]
 
         assert tokens == expected_tokens
@@ -185,16 +185,16 @@ class TestStatementLexer(TestCase):
         tokens = lex(query)
 
         expected_tokens = [
-            Token(type=Keyword.insert, loc=Location(0, 0)),
-            Token(type=Keyword.into, loc=Location(0, 7)),
-            Token(value="users", type=Identifier.long, loc=Location(0, 12)),
-            Token(type=Keyword.values, loc=Location(0, 18)),
-            Token(type=Symbol.left_paren, loc=Location(0, 25)),
-            Token(value="1", type=DataType.integer, loc=Location(0, 26)),
-            Token(type=Symbol.comma, loc=Location(0, 27)),
-            Token(value="Phil", type=DataType.text, loc=Location(0, 29)),
-            Token(type=Symbol.right_paren, loc=Location(0, 35)),
-            Token(type=Symbol.semicolon, loc=Location(0, 36)),
+            Token(Keyword.insert, loc=Location(0, 0)),
+            Token(Keyword.into, loc=Location(0, 7)),
+            Token(Identifier.long, value="users", loc=Location(0, 12)),
+            Token(Keyword.values, loc=Location(0, 18)),
+            Token(Symbol.left_paren, loc=Location(0, 25)),
+            Token(DataType.integer, value="1", loc=Location(0, 26)),
+            Token(Symbol.comma, loc=Location(0, 27)),
+            Token(DataType.text, value="Phil", loc=Location(0, 29)),
+            Token(Symbol.right_paren, loc=Location(0, 35)),
+            Token(Symbol.semicolon, loc=Location(0, 36)),
         ]
 
         assert tokens == expected_tokens
@@ -211,7 +211,4 @@ class TestStatementLexer(TestCase):
         query = """CREATE TABLE schema (id INT, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INT);"""
         tokens = lex(query)
 
-        assert (
-            Token(type=Keyword._as, loc=Location(line=0, col=58))
-            not in tokens
-        )
+        assert Token(Keyword._as, loc=Location(line=0, col=58)) not in tokens
