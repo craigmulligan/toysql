@@ -276,6 +276,7 @@ class ColumnDefinition:
     name: Token
     datatype: Token
     length: Optional[Token]
+    is_primary_key: bool
 
 
 @dataclass
@@ -320,6 +321,7 @@ class CreateStatement(Statement):
                 raise ParsingException(f"Expected {Kind.keyword.value}")
 
             length = None
+            is_primary_key = False
             # Let's look for length which is (<integer)
             # TODO: we can remove this. As our SQL only has
             # varints and text which don't need a length.
@@ -338,9 +340,19 @@ class CreateStatement(Statement):
                 except LookupError:
                     raise ParsingException(f"Expected {Symbol.right_paren.value}")
 
-            column = ColumnDefinition(name, datatype, length)
-            columns.append(column)
+            if match(cursor.peek(), type=Keyword.primary):
+                cursor.move()
+                try:
+                    expect(cursor.peek(), type=Keyword.key)
+                    is_primary_key = True
+                    cursor.move()
+                except LookupError:
+                    raise ParsingException(f"Expected {DataType.integer}")
 
+            column = ColumnDefinition(
+                name, datatype, length, is_primary_key=is_primary_key
+            )
+            columns.append(column)
         try:
             expect(cursor.peek(), type=Symbol.right_paren)
             cursor.move()

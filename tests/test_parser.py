@@ -79,6 +79,8 @@ class TestCreateParser(TestCase):
             Token(Symbol.left_paren),
             Token(Identifier.long, value="id"),
             Token(Keyword.int),
+            Token(Keyword.primary),
+            Token(Keyword.key),
             Token(Symbol.comma),
             Token(Identifier.long, value="name"),
             Token(Keyword.text),
@@ -93,8 +95,18 @@ class TestCreateParser(TestCase):
         stmt = CreateStatement.parse(cursor)
         assert isinstance(stmt, CreateStatement)
         assert stmt.columns == [
-            ColumnDefinition(tokens[4], tokens[5], None),
-            ColumnDefinition(tokens[7], tokens[8], tokens[10]),
+            ColumnDefinition(
+                Token(Identifier.long, value="id"),
+                Token(Keyword.int),
+                None,
+                is_primary_key=True,
+            ),
+            ColumnDefinition(
+                Token(Identifier.long, value="name"),
+                Token(Keyword.text),
+                Token(DataType.integer, value="255"),
+                is_primary_key=False,
+            ),
         ]
         assert stmt.table == tokens[2]
 
