@@ -8,14 +8,12 @@ from unittest.mock import Mock, patch
 class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-        #        sql_text = "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
-
-        sql_text = "CREATE TABLE products(code INT, name TEXT, price INT)"
+        self.sql_text = "CREATE TABLE products(code INT PRIMARY KEY, name TEXT, price INT)"
         self.root_page_number = 2
         self.compiler = Compiler(self.pager)
         self.compiler.get_schema = Mock(
             return_value=[
-                [1, "table", "products", "products", self.root_page_number, sql_text]
+                [1, "table", "products", "products", self.root_page_number, self.sql_text]
             ]
         )
 
@@ -103,15 +101,10 @@ class TestCompiler(Fixtures):
         Close        0  _  _  _
         """
 
-        # We are going a fair ways offscript here.
-        # Ignoring instructions 1-13 as they are schema cookie replated.
-        # It's simpler to imagine a schema change is a create statement is just an insert on the schema table.
-        # program = self.compiler.compile('create table "org" (id INT, name TEXT);')
-        # TODO: This should be CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)
-        stmt = "CREATE TABLE products(code INT, name TEXT, price INT)"
+        sql_text = self.sql_text
 
         with patch.object(self.compiler, "get_schema", return_value=[]):
-            program = self.compiler.compile(stmt)
+            program = self.compiler.compile(sql_text)
 
         assert program.instructions == [
             Instruction(Opcode.Integer, p1=0, p2=0),
@@ -120,12 +113,40 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.String, p1=5, p2=1, p4="table"),
             Instruction(Opcode.String, p1=8, p2=2, p4="products"),
             Instruction(Opcode.String, p1=8, p2=3, p4="products"),
-            Instruction(Opcode.String, p1=len(stmt), p2=5, p4=stmt),
+            Instruction(Opcode.String, p1=len(sql_text), p2=5, p4=sql_text),
             Instruction(Opcode.MakeRecord, p1=1, p2=5, p3=6),
             Instruction(Opcode.Integer, p1=1, p2=7),
             Instruction(Opcode.Insert, p1=0, p2=6, p3=7),
             Instruction(Opcode.Close, p1=0),
         ]
+
+    def test_insert_with_primary_key(self):
+        """
+        Here we declare the primary key at the end
+        and make sure it's still used for the Key instruction.
+        """
+        sql_text = "CREATE TABLE products(name TEXT, price INT, code INT PRIMARY KEY)"
+        schema = [
+                [1, "table", "products", "products", self.root_page_number, sql_text]
+            ]
+
+        stmt = """INSERT INTO products VALUES('Hard Drive', 240, 1)"""
+        with patch.object(self.compiler, "get_schema", return_value=schema):
+            program = self.compiler.compile(stmt)
+
+        assert program.instructions == [
+            Instruction(Opcode.Integer, p1=self.root_page_number, p2=0, p3=0),
+            Instruction(Opcode.OpenWrite, p1=0, p2=0, p3=3),
+            Instruction(Opcode.String, p1=10, p2=1, p4="Hard Drive"),
+            # Instruction(Opcode.Null, p2=2), TODO: Not sure why Null is necessary here?
+            Instruction(Opcode.Integer, p1=240, p2=2),
+            Instruction(Opcode.Integer, p1=1, p2=3),
+            Instruction(Opcode.MakeRecord, p1=1, p2=3, p3=4),
+            Instruction(Opcode.Insert, p1=0, p2=4, p3=3),
+            Instruction(Opcode.Close, p1=0),
+        ]
+
+
 
     def test_insert(self):
         """

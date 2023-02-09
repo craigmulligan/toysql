@@ -318,7 +318,7 @@ class CreateStatement(Statement):
                 expect(cursor.peek(), kind=Kind.keyword)
                 datatype = cursor.move()
             except LookupError:
-                raise ParsingException(f"Expected {Kind.keyword.value}")
+                raise ParsingException(f"Expected {Kind.keyword.name}")
 
             length = None
             is_primary_key = False
