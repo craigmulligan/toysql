@@ -8,12 +8,21 @@ from unittest.mock import Mock, patch
 class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
-        self.sql_text = "CREATE TABLE products(code INT PRIMARY KEY, name TEXT, price INT)"
+        self.sql_text = (
+            "CREATE TABLE products(code INT PRIMARY KEY, name TEXT, price INT)"
+        )
         self.root_page_number = 2
         self.compiler = Compiler(self.pager)
         self.compiler.get_schema = Mock(
             return_value=[
-                [1, "table", "products", "products", self.root_page_number, self.sql_text]
+                [
+                    1,
+                    "table",
+                    "products",
+                    "products",
+                    self.root_page_number,
+                    self.sql_text,
+                ]
             ]
         )
 
@@ -126,9 +135,7 @@ class TestCompiler(Fixtures):
         and make sure it's still used for the Key instruction.
         """
         sql_text = "CREATE TABLE products(name TEXT, price INT, code INT PRIMARY KEY)"
-        schema = [
-                [1, "table", "products", "products", self.root_page_number, sql_text]
-            ]
+        schema = [[1, "table", "products", "products", self.root_page_number, sql_text]]
 
         stmt = """INSERT INTO products VALUES('Hard Drive', 240, 1)"""
         with patch.object(self.compiler, "get_schema", return_value=schema):
@@ -145,8 +152,6 @@ class TestCompiler(Fixtures):
             Instruction(Opcode.Insert, p1=0, p2=4, p3=3),
             Instruction(Opcode.Close, p1=0),
         ]
-
-
 
     def test_insert(self):
         """

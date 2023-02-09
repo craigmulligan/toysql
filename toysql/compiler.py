@@ -220,7 +220,7 @@ class Compiler:
         for values in self.get_schema():
             if values[2] == table_name:
                 sql_text = values[5]
-                return sql_text 
+                return sql_text
 
         raise TableFoundException(f"Table: {table_name} not found")
 
@@ -231,7 +231,7 @@ class Compiler:
     def get_primary_key_index(self, table_name):
         sql_text = self.get_table_create_stmt(table_name)
         [statement] = self.prepare(sql_text)
-        for i, column in enumerate(statement.columns): 
+        for i, column in enumerate(statement.columns):
             if column.is_primary_key:
                 return i
 
@@ -329,7 +329,7 @@ class Compiler:
                 )
             )
 
-            pk_addr = None 
+            pk_addr = None
             first_column_addr = None
             pk_index = self.get_primary_key_index(statement.into.value)
 
@@ -370,9 +370,7 @@ class Compiler:
             # How is this figured? This means we need to load the btree cursor?
             assert pk_addr
             program.instructions.append(
-                Instruction(
-                    Opcode.Insert, p1=table_cursor, p2=record_addr, p3=pk_addr
-                )
+                Instruction(Opcode.Insert, p1=table_cursor, p2=record_addr, p3=pk_addr)
             )
 
             program.instructions.append(
