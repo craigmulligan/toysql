@@ -28,6 +28,8 @@ class Keyword(Enum):
     bool = "bool"
     text = "text"
     null = "null"
+    primary = "primary"
+    key = "key"
 
 
 class Symbol(Enum):
