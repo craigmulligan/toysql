@@ -9,7 +9,9 @@ class TestVM(Fixtures):
     def setUp(self) -> None:
         super().setUp()
         self.table_name = "users"
-        create_stmt = f"CREATE TABLE {self.table_name} (id INT, name TEXT, email TEXT);"
+        create_stmt = (
+            f"CREATE TABLE {self.table_name} (id INTEGER, name TEXT, email TEXT);"
+        )
 
         self.vm = VM(self.pager)
         self.compiler = Compiler(self.pager)
@@ -29,7 +31,7 @@ class TestVM(Fixtures):
         create a schema table.
         """
         table_name = "org"
-        create_stmt = f"CREATE TABLE {table_name} (id INT, name TEXT);"
+        create_stmt = f"CREATE TABLE {table_name} (id INTEGER, name TEXT);"
         self.execute(create_stmt)
         records = self.execute(f"SELECT * FROM {SCHEMA_TABLE_NAME}")
 

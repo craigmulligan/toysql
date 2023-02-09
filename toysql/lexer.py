@@ -10,7 +10,7 @@ class Identifier(Enum):
     long = auto()
     # Dont support delimited
     # identifiers yet.
-    # delimited = auto()
+    delimited = auto()
 
 
 class Keyword(Enum):
@@ -24,7 +24,7 @@ class Keyword(Enum):
     table = "table"
     into = "into"
     values = "values"
-    int = "int"
+    integer = "integer"
     bool = "bool"
     text = "text"
     null = "null"

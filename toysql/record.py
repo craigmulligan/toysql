@@ -141,14 +141,6 @@ class Record:
     def __eq__(self, o: "Record") -> bool:
         return o.row_id == self.row_id
 
-    def deep_eq(self, o: "Record") -> bool:
-        # TODO handy for tests.
-        for i, v in enumerate(self.values):
-            if v != o.values[i]:
-                return False
-
-        return True
-
     def to_bytes(self):
         header_data = b""
         body_data = b""

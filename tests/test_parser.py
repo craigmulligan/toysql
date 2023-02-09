@@ -18,7 +18,7 @@ class TestParser(TestCase):
             Token(Identifier.long, value="users"),
             Token(Symbol.left_paren),
             Token(Identifier.long, value="id"),
-            Token(Keyword.int),
+            Token(Keyword.integer),
             Token(Symbol.comma),
             Token(Identifier.long, value="name"),
             Token(Keyword.text),
@@ -75,7 +75,7 @@ class TestCreateParser(TestCase):
             Token(Identifier.long, value="users"),
             Token(Symbol.left_paren),
             Token(Identifier.long, value="id"),
-            Token(Keyword.int),
+            Token(Keyword.integer),
             Token(Keyword.primary),
             Token(Keyword.key),
             Token(Symbol.comma),
@@ -91,7 +91,7 @@ class TestCreateParser(TestCase):
         assert stmt.columns == [
             ColumnDefinition(
                 Token(Identifier.long, value="id"),
-                Token(Keyword.int),
+                Token(Keyword.integer),
                 is_primary_key=True,
             ),
             ColumnDefinition(

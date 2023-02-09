@@ -311,7 +311,7 @@ class CreateStatement(Statement):
                 expect(cursor.peek(), kind=Kind.identifier)
                 name = cursor.move()
             except LookupError:
-                raise ParsingException(f"Expected {Kind.identifier.value}")
+                raise ParsingException(f"Expected {Kind.identifier.name}")
 
             try:
                 expect(cursor.peek(), kind=Kind.keyword)

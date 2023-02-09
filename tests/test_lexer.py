@@ -160,7 +160,7 @@ class TestStatementLexer(TestCase):
         assert tokens == expected_tokens
 
     def test_create_table(self):
-        query = """CREATE TABLE u (id INT, name TEXT)"""
+        query = """CREATE TABLE u (id INTEGER, name TEXT)"""
 
         tokens = lex(query)
 
@@ -170,17 +170,17 @@ class TestStatementLexer(TestCase):
             Token(Identifier.long, value="u", loc=Location(0, 13)),
             Token(Symbol.left_paren, loc=Location(0, 15)),
             Token(Identifier.long, value="id", loc=Location(0, 16)),
-            Token(Keyword.int, loc=Location(0, 19)),
-            Token(Symbol.comma, loc=Location(0, 22)),
-            Token(Identifier.long, value="name", loc=Location(0, 24)),
-            Token(Keyword.text, loc=Location(0, 29)),
-            Token(Symbol.right_paren, loc=Location(0, 33)),
+            Token(Keyword.integer, loc=Location(0, 19)),
+            Token(Symbol.comma, loc=Location(0, 26)),
+            Token(Identifier.long, value="name", loc=Location(0, 28)),
+            Token(Keyword.text, loc=Location(0, 33)),
+            Token(Symbol.right_paren, loc=Location(0, 37)),
         ]
 
         assert tokens == expected_tokens
 
     def test_create_table_with_pk(self):
-        query = """CREATE TABLE u (id INT PRIMARY KEY, name TEXT)"""
+        query = """CREATE TABLE u (id INTEGER PRIMARY KEY, name TEXT)"""
 
         tokens = lex(query)
 
@@ -190,13 +190,13 @@ class TestStatementLexer(TestCase):
             Token(Identifier.long, value="u", loc=Location(0, 13)),
             Token(Symbol.left_paren, loc=Location(0, 15)),
             Token(Identifier.long, value="id", loc=Location(0, 16)),
-            Token(Keyword.int, loc=Location(0, 19)),
-            Token(Keyword.primary, loc=Location(0, 23)),
-            Token(Keyword.key, loc=Location(0, 31)),
-            Token(Symbol.comma, loc=Location(0, 34)),
-            Token(Identifier.long, value="name", loc=Location(0, 36)),
-            Token(Keyword.text, loc=Location(0, 41)),
-            Token(Symbol.right_paren, loc=Location(0, 45)),
+            Token(Keyword.integer, loc=Location(0, 19)),
+            Token(Keyword.primary, loc=Location(0, 27)),
+            Token(Keyword.key, loc=Location(0, 35)),
+            Token(Symbol.comma, loc=Location(0, 38)),
+            Token(Identifier.long, value="name", loc=Location(0, 40)),
+            Token(Keyword.text, loc=Location(0, 45)),
+            Token(Symbol.right_paren, loc=Location(0, 49)),
         ]
 
         assert tokens == expected_tokens
@@ -230,7 +230,7 @@ class TestStatementLexer(TestCase):
         assert str(exec_info.exception) == "Lexing error at location 0:7"
 
     def test_partial_keywork(self):
-        query = """CREATE TABLE schema (id INT, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INT);"""
+        query = """CREATE TABLE schema (id INTEGER, schema_type TEXT, name TEXT, associated_table_name TEXT, sql_text TEXT, root_page_number INTEGER);"""
         tokens = lex(query)
 
         assert Token(Keyword._as, loc=Location(line=0, col=58)) not in tokens
