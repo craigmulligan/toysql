@@ -179,6 +179,29 @@ class TestStatementLexer(TestCase):
 
         assert tokens == expected_tokens
 
+    def test_create_table_with_pk(self):
+        query = """CREATE TABLE u (id INT PRIMARY KEY, name TEXT)"""
+
+        tokens = lex(query)
+
+        expected_tokens = [
+            Token(Keyword.create, loc=Location(0, 0)),
+            Token(Keyword.table, loc=Location(0, 7)),
+            Token(Identifier.long, value="u", loc=Location(0, 13)),
+            Token(Symbol.left_paren, loc=Location(0, 15)),
+            Token(Identifier.long, value="id", loc=Location(0, 16)),
+            Token(Keyword.int, loc=Location(0, 19)),
+            Token(Keyword.primary, loc=Location(0, 23)),
+            Token(Keyword.key, loc=Location(0, 31)),
+            Token(Symbol.comma, loc=Location(0, 34)),
+            Token(Identifier.long, value="name", loc=Location(0, 36)),
+            Token(Keyword.text, loc=Location(0, 41)),
+            Token(Symbol.right_paren, loc=Location(0, 45)),
+        ]
+
+        assert tokens == expected_tokens
+
+
     def test_insert(self):
         query = """INSERT INTO users VALUES (1, 'Phil');"""
 
