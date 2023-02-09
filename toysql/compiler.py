@@ -213,20 +213,34 @@ class Compiler:
 
         return names
 
-    def get_table_column_names(self, table_name):
+    def get_table_create_stmt(self, table_name):
         if table_name == SCHEMA_TABLE_NAME:
-            return self.get_column_names_from_sql_text(SCHEMA_TABLE_SQL_TEXT)
+            return SCHEMA_TABLE_SQL_TEXT
 
         for values in self.get_schema():
             if values[2] == table_name:
                 sql_text = values[5]
-                return self.get_column_names_from_sql_text(sql_text)
+                return sql_text 
 
         raise TableFoundException(f"Table: {table_name} not found")
 
+    def get_table_column_names(self, table_name):
+        sql_text = self.get_table_create_stmt(table_name)
+        return self.get_column_names_from_sql_text(sql_text)
+
+    def get_primary_key_index(self, table_name):
+        sql_text = self.get_table_create_stmt(table_name)
+        [statement] = self.prepare(sql_text)
+        for i, column in enumerate(statement.columns): 
+            if column.is_primary_key:
+                return i
+
+        # Default to 0 if no primary key is set.
+        return 0
+
     def get_column_indexes(self, statement: SelectStatement):
         column_index = []
-        column_names = self.get_table_column_names(str(statement._from.value))
+        column_names = self.get_table_column_names(statement._from.value)
 
         for column_name in statement.items:
             if column_name.value == "*":
@@ -315,11 +329,17 @@ class Compiler:
                 )
             )
 
+            pk_addr = None 
             first_column_addr = None
-            for token in statement.values:
+            pk_index = self.get_primary_key_index(statement.into.value)
+
+            for i, token in enumerate(statement.values):
                 addr = memory.next_addr()
-                if first_column_addr is None:
+                if i == 0:
                     first_column_addr = addr
+
+                if i == pk_index:
+                    pk_addr = addr
 
                 if token.type == DataType.integer:
                     program.instructions.append(
@@ -337,7 +357,6 @@ class Compiler:
                     )
 
                 # TODO: handle NULL.
-
             record_addr = memory.next_addr()
             program.instructions.append(
                 Instruction(
@@ -349,10 +368,10 @@ class Compiler:
             )
 
             # How is this figured? This means we need to load the btree cursor?
-            assert first_column_addr
+            assert pk_addr
             program.instructions.append(
                 Instruction(
-                    Opcode.Insert, p1=table_cursor, p2=record_addr, p3=first_column_addr
+                    Opcode.Insert, p1=table_cursor, p2=record_addr, p3=pk_addr
                 )
             )
 
