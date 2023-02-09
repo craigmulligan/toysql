@@ -9,7 +9,7 @@ class TestCompiler(Fixtures):
     def setUp(self) -> None:
         super().setUp()
         self.sql_text = (
-            "CREATE TABLE products(code INT PRIMARY KEY, name TEXT, price INT)"
+            "CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)"
         )
         self.root_page_number = 2
         self.compiler = Compiler(self.pager)
@@ -134,7 +134,9 @@ class TestCompiler(Fixtures):
         Here we declare the primary key at the end
         and make sure it's still used for the Key instruction.
         """
-        sql_text = "CREATE TABLE products(name TEXT, price INT, code INT PRIMARY KEY)"
+        sql_text = (
+            "CREATE TABLE products(name TEXT, price INTEGER, code INTEGER PRIMARY KEY)"
+        )
         schema = [[1, "table", "products", "products", self.root_page_number, sql_text]]
 
         stmt = """INSERT INTO products VALUES('Hard Drive', 240, 1)"""

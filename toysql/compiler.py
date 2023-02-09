@@ -151,7 +151,7 @@ class Program:
 
 
 SCHEMA_TABLE_NAME = "schema"
-SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INT, schema_type TEXT, name TEXT, t_name TEXT, sql_text TEXT, root_page_number INT);"
+SCHEMA_TABLE_SQL_TEXT = f"CREATE TABLE {SCHEMA_TABLE_NAME} (id INTEGER, schema_type TEXT, name TEXT, t_name TEXT, sql_text TEXT, root_page_number INTEGER);"
 
 
 # Fancy counter
