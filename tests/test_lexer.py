@@ -201,7 +201,6 @@ class TestStatementLexer(TestCase):
 
         assert tokens == expected_tokens
 
-
     def test_insert(self):
         query = """INSERT INTO users VALUES (1, 'Phil');"""
 

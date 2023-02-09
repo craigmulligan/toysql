@@ -99,7 +99,7 @@ summary = "plugin and hook calling mechanisms for python"
 
 [[package]]
 name = "pyright"
-version = "1.1.292"
+version = "1.1.293"
 requires_python = ">=3.7"
 summary = "Command line wrapper for pyright"
 dependencies = [
@@ -251,9 +251,9 @@ content_hash = "sha256:5d9e21a888b8626dacefc517da7a21fa17f10a4136b5da18371584a77
     {url = "https://files.pythonhosted.org/packages/9e/01/f38e2ff29715251cf25532b9082a1589ab7e4f571ced434f98d0139336dc/pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {url = "https://files.pythonhosted.org/packages/a1/16/db2d7de3474b6e37cbb9c008965ee63835bba517e22cdb8c35b5116b5ce1/pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
 ]
-"pyright 1.1.292" = [
-    {url = "https://files.pythonhosted.org/packages/3d/68/d169d852c97916ad8b849eadbb6bc9a358a038d8dffbda8bef3f695c4da4/pyright-1.1.292.tar.gz", hash = "sha256:035ea1af6fabfdcc80c0afb545f677bd377114157d69779cce2a642ff894e51c"},
-    {url = "https://files.pythonhosted.org/packages/ce/8b/43948116044f90f0103380c346697d31e5d660e206751269489b7ca00fca/pyright-1.1.292-py3-none-any.whl", hash = "sha256:23d1f14b15afe38bb7a7117b9861ad0546aff078da312d294e60a727445c23ff"},
+"pyright 1.1.293" = [
+    {url = "https://files.pythonhosted.org/packages/bf/f4/5b40ee7b3318d6a5ad59cc2597467061c1c1f655209934fb3a89459099ee/pyright-1.1.293-py3-none-any.whl", hash = "sha256:afc05309e775a9869c864da4e8c0c7a3e3be9d8fe202e780c3bae981bbb13936"},
+    {url = "https://files.pythonhosted.org/packages/f0/9d/21a3dbc7d292edbeb14b1fc9aeac118b3172f95703c7db982a9ba18dbcfd/pyright-1.1.293.tar.gz", hash = "sha256:9397fdfcbc684fe5b87abbf9c27f540fe3b8d75999a5f187519cae1d065be38c"},
 ]
 "pytest 7.2.1" = [
     {url = "https://files.pythonhosted.org/packages/cc/02/8f59bf194c9a1ceac6330850715e9ec11e21e2408a30a596c65d54cf4d2a/pytest-7.2.1-py3-none-any.whl", hash = "sha256:c7c6ca206e93355074ae32f7403e8ea12163b1163c976fee7d4d84027c162be5"},
