@@ -275,7 +275,6 @@ class InsertStatement(Statement):
 class ColumnDefinition:
     name: Token
     datatype: Token
-    length: Optional[Token]
     is_primary_key: bool
 
 
@@ -320,25 +319,10 @@ class CreateStatement(Statement):
             except LookupError:
                 raise ParsingException(f"Expected {Kind.keyword.name}")
 
-            length = None
             is_primary_key = False
-            # Let's look for length which is (<integer)
-            # TODO: we can remove this. As our SQL only has
-            # varints and text which don't need a length.
-            if match(cursor.peek(), type=Symbol.left_paren):
-                cursor.move()
 
-                try:
-                    expect(cursor.peek(), type=DataType.integer)
-                    length = cursor.move()
-                except LookupError:
-                    raise ParsingException(f"Expected {DataType.integer}")
-
-                try:
-                    expect(cursor.peek(), type=Symbol.right_paren)
-                    cursor.move()
-                except LookupError:
-                    raise ParsingException(f"Expected {Symbol.right_paren.value}")
+            # NB: we dont support column lenghts. eg name text (255)
+            # We could parse and ignore it but to simplfy we'll raise an error.
 
             if match(cursor.peek(), type=Keyword.primary):
                 cursor.move()
@@ -349,9 +333,7 @@ class CreateStatement(Statement):
                 except LookupError:
                     raise ParsingException(f"Expected {DataType.integer}")
 
-            column = ColumnDefinition(
-                name, datatype, length, is_primary_key=is_primary_key
-            )
+            column = ColumnDefinition(name, datatype, is_primary_key=is_primary_key)
             columns.append(column)
         try:
             expect(cursor.peek(), type=Symbol.right_paren)

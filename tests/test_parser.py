@@ -22,9 +22,6 @@ class TestParser(TestCase):
             Token(Symbol.comma),
             Token(Identifier.long, value="name"),
             Token(Keyword.text),
-            Token(Symbol.left_paren),
-            Token(DataType.integer, value="255"),
-            Token(Symbol.right_paren),
             Token(Symbol.right_paren),
             Token(Symbol.semicolon),
         ]
@@ -84,9 +81,6 @@ class TestCreateParser(TestCase):
             Token(Symbol.comma),
             Token(Identifier.long, value="name"),
             Token(Keyword.text),
-            Token(Symbol.left_paren),
-            Token(DataType.integer, value="255"),
-            Token(Symbol.right_paren),
             Token(Symbol.right_paren),
             Token(Symbol.semicolon),
         ]
@@ -98,13 +92,11 @@ class TestCreateParser(TestCase):
             ColumnDefinition(
                 Token(Identifier.long, value="id"),
                 Token(Keyword.int),
-                None,
                 is_primary_key=True,
             ),
             ColumnDefinition(
                 Token(Identifier.long, value="name"),
                 Token(Keyword.text),
-                Token(DataType.integer, value="255"),
                 is_primary_key=False,
             ),
         ]
