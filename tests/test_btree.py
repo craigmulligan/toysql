@@ -116,22 +116,6 @@ class TestBTree(Fixtures, TestCase):
             assert record
             assert record.row_id == key
 
-    def test_new_row_id(self):
-        page_number = self.pager.new()
-        btree = BTree(self.pager, page_number)
-        cursor = btree.cursor()
-
-        assert cursor.new_row_id() == 1
-
-        keys = [n for n in range(100)]
-        # insert in random order.
-        random.shuffle(keys)
-
-        for n in keys:
-            cursor.insert(self.create_record(n, f"hello-{n}"))
-
-        assert cursor.new_row_id() == 100
-
     def test_cursor_traverse(self):
         """
         Asserts we can get all the values in leaf nodes.

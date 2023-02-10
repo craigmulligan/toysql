@@ -57,7 +57,7 @@ class VM:
                 # else rewind the btree cursor to start.
                 tree = btrees[instruction.p1]
 
-                if tree.row_count() == 0:
+                if tree.is_empty():
                     cursor = cast(int, instruction.p2)
                 else:
                     btrees[instruction.p1].reset()
