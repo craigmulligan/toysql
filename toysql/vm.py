@@ -1,6 +1,6 @@
 from toysql.compiler import Program, Opcode
 from toysql.record import DataType, Record
-from toysql.btree import BTree, Cursor
+from toysql.btree import BTree
 from typing import cast
 
 
@@ -32,13 +32,13 @@ class VM:
                 # Open btree with write cursor (Currently cursors don't have read/write flag)
                 # TODO: Also p4 is unimplemeneted.
                 root_page_number = registers[instruction.p2]
-                btrees[instruction.p1] = Cursor(BTree(self.pager, root_page_number))
+                btrees[instruction.p1] = BTree(self.pager, root_page_number)
                 cursor += 1
 
             if instruction.opcode == Opcode.OpenRead:
                 # Open a cursor with root page p2 and assign its refname to val p1
                 root_page_number = registers[instruction.p2]
-                btrees[instruction.p1] = Cursor(BTree(self.pager, root_page_number))
+                btrees[instruction.p1] = BTree(self.pager, root_page_number)
                 cursor += 1
 
             if instruction.opcode == Opcode.String:

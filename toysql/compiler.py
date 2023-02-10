@@ -10,7 +10,7 @@ from toysql.lexer import lex, DataType
 from enum import Enum, auto
 from dataclasses import dataclass
 from toysql.exceptions import TableFoundException
-from toysql.btree import BTree, Cursor
+from toysql.btree import BTree
 
 
 """
@@ -181,7 +181,7 @@ class Compiler:
 
     def get_schema(self) -> List[List[Any]]:
         # Gets the current schema table values
-        cursor = Cursor(BTree(self.pager, 0))
+        cursor = BTree(self.pager, 0)
         rows = [[r[1] for r in record.values] for record in cursor]
 
         return rows

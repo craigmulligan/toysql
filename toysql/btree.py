@@ -6,62 +6,26 @@ from dataclasses import dataclass
 import sys
 
 
-class BTree:
-    """
-        https://www.sqlite.org/fileformat.html#b_tree_pages
-
-    https://massivealgorithms.blogspot.com/2014/12/b-tree-wikipedia-free-encyclopedia.html?m=1
-    ★ Definition of B+ Tree
-    Note order in this case is relative to page size.
-        A B+ Tree of order m has these properties:
-        - The root is either a leaf or has at least two children;
-        - Each internal node, except for the root, has between ⎡order/2⎤ and order children;
-        - Internal nodes do not store record, only store key values to guild the search;
-        - Each leaf node, has between ⎡order/2⎤ and order keys and values;
-        - Leaf node store keys and records or pointers to records;
-        - All leaves are at the same level in the tree, so the tree is always height balanced.
-    """
-
-    def __init__(self, pager, root_page_number) -> None:
-        self.pager = pager
-        self.root_page_number = root_page_number
-
-    @property
-    def root(self) -> Page:
-        return self.read_page(self.root_page_number)
-
-    def read_page(self, page_number: int) -> Page:
-        return self.pager.read(page_number)
-
-    def write_page(self, page) -> None:
-        self.pager.write(page)
-
-    def new_page(self, page_type) -> Page:
-        page_number = self.pager.new()
-        return Page(page_type, page_number)
-
-    def is_empty(self) -> bool:
-        """
-        Returns true if the root page is empty.
-        """
-        root_page = self.pager.read(self.root_page_number)
-        return len(root_page.cells) == 0
-
-    def show(self):
-        return self.root.show(0, self.read_page)
-
-    def cursor(self):
-        return Cursor(self)
-
-
 @dataclass
 class Frame:
     page_number: int
     child_index: int
 
 
-class Cursor:
+class BTree:
     """
+        https://www.sqlite.org/fileformat.html#b_pages
+
+    https://massivealgorithms.blogspot.com/2014/12/b-wikipedia-free-encyclopedia.html?m=1
+    ★ Definition of B+ Tree
+    Note order in this case is relative to page size.
+        A B+ of order m has these properties:
+        - The root is either a leaf or has at least two children;
+        - Each internal node, except for the root, has between ⎡order/2⎤ and order children;
+        - Internal nodes do not store record, only store key values to guild the search;
+        - Each leaf node, has between ⎡order/2⎤ and order keys and values;
+        - Leaf node store keys and records or pointers to records;
+        - All leaves are at the same level in the  so the is always height balanced.
     StackBased cursor.
 
     As we move to each node we will keep the
@@ -72,12 +36,24 @@ class Cursor:
         child_index: int
     """
 
-    def __init__(self, btree: BTree) -> None:
-        self.tree = btree
+    def __init__(self, pager, root_page_number) -> None:
+        self.pager = pager
+        self.root_page_number = root_page_number
         self.reset()
 
+    @property
+    def root(self) -> Page:
+        return self.pager.read(self.root_page_number)
+
+    def new_page(self, page_type) -> Page:
+        page_number = self.pager.new()
+        return Page(page_type, page_number)
+
+    def show(self):
+        return self.root.show(0, self.pager.read)
+
     def reset(self):
-        self.stack = [Frame(self.tree.root.page_number, 0)]
+        self.stack = [Frame(self.root.page_number, 0)]
         # rewind = True tells us that the cursor
         # has not moved yet
         # TODO: Better way to do this?
@@ -106,17 +82,17 @@ class Cursor:
         # Get current position
         frame = self.stack[-1]
 
-        page = self.tree.read_page(frame.page_number)
+        page = self.pager.read(frame.page_number)
         page.add_cell(cell)
 
         if page.is_full():
             self._split_leaf(page)
         else:
-            self.tree.write_page(page)
+            self.pager.write(page)
 
         # Useful for debugging
-        # To see how the tree changes on insert
-        # print(self.tree.show())
+        # To see how the changes on insert
+        # print(self.show())
 
     def _split_leaf(self, page):
         """
@@ -128,7 +104,7 @@ class Cursor:
         5. If the parent is full it splits that.
         """
         index = len(page.cells) // 2
-        left = self.tree.new_page(PageType.leaf)
+        left = self.new_page(PageType.leaf)
 
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
@@ -137,7 +113,7 @@ class Cursor:
         # Pop of self.
         self.stack.pop()
         if len(self.stack) == 0:
-            parent = self.tree.new_page(PageType.interior)
+            parent = self.new_page(PageType.interior)
 
             # Swap page numbers to keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -145,12 +121,12 @@ class Cursor:
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
-            parent = self.tree.read_page(frame.page_number)
+            parent = self.pager.read(frame.page_number)
 
         parent.add_cell(InteriorPageCell(key, left.page_number))
 
         for p in [left, page, parent]:
-            self.tree.write_page(p)
+            self.pager.write(p)
 
         if parent.is_full():
             self._split_internal(parent)
@@ -166,7 +142,7 @@ class Cursor:
         """
         index = len(page.cells) // 2
 
-        left = self.tree.new_page(PageType.interior)
+        left = self.new_page(PageType.interior)
         left.cells = page.cells[:index]
         page.cells = page.cells[index:]
 
@@ -177,7 +153,7 @@ class Cursor:
 
         self.stack.pop()
         if len(self.stack) == 0:
-            parent = self.tree.new_page(PageType.interior)
+            parent = self.new_page(PageType.interior)
 
             # Keep the root_page_number static.
             parent.page_number, page.page_number = page.page_number, parent.page_number
@@ -185,12 +161,12 @@ class Cursor:
             self.stack.append(Frame(parent.page_number, 0))
         else:
             frame = self.stack[-1]
-            parent = self.tree.read_page(frame.page_number)
+            parent = self.pager.read(frame.page_number)
 
         parent.add_cell(InteriorPageCell(middle.row_id, left.page_number))
 
         for p in [left, page, parent]:
-            self.tree.write_page(p)
+            self.pager.write(p)
 
         if parent.is_full():
             self._split_internal(parent)
@@ -209,7 +185,11 @@ class Cursor:
         return self
 
     def is_empty(self) -> bool:
-        return self.tree.is_empty()
+        """
+        Returns true if the root page is empty.
+        """
+        root_page = self.pager.read(self.root_page_number)
+        return len(root_page.cells) == 0
 
     def find(self, row_id: int) -> Optional[Record]:
         """
@@ -229,7 +209,7 @@ class Cursor:
         """
         Cursor seek to a specified row_id in the Btree
 
-        If the row_id doesn't exist in the btree.
+        If the row_id doesn't exist in the b
 
         it'll set the cursor to point at the insert location.
         """
@@ -239,7 +219,7 @@ class Cursor:
             raise StopIteration()
 
         frame = self.stack[-1]
-        current_page = self.tree.read_page(frame.page_number)
+        current_page = self.pager.read(frame.page_number)
 
         if current_page.is_leaf():
             for cell in current_page.cells:
@@ -271,7 +251,7 @@ class Cursor:
             self.stack.append(Frame(current_page.right_child_page_number, 0))
             return self._seek(row_id)
 
-    def current(self):
+    def current(self) -> Record:
         """
         Get the current record
         if cursor is pointing a leaf node.
@@ -283,7 +263,7 @@ class Cursor:
             return self.__next__()
 
         frame = self.stack[-1]
-        current_page = self.tree.read_page(frame.page_number)
+        current_page = self.pager.read(frame.page_number)
 
         if current_page.is_leaf():
             if len(current_page.cells) == 0:
@@ -305,7 +285,7 @@ class Cursor:
             raise StopIteration()
 
         frame = self.stack[-1]
-        current_page = self.tree.read_page(frame.page_number)
+        current_page = self.pager.read(frame.page_number)
 
         if current_page.is_leaf():
             try:
