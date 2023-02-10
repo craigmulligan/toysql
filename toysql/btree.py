@@ -43,6 +43,13 @@ class BTree:
         page_number = self.pager.new()
         return Page(page_type, page_number)
 
+    def is_empty(self) -> bool:
+        """
+        Returns true if the root page is empty.
+        """
+        root_page = self.pager.read(self.root_page_number)
+        return len(root_page.cells) == 0
+
     def is_full(self, page) -> bool:
         if len(page.cells) >= self.order:
             return True
@@ -197,23 +204,6 @@ class Cursor:
         if self.tree.is_full(parent):
             self._split_internal(parent)
 
-    def new_row_id(self):
-        """
-        This retuns the next unused row_id for a btree.
-        """
-        self.seek_end()
-
-        try:
-            record = self.current()
-            new_row_id = record.row_id + 1
-        except NotFoundException:
-            # Happens with an empty db.
-            new_row_id = 1
-
-        record = Record([[DataType.integer, new_row_id]])
-        self.insert(record)
-        return new_row_id
-
     def seek_end(self):
         try:
             # Seek to the last value
@@ -227,9 +217,8 @@ class Cursor:
         self.reset()
         return self
 
-    def row_count(self) -> int:
-        records = [r for r in self]
-        return len(records)
+    def is_empty(self) -> bool:
+        return self.tree.is_empty()
 
     def find(self, row_id: int) -> Optional[Record]:
         """
@@ -361,13 +350,6 @@ class Cursor:
             # Pop off back up to parent.
             self.stack.pop()
             return self.__next__()
-
-    @staticmethod
-    def page_at_index(page, index):
-        if index == len(page.cells):
-            return page.right_child_page_number
-        else:
-            return page.cells[index].left_child_page_number
 
     @staticmethod
     def child_page_numbers(page):
