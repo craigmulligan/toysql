@@ -1,7 +1,6 @@
 from toysql.page import PageType, LeafPageCell, Page, InteriorPageCell
 from toysql.record import Record
 from toysql.exceptions import NotFoundException
-from toysql.lexer import DataType
 from typing import Optional
 from dataclasses import dataclass
 import sys
@@ -13,6 +12,7 @@ class BTree:
 
     https://massivealgorithms.blogspot.com/2014/12/b-tree-wikipedia-free-encyclopedia.html?m=1
     ★ Definition of B+ Tree
+    Note order in this case is relative to page size.
         A B+ Tree of order m has these properties:
         - The root is either a leaf or has at least two children;
         - Each internal node, except for the root, has between ⎡order/2⎤ and order children;
@@ -23,9 +23,6 @@ class BTree:
     """
 
     def __init__(self, pager, root_page_number) -> None:
-        # TODO:
-        # order should be variable not 3.
-        self.order = 3
         self.pager = pager
         self.root_page_number = root_page_number
 
@@ -49,12 +46,6 @@ class BTree:
         """
         root_page = self.pager.read(self.root_page_number)
         return len(root_page.cells) == 0
-
-    def is_full(self, page) -> bool:
-        if len(page.cells) >= self.order:
-            return True
-
-        return False
 
     def show(self):
         return self.root.show(0, self.read_page)
@@ -118,7 +109,7 @@ class Cursor:
         page = self.tree.read_page(frame.page_number)
         page.add_cell(cell)
 
-        if self.tree.is_full(page):
+        if page.is_full():
             self._split_leaf(page)
         else:
             self.tree.write_page(page)
@@ -136,7 +127,7 @@ class Cursor:
         4. Inserts that key into the parent.
         5. If the parent is full it splits that.
         """
-        index = self.tree.order // 2
+        index = len(page.cells) // 2
         left = self.tree.new_page(PageType.leaf)
 
         left.cells = page.cells[:index]
@@ -161,7 +152,7 @@ class Cursor:
         for p in [left, page, parent]:
             self.tree.write_page(p)
 
-        if self.tree.is_full(parent):
+        if parent.is_full():
             self._split_internal(parent)
 
     def _split_internal(self, page: Page):
@@ -173,7 +164,7 @@ class Cursor:
         3. It makes the left_page.right_child = middle_cell.left_child
         4. It adds the middle_cell.row_id to the parent which points the the left child.
         """
-        index = self.tree.order // 2
+        index = len(page.cells) // 2
 
         left = self.tree.new_page(PageType.interior)
         left.cells = page.cells[:index]
@@ -201,7 +192,7 @@ class Cursor:
         for p in [left, page, parent]:
             self.tree.write_page(p)
 
-        if self.tree.is_full(parent):
+        if parent.is_full():
             self._split_internal(parent)
 
     def seek_end(self):

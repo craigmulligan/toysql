@@ -162,6 +162,12 @@ class Page:
         cell_ids = [str(cell.row_id) for cell in self.cells]
         return ",".join(cell_ids)
 
+    def is_full(self) -> bool:
+        if len(self) >= self.page_size:
+            return True
+
+        return False
+
     def show(self, counter, read_page):
         """Prints the keys at each level."""
         output = counter * "\t"
