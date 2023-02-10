@@ -5,8 +5,21 @@ from toysql.btree import BTree
 from toysql.exceptions import NotFoundException
 from toysql.record import Record, DataType
 from tests.fixtures import Fixtures
+from unittest.mock import patch
 
 
+def is_full(page):
+    """
+    This is so that we don't need to insert
+    a bunch of rows for the Page to be considered
+    full.
+    """
+    if len(page.cells) >= 3:
+        return True
+    return False
+
+
+@patch("toysql.page.Page.is_full", is_full)
 class TestBTree(Fixtures, TestCase):
     def setUp(self) -> None:
         def create_record(row_id: int, text: str):
@@ -20,19 +33,26 @@ class TestBTree(Fixtures, TestCase):
         Given and ordered set of data
         Ensure the tree is the same.
         """
-        btree = BTree(self.pager, self.pager.new())
-        cursor = btree.cursor()
-        inputs = [5, 15, 25, 35, 45]
 
-        for n in inputs:
-            cursor.insert(self.create_record(n, f"hello-{n}"))
+        def is_full(page):
+            if len(page.cells) >= 3:
+                return True
+            return False
 
-        self.assertMatchSnapshot(btree.show())
+        with patch("toysql.page.Page.is_full", is_full):
+            btree = BTree(self.pager, self.pager.new())
+            cursor = btree.cursor()
+            inputs = [5, 15, 25, 35, 45]
 
-        for key in inputs:
-            record = cursor.find(key)
-            assert record
-            assert record.row_id == key
+            for n in inputs:
+                cursor.insert(self.create_record(n, f"hello-{n}"))
+
+            self.assertMatchSnapshot(btree.show())
+
+            for key in inputs:
+                record = cursor.find(key)
+                assert record
+                assert record.row_id == key
 
     def test_random(self):
         btree = BTree(self.pager, self.pager.new())
