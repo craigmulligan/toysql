@@ -1,4 +1,4 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Union
 from toysql.pager import Pager
 from toysql.parser import (
     SelectStatement,
@@ -73,6 +73,16 @@ class Opcode(Enum):
 
 
 @dataclass
+class InstructionIR:
+    opcode: Opcode
+    p1: Union[int, "InstructionIR"] = 0
+    p2: Union[int, "InstructionIR"] = 0
+    p3: Union[int, "InstructionIR"] = 0
+    p4: Optional[Union[str, int, "InstructionIR"]] = None  # TODO narrow type
+    p5: int = 0
+
+
+@dataclass
 class Instruction:
     """
     Each instruction has an opcode and five operands named P1, P2 P3, P4, and P5
@@ -107,13 +117,11 @@ class Instruction:
     Some opcodes use all five operands. Some opcodes use one or two. Some opcodes use none of the operands.
     """
 
-    # TODO: we use Any type here.
-    # because we store refs which resolve to address ints
     opcode: Opcode
-    p1: Any = 0
-    p2: Any = 0
+    p1: int = 0
+    p2: int = 0
     p3: int = 0
-    p4: Optional[Any] = None  # TODO narrow type
+    p4: Optional[Union[str, int]] = None  # TODO narrow type
     p5: int = 0
 
 
@@ -136,18 +144,26 @@ class Program:
     The number of registers in a single prepared statement is fixed at compile-time.
     """
 
+    irs: List[InstructionIR]
     instructions: List[Instruction]
 
-    def resolve_refs(self):
+    def compile(self):
         """
-        TODO probably a better data structure for this.
+        This converts it's intermediate representation (ir) into an instruction set.
+        resolving pointers to addresses etc.
         """
-        for instruction in self.instructions:
-            if isinstance(instruction.p1, Instruction):
-                instruction.p1 = self.instructions.index(instruction.p1)
+        for ir in self.irs:
+            attrs = ["p1", "p2", "p3", "p4", "p5"]
+            instruction = Instruction(ir.opcode)
 
-            if isinstance(instruction.p2, Instruction):
-                instruction.p2 = self.instructions.index(instruction.p2)
+            for a in attrs:
+                value = getattr(ir, a)
+                if isinstance(value, InstructionIR):
+                    setattr(instruction, a, self.irs.index(value))
+                else:
+                    setattr(instruction, a, value)
+
+            self.instructions.append(instruction)
 
 
 SCHEMA_TABLE_NAME = "schema"
@@ -267,7 +283,7 @@ class Compiler:
     def compile(self, sql_text) -> Program:
         # Initally we assume only one statement.
         [statement] = self.prepare(sql_text)
-        program = Program([])
+        program = Program([], [])
         memory = Memory()
 
         if isinstance(statement, SelectStatement):
@@ -277,35 +293,42 @@ class Compiler:
 
             column_count = 4
             table_cursor = 0
+            instructions = []
 
-            program.instructions.append(
-                Instruction(Opcode.Integer, p1=table_page_number, p2=memory.next_addr())
+            instructions.append(
+                InstructionIR(
+                    Opcode.Integer, p1=table_page_number, p2=memory.next_addr()
+                )
             )
-            program.instructions.append(
-                Instruction(Opcode.OpenRead, p1=table_cursor, p2=0, p3=column_count)
+            instructions.append(
+                InstructionIR(Opcode.OpenRead, p1=table_cursor, p2=0, p3=column_count)
             )
 
-            close = Instruction(Opcode.Close, p1=0)
-            program.instructions.append(Instruction(Opcode.Rewind, p1=0, p2=close))
+            close = InstructionIR(Opcode.Close, p1=0)
+            instructions.append(InstructionIR(Opcode.Rewind, p1=0, p2=close))
 
             key_addr = memory.next_addr()
-            program.instructions.append(Instruction(Opcode.Key, p1=0, p2=key_addr))
+            instructions.append(InstructionIR(Opcode.Key, p1=0, p2=key_addr))
 
             columns = []
             column_indexes = self.get_column_indexes(statement)
             for i in column_indexes:
                 if i > 0:
                     columns.append(
-                        Instruction(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
+                        InstructionIR(Opcode.Column, p1=0, p2=i, p3=memory.next_addr())
                     )
 
             first_column_addr = key_addr if 0 in column_indexes else columns[0].p3
-            program.instructions.extend(columns)
-            program.instructions.append(
-                Instruction(Opcode.ResultRow, p1=first_column_addr, p2=len(columns) + 1)
+            instructions.extend(columns)
+            instructions.append(
+                InstructionIR(
+                    Opcode.ResultRow, p1=first_column_addr, p2=len(columns) + 1
+                )
             )
-            program.instructions.append(Instruction(Opcode.Next, p1=0, p2=3))
-            program.instructions.extend([close, Instruction(Opcode.Halt, p1=0, p2=0)])
+            instructions.append(InstructionIR(Opcode.Next, p1=0, p2=3))
+            instructions.extend([close, InstructionIR(Opcode.Halt, p1=0, p2=0)])
+
+            program.irs = instructions
 
         if isinstance(statement, InsertStatement):
             table_cursor = 0
@@ -313,9 +336,10 @@ class Compiler:
                 str(statement.into.value)
             )
             table_page_number_addr = memory.next_addr()
+            instructions = []
 
-            program.instructions.append(
-                Instruction(
+            instructions.append(
+                InstructionIR(
                     Opcode.Integer,
                     p1=table_page_number,
                     p2=table_page_number_addr,
@@ -323,8 +347,8 @@ class Compiler:
                 )
             )
             # TODO: get number of columns from schema stmt - replace 3.
-            program.instructions.append(
-                Instruction(
+            instructions.append(
+                InstructionIR(
                     Opcode.OpenWrite, p1=table_cursor, p2=table_page_number_addr, p3=3
                 )
             )
@@ -342,13 +366,13 @@ class Compiler:
                     pk_addr = addr
 
                 if token.type == DataType.integer:
-                    program.instructions.append(
-                        Instruction(Opcode.Integer, p1=int(token.value), p2=addr)
+                    instructions.append(
+                        InstructionIR(Opcode.Integer, p1=int(token.value), p2=addr)
                     )
 
                 if token.type == DataType.text:
-                    program.instructions.append(
-                        Instruction(
+                    instructions.append(
+                        InstructionIR(
                             Opcode.String,
                             p1=len(str(token.value)),
                             p2=addr,
@@ -358,8 +382,9 @@ class Compiler:
 
                 # TODO: handle NULL.
             record_addr = memory.next_addr()
-            program.instructions.append(
-                Instruction(
+            assert first_column_addr
+            instructions.append(
+                InstructionIR(
                     Opcode.MakeRecord,
                     p1=first_column_addr,
                     p2=len(statement.values),
@@ -367,15 +392,18 @@ class Compiler:
                 )
             )
 
-            # How is this figured? This means we need to load the btree cursor?
+            # TODO: How is this figured? This means we need to load the btree cursor?
             assert pk_addr
-            program.instructions.append(
-                Instruction(Opcode.Insert, p1=table_cursor, p2=record_addr, p3=pk_addr)
+            instructions.append(
+                InstructionIR(
+                    Opcode.Insert, p1=table_cursor, p2=record_addr, p3=pk_addr
+                )
             )
 
-            program.instructions.append(
-                Instruction(Opcode.Close, p1=table_cursor),
+            instructions.append(
+                InstructionIR(Opcode.Close, p1=table_cursor),
             )
+            program.irs = instructions
 
         if isinstance(statement, CreateStatement):
             instructions = []
@@ -397,23 +425,25 @@ class Compiler:
             schema_cursor = 0
 
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.Integer,
                     p1=schema_root_page_num,
                     p2=schema_root_page_num_addr,
                 )
             )
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.OpenWrite,
                     p1=schema_cursor,
                     p2=schema_root_page_num_addr,
                     p3=column_count,
                 )
             )
-            instructions.append(Instruction(Opcode.CreateTable, p1=root_page_num_addr))
             instructions.append(
-                Instruction(
+                InstructionIR(Opcode.CreateTable, p1=root_page_num_addr)
+            )
+            instructions.append(
+                InstructionIR(
                     Opcode.String,
                     p1=len(schema_type),
                     p2=schema_type_addr,
@@ -421,12 +451,12 @@ class Compiler:
                 )
             )
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.String, p1=len(item_name), p2=item_name_addr, p4=item_name
                 )
             )
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.String,
                     p1=len(associated_table_name),
                     p2=associated_table_name_addr,
@@ -435,7 +465,7 @@ class Compiler:
             )
 
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.String,
                     p1=len(text),
                     p2=text_addr,
@@ -445,7 +475,7 @@ class Compiler:
 
             record_addr = memory.next_addr()
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.MakeRecord,
                     p1=schema_type_addr,
                     p2=column_count,
@@ -457,21 +487,21 @@ class Compiler:
             primary_key_addr = memory.next_addr()
             # TODO: I'm not sure why we don't use seek end + Key opcodes to get the primary key?
             instructions.append(
-                Instruction(Opcode.Integer, p1=primary_key, p2=primary_key_addr)
+                InstructionIR(Opcode.Integer, p1=primary_key, p2=primary_key_addr)
             )
 
             instructions.append(
-                Instruction(
+                InstructionIR(
                     Opcode.Insert, p1=schema_cursor, p2=record_addr, p3=primary_key_addr
                 ),
             )
 
             instructions.append(
-                Instruction(Opcode.Close, p1=schema_cursor),
+                InstructionIR(Opcode.Close, p1=schema_cursor),
             )
 
-            program.instructions = instructions
+            program.irs = instructions
 
-        program.resolve_refs()
+        program.compile()
 
         return program
