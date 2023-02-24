@@ -6,18 +6,18 @@ import io
 
 
 class PageType(Enum):
-    leaf = 0
-    interior = 1
+    leaf = 13
+    interior = 5
 
 
 class FixedInteger:
     @staticmethod
     def to_bytes(length, value):
-        return value.to_bytes(length, "big")
+        return value.to_bytes(length, "little")
 
     @staticmethod
     def from_bytes(data):
-        return int.from_bytes(data, "big")
+        return int.from_bytes(data, "little")
 
 
 class Cell:
