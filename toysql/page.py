@@ -293,8 +293,7 @@ class Page:
         # Number of cells.
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset
-        # TODO correct offset.
-        buff.write(FixedInteger.to_bytes(2, 937))
+        buff.write(FixedInteger.to_bytes(2, 913))
         # buff.write(FixedInteger.to_bytes(2, cell_content_offset))
 
         buff.write(FixedInteger.to_bytes(1, 0))
