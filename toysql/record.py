@@ -74,8 +74,6 @@ class Integer:
 
     Python stdlib does most of the hard work here. But you can read this post on how variable integer incoding works here:
     https://fly.io/blog/sqlite-internals-btree/#the-header-variable-length-integers
-
-    TODO: Should handle big-endian IEEE 754-2008 64-bit floating point number.
     """
 
     serial_type_map = dict([(1, 1), (2, 2), (3, 3), (4, 4), (6, 5), (8, 6)])

@@ -13,7 +13,7 @@ class PageType(Enum):
 class FixedInteger:
     @staticmethod
     def to_bytes(length, value):
-        return value.to_bytes(length, "little")
+        return value.to_bytes(length, "big")
 
     @staticmethod
     def from_bytes(data):
@@ -276,7 +276,8 @@ class Page:
         buff = io.BytesIO(b"".ljust(self.page_size, b"\0"))
         [cell_offsets, cell_data] = self.cells_to_bytes()
 
-        cell_content_offset = len(cell_data)
+        cell_content_offset = len(cell_offsets)
+        free_area = 12 + cell_content_offset
 
         # Seek negative offset of cell_content area.
         buff.seek(-cell_content_offset, 2)
@@ -284,11 +285,12 @@ class Page:
 
         buff.seek(0)
         # Header
-        buff.write(FixedInteger.to_bytes(1, self.page_number))
+        # buff.write(FixedInteger.to_bytes(1, self.page_number))
         # Header type.
         buff.write(FixedInteger.to_bytes(1, self.page_type.value))
-        # Free block pointer. (Not implemented)
-        buff.write(FixedInteger.to_bytes(2, 0))
+
+        # TODO calc free space index.
+        buff.write(FixedInteger.to_bytes(2, 14))
         # Number of cells.
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset
@@ -317,7 +319,7 @@ class Page:
     @staticmethod
     def from_bytes(data) -> "Page":
         buffer = io.BytesIO(data)
-        page_number = FixedInteger.from_bytes(buffer.read(1))
+        # page_number = FixedInteger.from_bytes(buffer.read(1))
         page_type = PageType(FixedInteger.from_bytes(buffer.read(1)))
         # Free block pointer.
         _ = PageType(FixedInteger.from_bytes(buffer.read(2)))
