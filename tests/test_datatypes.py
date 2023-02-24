@@ -78,11 +78,26 @@ def split_into_chunks(v: str, chunk_size: int) -> List[str]:
     return [v[i : i + chunk_size] for i in range(0, len(v), chunk_size)]
 
 
-def varint_16(i: int) -> bytes:
-    s = 16
-    bin_str = int_to_str(i, s - 2)
-    encoded = varint_encode(bin_str, s)
+def encoder(i, size):
+    bin_str = int_to_str(i, size - 2)
+    encoded = varint_encode(bin_str, size)
     return to_bytes(encoded)
+
+
+def decoder(s):
+    return str_to_int(varint_decode(from_bytes(s)))
+
+
+def varint_16(i: int) -> bytes:
+    return encoder(i, 16)
+
+
+def varint_32(i: int) -> bytes:
+    return encoder(i, 32)
+
+
+def varint_4(i: int) -> bytes:
+    return encoder(i, 4)
 
 
 def test_varint_32():
@@ -102,4 +117,5 @@ def test_varint_32():
 
 def test_varint_16():
     x = varint_16(1000)
-    assert str_to_int(varint_decode(from_bytes(x))) == 1000
+    assert x == b"\x87h"
+    assert 1000 == decoder(x)

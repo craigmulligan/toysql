@@ -2,7 +2,7 @@
 
 ## Chapters
 
-* [Datatype](/datatype)
+* [Datatype](/datatypes)
 * [Cell](/cell)
 * [Page](/page)
 * [Pager](/pager)
