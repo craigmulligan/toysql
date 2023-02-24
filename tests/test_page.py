@@ -1,6 +1,7 @@
 from toysql.record import Record, DataType
-from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType
+from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType, FixedInteger
 from unittest import TestCase
+from os import path, SEEK_END
 
 
 class TestCell(TestCase):
@@ -38,6 +39,61 @@ class TestCell(TestCase):
 
 
 class TestPage(TestCase):
+    def test_page_to_bytes(self):
+        # 21000  "Programming Languages"   75    89
+        # 23500  "Databases"               NULL  42
+        # 27500  "Operating Systems"       NULL  89
+        p = path.join("tests", "files", "databases", "1table-1page.cdb")
+
+        expected = ""
+        page_number = 1
+        page_size = 0
+        with open(p, "rb") as f:
+            print(str(f.read()).index("INTEGER)"))
+            print(f.tell())
+            f.seek(0)
+            f.seek(15)
+            page_size = FixedInteger.from_bytes(f.read(2))
+            f.seek(0)
+            # seek past first page
+            f.seek(page_size + 50)
+            expected = f.read(page_size)
+            print(f.read())
+            print("--------")
+            assert len(expected) == page_size
+
+        payload = [
+            [
+                [DataType.integer, 21000],
+                [DataType.text, "Programming Languages"],
+                [DataType.integer, 75],
+                [DataType.integer, 89],
+            ],
+            [
+                [DataType.integer, 23500],
+                [DataType.text, "Databases"],
+                [DataType.null, None],
+                [DataType.integer, 42],
+            ],
+            [
+                [DataType.integer, 27500],
+                [DataType.text, "Operating Systems"],
+                [DataType.null, None],
+                [DataType.integer, 89],
+            ],
+        ]
+
+        leaf_page = Page(PageType.leaf, page_number, page_size=page_size)
+        for p in payload:
+            leaf_page.add_cell(LeafPageCell(Record(p)))
+
+        raw_bytes = leaf_page.to_bytes()
+        print(raw_bytes)
+        print("-------")
+        print(expected)
+
+        assert raw_bytes == expected
+
     def test_leaf_page(self):
         page_number = 1
 
