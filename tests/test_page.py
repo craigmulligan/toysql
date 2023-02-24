@@ -49,17 +49,13 @@ class TestPage(TestCase):
         page_number = 1
         page_size = 0
         with open(p, "rb") as f:
-            print(str(f.read()).index("INTEGER)"))
-            print(f.tell())
             f.seek(0)
             f.seek(15)
             page_size = FixedInteger.from_bytes(f.read(2))
             f.seek(0)
             # seek past first page
-            f.seek(page_size + 50)
+            f.seek(page_size)
             expected = f.read(page_size)
-            print(f.read())
-            print("--------")
             assert len(expected) == page_size
 
         payload = [
