@@ -17,7 +17,7 @@ class FixedInteger:
 
     @staticmethod
     def from_bytes(data):
-        return int.from_bytes(data, "little")
+        return int.from_bytes(data, "big")
 
 
 class Cell:
@@ -274,23 +274,22 @@ class Page:
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
         buff = io.BytesIO(b"".ljust(self.page_size, b"\0"))
+
+        header_size = self.header_size()
         [cell_offsets, cell_data] = self.cells_to_bytes()
 
-        cell_content_offset = len(cell_offsets)
-        free_area = 12 + cell_content_offset
+        cell_content_offset = self.page_size - len(cell_data)
+        free_area_index = header_size + len(cell_offsets)
 
         # Seek negative offset of cell_content area.
-        buff.seek(-cell_content_offset, 2)
+        buff.seek(cell_content_offset)
         buff.write(cell_data)
 
         buff.seek(0)
-        # Header
-        # buff.write(FixedInteger.to_bytes(1, self.page_number))
-        # Header type.
+        # Page type.
         buff.write(FixedInteger.to_bytes(1, self.page_type.value))
-
-        # TODO calc free space index.
-        buff.write(FixedInteger.to_bytes(2, 14))
+        # Free area start
+        buff.write(FixedInteger.to_bytes(2, free_area_index))
         # Number of cells.
         buff.write(FixedInteger.to_bytes(2, len(self.cells)))
         # Cell Content Offset

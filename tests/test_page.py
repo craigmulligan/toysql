@@ -51,7 +51,8 @@ class TestPage(TestCase):
         with open(p, "rb") as f:
             f.seek(0)
             f.seek(15)
-            page_size = FixedInteger.from_bytes(f.read(2))
+            # page_size = FixedInteger.from_bytes(f.read(2))
+            page_size = 1024
             f.seek(0)
             # seek past first page
             f.seek(page_size)
@@ -88,7 +89,9 @@ class TestPage(TestCase):
         # print("-------")
         # print(expected)
 
-        assert raw_bytes[0:5] == expected[0:5]
+        print(FixedInteger.from_bytes(expected[5:7]))
+        print(FixedInteger.from_bytes(raw_bytes[5:7]))
+        assert raw_bytes[0:7] == expected[0:7]
 
     def test_leaf_page(self):
         page_number = 1
