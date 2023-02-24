@@ -295,6 +295,8 @@ class Page:
         # Cell Content Offset
         buff.write(FixedInteger.to_bytes(2, cell_content_offset))
 
+        buff.write(FixedInteger.to_bytes(1, 0))
+
         if self.page_type == PageType.interior:
             buff.write(FixedInteger.to_bytes(4, self.right_child_page_number))
 

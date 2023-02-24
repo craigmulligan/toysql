@@ -91,7 +91,7 @@ class TestPage(TestCase):
 
         print(FixedInteger.from_bytes(expected[5:7]))
         print(FixedInteger.from_bytes(raw_bytes[5:7]))
-        assert raw_bytes[0:7] == expected[0:7]
+        assert raw_bytes[0:8] == expected[0:8]
 
     def test_leaf_page(self):
         page_number = 1
