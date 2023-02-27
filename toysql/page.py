@@ -1,6 +1,7 @@
 from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer
+from toysql.datatypes import uint8, uint16, uint32, varint_32
 import bisect
 import io
 
@@ -63,12 +64,12 @@ class LeafPageCell(Cell):
 
     def to_bytes(self):
         """
-        pass
+        Cell contains a record
         """
         buff = io.BytesIO()
         record_bytes = self.record.to_bytes()
-        record_size = Integer(len(record_bytes)).to_bytes()
-        row_id = Integer(self.record.row_id).to_bytes()
+        record_size = varint_32(len(record_bytes))
+        row_id = varint_32(self.record.row_id)
 
         buff.write(record_size)
         buff.write(row_id)
@@ -110,8 +111,8 @@ class InteriorPageCell(Cell):
 
     def to_bytes(self):
         buff = io.BytesIO()
-        page_number = FixedInteger.to_bytes(4, self.left_child_page_number)
-        row_id = Integer(self.row_id).to_bytes()
+        page_number = uint32(self.left_child_page_number)
+        row_id = varint_32(self.row_id)
 
         buff.write(page_number)
         buff.write(row_id)
@@ -226,7 +227,9 @@ class Page:
         if exists:
             self.remove_cell(exists)
 
-        bisect.insort(self.cells, cell)
+        # bisect.insort(self.cells, cell)
+        self.cells.append(cell)
+
         return cell
 
     def remove_cell(self, cell):
@@ -246,63 +249,58 @@ class Page:
         return 12
 
     def __len__(self):
-        header_size = self.header_size()
-
-        [cell_offsets, cell_data] = self.cells_to_bytes()
-        return header_size + len(cell_offsets) + len(cell_data)
-
-    def cells_to_bytes(self) -> List[bytes]:
-        """
-        Returns the body as bytes
-        """
-        cell_offsets = b""
-        cell_data = b""
-
-        for cell in self.cells:
-            cell_bytes = cell.to_bytes()
-            # Add offset for each cell from the cell Content area.
-            # TODO this isn't a true offset. But it makes it easy to read
-            # All of them.
-            offset = FixedInteger.to_bytes(2, len(cell_bytes))
-            cell_offsets += offset
-            cell_data += cell_bytes
-
-        return [cell_offsets, cell_data]
+        # TODO can't use to_bytes because it always returns page size.
+        return len(self.to_bytes())
 
     def to_bytes(self) -> bytes:
         """
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
+        # create a buffer of page_size
         buff = io.BytesIO(b"".ljust(self.page_size, b"\0"))
 
+        # get_header size dependent on page_type
         header_size = self.header_size()
-        [cell_offsets, cell_data] = self.cells_to_bytes()
 
-        cell_content_offset = self.page_size - len(cell_data)
-        free_area_index = header_size + len(cell_offsets)
+        cell_data = []
+        for cell in self.cells:
+            cell_data.append(cell.to_bytes())
+
+        cell_data_len = len(b"".join(cell_data))
+        free_area_index = header_size + (len(self.cells) * 2)
+
+        # get_header size dependent on page_type
+        cell_content_offset = self.page_size - cell_data_len
 
         # Seek negative offset of cell_content area.
         buff.seek(cell_content_offset)
-        buff.write(cell_data)
 
+        cell_offsets = []
+
+        for cell_bytes in cell_data:
+            cell_offsets.append(buff.tell())
+            buff.write(cell_bytes)
+
+        # now right the header.
         buff.seek(0)
         # Page type.
-        buff.write(FixedInteger.to_bytes(1, self.page_type.value))
+        buff.write(uint8(self.page_type.value))
         # Free area start
-        buff.write(FixedInteger.to_bytes(2, free_area_index))
+        buff.write(uint16(free_area_index))
         # Number of cells.
-        buff.write(FixedInteger.to_bytes(2, len(self.cells)))
+        buff.write(uint16(len(self.cells)))
         # Cell Content Offset
-        # buff.write(FixedInteger.to_bytes(2, 913))
-        buff.write(FixedInteger.to_bytes(2, cell_content_offset))
+        buff.write(uint16(cell_content_offset))
 
-        buff.write(FixedInteger.to_bytes(1, 0))
+        if self.page_type == PageType.interior and self.right_child_page_number:
+            buff.write(uint32(self.right_child_page_number))
 
-        if self.page_type == PageType.interior:
-            buff.write(FixedInteger.to_bytes(4, self.right_child_page_number))
+        # but 7 must be Something sqlite needs but we don't
+        buff.write(uint8(0))
 
         # Right after the header we add the cell_offsets
-        buff.write(cell_offsets)
+        for offset in cell_offsets:
+            buff.write(uint16(offset))
 
         # Go to the beginning so we can read everything.
         buff.seek(0)
