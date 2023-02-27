@@ -100,16 +100,13 @@ class TestPage(TestCase):
         start = header_size
         stop = header_size + (2 * 3)
 
-        assert len(expected[start:]) == len(raw_bytes[start:])
-        assert len(expected[start:]) == len(raw_bytes[start:])
-
         for i in range(start, stop, 2):
             v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
             x = FixedInteger.from_bytes(expected[i : i + 2])
 
             print(i, i + 2, v, x)
 
-        assert raw_bytes[start:stop] == expected[start:stop]
+        assert raw_bytes[stop:] == expected[stop:]
 
     def test_leaf_page(self):
         page_number = 1

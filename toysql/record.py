@@ -13,7 +13,7 @@ class Null:
         self.value = None
 
     def serial_type(self):
-        return 0
+        return DataType.null.value
 
     def content_length(self):
         """
@@ -79,7 +79,7 @@ class Byte:
 
     def serial_type(self):
         # anything greater than 12 and odd is type TEXT.
-        return 1
+        return DataType.byte.value
 
     def content_length(self):
         """
@@ -118,8 +118,7 @@ class Integer:
         return cast(IntSizes, len(self.to_bytes()))
 
     def serial_type(self):
-        content_length = self.content_length()
-        return self.serial_type_map[content_length]
+        return DataType.integer.value
 
     @staticmethod
     def content_length_from_serial_type(serial_type: IntSerialType) -> IntSizes:
@@ -176,7 +175,7 @@ class Record:
         body_data = b""
 
         # ignore pk so start from 1.
-        for type, value in self.values:
+        for type, value in self.values[1:]:
             if type == DataType.integer:
                 serial_type = Integer(value).serial_type()
                 header_data += varint_8(serial_type)
@@ -196,6 +195,10 @@ class Record:
                 serial_type = Null().serial_type()
                 header_data += varint_8(serial_type)
                 body_data += Null().to_bytes()
+
+        print("key: ", self.values[0][1])
+        print("header: ", uint8(len(header_data)) + header_data)
+        print("body: ", body_data)
 
         return uint8(len(header_data)) + header_data + body_data
 
