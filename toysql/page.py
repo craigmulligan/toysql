@@ -277,9 +277,9 @@ class Page:
 
         cell_offsets = []
 
-        for cell_bytes in cell_data:
-            cell_offsets.append(buff.tell())
-            buff.write(cell_bytes)
+        for cell in self.cells:
+            cell_offsets.append((cell.row_id, buff.tell()))
+            buff.write(cell.to_bytes())
 
         # now right the header.
         buff.seek(0)
@@ -299,7 +299,7 @@ class Page:
         buff.write(uint8(0))
 
         # Right after the header we add the cell_offsets
-        for offset in cell_offsets:
+        for _, offset in sorted(cell_offsets, key=lambda x: x[0]):
             buff.write(uint16(offset))
 
         # Go to the beginning so we can read everything.

@@ -145,7 +145,7 @@ class Record:
         body_data = b""
 
         # ignore pk so start from 1.
-        for type, value in self.values[1:-1]:
+        for type, value in self.values:
             if type == DataType.integer:
                 serial_type = Integer(value).serial_type()
                 header_data += varint_8(serial_type)
