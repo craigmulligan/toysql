@@ -53,8 +53,8 @@ class DataType(Enum):
     """
 
     null = 0
-    byte = 2
-    smallint = 3
+    byte = 1
+    smallint = 2
     integer = 4
     text = 5
 

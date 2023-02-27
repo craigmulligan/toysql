@@ -1,6 +1,7 @@
 from typing import cast, Literal
 from toysql.lexer import DataType
-from toysql.datatypes import int32, varint_8, varint_32, uint8, int8
+from toysql.datatypes import int32, varint_8, varint_32, uint8, int8, fixed_decode
+import string
 import io
 
 
@@ -175,30 +176,34 @@ class Record:
         body_data = b""
 
         # ignore pk so start from 1.
-        for type, value in self.values[1:]:
+        for i, [type, value] in enumerate(self.values):
             if type == DataType.integer:
                 serial_type = Integer(value).serial_type()
                 header_data += varint_8(serial_type)
-                body_data += int32(value)
+                print("int", value, varint_8(serial_type), serial_type)
+
+                if i > 0:
+                    body_data += int32(value)
 
             if type == DataType.byte:
                 serial_type = Byte(value).serial_type()
                 header_data += varint_8(serial_type)
+                print("byte", value, varint_8(serial_type), serial_type)
                 body_data += Byte(value).to_bytes()
 
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
                 header_data += varint_32(serial_type)
+
+                print("text", value, varint_32(serial_type), serial_type)
                 body_data += Text(value).to_bytes()
 
             if type == DataType.null:
                 serial_type = Null().serial_type()
                 header_data += varint_8(serial_type)
-                body_data += Null().to_bytes()
 
-        print("key: ", self.values[0][1])
-        print("header: ", uint8(len(header_data)) + header_data)
-        print("body: ", body_data)
+                print("null", varint_8(serial_type), serial_type)
+                body_data += Null().to_bytes()
 
         return uint8(len(header_data)) + header_data + body_data
 

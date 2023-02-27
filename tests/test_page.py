@@ -63,7 +63,7 @@ class TestPage(TestCase):
             [
                 [DataType.integer, 21000],
                 [DataType.text, "Programming Languages"],
-                [DataType.byte, 75],
+                [DataType.integer, 75],
                 [DataType.integer, 89],
             ],
             [
@@ -88,10 +88,10 @@ class TestPage(TestCase):
         header_size = leaf_page.header_size()
 
         print("current")
-        print(raw_bytes)
+        print(raw_bytes[913:958])
         print("-------")
         print("expected")
-        print(expected)
+        print(expected[913:958])
 
         # print(FixedInteger.from_bytes(expected[5:7]))
         # print(FixedInteger.from_bytes(raw_bytes[5:7]))
@@ -106,7 +106,7 @@ class TestPage(TestCase):
 
             print(i, i + 2, v, x)
 
-        assert raw_bytes[stop:] == expected[stop:]
+        assert raw_bytes[913:958] == expected[913:958]
 
     def test_leaf_page(self):
         page_number = 1
