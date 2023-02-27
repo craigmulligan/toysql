@@ -85,28 +85,27 @@ class TestPage(TestCase):
             leaf_page.add_cell(LeafPageCell(Record(p)))
 
         raw_bytes = leaf_page.to_bytes()
-        header_size = leaf_page.header_size()
+        # header_size = leaf_page.header_size()
 
-        print("current")
-        print(raw_bytes[913:958])
-        print("-------")
-        print("expected")
-        print(expected[913:958])
+        # print("current")
+        # print(raw_bytes[913:958])
+        # print("-------")
+        # print("expected")
+        # print(expected[913:958])
 
-        # print(FixedInteger.from_bytes(expected[5:7]))
-        # print(FixedInteger.from_bytes(raw_bytes[5:7]))
-        # assert raw_bytes[0:header_size] == expected[0:header_size]
-        # assert b"\x00\x00'\x00e\x00" == b'\x03\x91\x03\xe3\x03\xbe'
-        start = header_size
-        stop = header_size + (2 * 3)
+        # # print(FixedInteger.from_bytes(expected[5:7]))
+        # # print(FixedInteger.from_bytes(raw_bytes[5:7]))
+        # # assert raw_bytes[0:header_size] == expected[0:header_size]
+        # # assert b"\x00\x00'\x00e\x00" == b'\x03\x91\x03\xe3\x03\xbe'
+        # start = header_size
+        # stop = header_size + (2 * 3)
 
-        for i in range(start, stop, 2):
-            v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
-            x = FixedInteger.from_bytes(expected[i : i + 2])
+        # for i in range(start, stop, 2):
+        #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
+        #     x = FixedInteger.from_bytes(expected[i : i + 2])
+        #     print(i, i + 2, v, x)
 
-            print(i, i + 2, v, x)
-
-        assert raw_bytes[913:958] == expected[913:958]
+        assert raw_bytes == expected
 
     def test_leaf_page(self):
         page_number = 1

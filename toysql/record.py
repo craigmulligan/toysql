@@ -179,33 +179,30 @@ class Record:
         for i, [type, value] in enumerate(self.values):
             if type == DataType.integer:
                 serial_type = Integer(value).serial_type()
-                header_data += varint_8(serial_type)
-                print("int", value, varint_8(serial_type), serial_type)
-
-                if i > 0:
+                if i == 0:
+                    # primary key
+                    header_data += varint_8(0)
+                else:
+                    header_data += varint_8(serial_type)
                     body_data += int32(value)
 
             if type == DataType.byte:
                 serial_type = Byte(value).serial_type()
                 header_data += varint_8(serial_type)
-                print("byte", value, varint_8(serial_type), serial_type)
                 body_data += Byte(value).to_bytes()
 
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
                 header_data += varint_32(serial_type)
-
-                print("text", value, varint_32(serial_type), serial_type)
                 body_data += Text(value).to_bytes()
 
             if type == DataType.null:
                 serial_type = Null().serial_type()
                 header_data += varint_8(serial_type)
-
-                print("null", varint_8(serial_type), serial_type)
                 body_data += Null().to_bytes()
 
-        return uint8(len(header_data)) + header_data + body_data
+        # we need to +1 here to account for the extra uint8 at the start.
+        return uint8(len(header_data) + 1) + header_data + body_data
 
     @staticmethod
     def from_bytes(data):
