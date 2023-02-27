@@ -52,9 +52,11 @@ class DataType(Enum):
     TEXT. The value is a text text, stored using the database encoding (UTF-8, UTF-16BE or UTF-16LE).
     """
 
-    null = auto()
-    integer = auto()
-    text = auto()
+    null = 0
+    byte = 2
+    smallint = 3
+    integer = 4
+    text = 5
 
     @staticmethod
     def infer(v):

@@ -63,7 +63,7 @@ class TestPage(TestCase):
             [
                 [DataType.integer, 21000],
                 [DataType.text, "Programming Languages"],
-                [DataType.integer, 75],
+                [DataType.byte, 75],
                 [DataType.integer, 89],
             ],
             [

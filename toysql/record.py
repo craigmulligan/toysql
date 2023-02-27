@@ -1,6 +1,6 @@
 from typing import cast, Literal
 from toysql.lexer import DataType
-from toysql.datatypes import int32, varint_8, varint_32, uint8
+from toysql.datatypes import int32, varint_8, varint_32, uint8, int8
 import io
 
 
@@ -67,6 +67,37 @@ class Text:
 
 IntSizes = Literal[1, 2, 3, 4, 6, 8]
 IntSerialType = Literal[1, 2, 3, 4, 5, 6]
+
+
+class Byte:
+    """
+    Variable length text encoded to bytes as UTF-8.
+    """
+
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def serial_type(self):
+        # anything greater than 12 and odd is type TEXT.
+        return 1
+
+    def content_length(self):
+        """
+        Copied the sqllite variable length formula (n*2) + 13
+        """
+        return 1
+
+    def to_bytes(self):
+        """
+        Pack `value` into varint bytes
+        """
+        return int8(self.value)
+
+    @staticmethod
+    def from_bytes(value):
+        """Read a varint from bytes"""
+        result = value.decode("utf-8")
+        return Text(result)
 
 
 class Integer:
@@ -150,6 +181,11 @@ class Record:
                 serial_type = Integer(value).serial_type()
                 header_data += varint_8(serial_type)
                 body_data += int32(value)
+
+            if type == DataType.byte:
+                serial_type = Byte(value).serial_type()
+                header_data += varint_8(serial_type)
+                body_data += Byte(value).to_bytes()
 
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
