@@ -1,4 +1,5 @@
 from typing import List
+import pytest
 
 
 def varint_decode(data: str) -> str:
@@ -64,6 +65,12 @@ def int_to_str(i: int, length: int) -> str:
 
 
 def to_bytes(binary: str):
+    """
+    converts a binary string into hex bytes
+
+    in: 1000011101101000
+    out: b'\x87h'
+    """
     return int(binary, 2).to_bytes(len(binary) // 8, byteorder="big")
 
 
@@ -119,3 +126,17 @@ def test_varint_16():
     x = varint_16(1000)
     assert x == b"\x87h"
     assert 1000 == decoder(x)
+
+
+@pytest.mark.parametrize(
+    "test_input,size,expected",
+    [
+        (1000, 16, "1000011101101000"),
+        (1000, 32, "10000000100000001000000101111010100"),
+        (42, 4, "1101010"),
+        (42, 16, "1000000000101010"),
+    ],
+)
+def test_varint(test_input, size, expected):
+    bin_str = int_to_str(test_input, size - 2)
+    assert varint_encode(bin_str, size) == expected
