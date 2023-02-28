@@ -1,6 +1,7 @@
 import pytest
 from toysql.record import Record, DataType
 from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType, FixedInteger
+from toysql.datatypes import fixed_decode
 from os import path
 
 
@@ -39,10 +40,13 @@ def test_schema_page():
     page_end = page_size
     expected = get_file_data("1table-1page.cdb", page_start, page_end)
     leaf_page = Page(PageType.interior, 0, page_size=page_size)
-    header_size = 40
-    leaf_page.to_bytes()[:header_size]
+    header_size = 100
+
+    print(fixed_decode(expected[header_size - 4 : header_size]))
     print("----")
-    expected[:header_size]
+    print(leaf_page.to_bytes()[:header_size])
+    print("----")
+    print(expected[:header_size])
     print("----")
     assert leaf_page.to_bytes()[:header_size] == expected[:header_size]
 

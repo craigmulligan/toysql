@@ -285,6 +285,8 @@ class Page:
         buff.seek(0)
         if self.page_number == 0:
             # schema_page.
+            # not used == chidb doesnt care about it
+            # unsued == not in sqlite spec
             buff.write(Text("SQLite format 3\0").to_bytes())
             buff.write(uint16(self.page_size))
             buff.write(uint8(1))
@@ -295,8 +297,16 @@ class Page:
             buff.write(uint8(32))
             buff.write(uint32(0))  # page_counter
             buff.write(uint32(0))  # unused
-            buff.write(uint32(0))  # unused
+            buff.write(uint32(0))  # not used
+            buff.write(uint32(0))  # not used
             buff.write(uint32(0))  # schema_version
+            buff.write(uint32(1))  # not used
+            buff.write(uint32(20000))  # page_size_cache
+            buff.write(uint32(0))  # not used
+            buff.write(uint32(1))  # user cookie
+            # The rest of the header is just empty
+            # bytes
+            buff.write(b"".ljust(100 - buff.tell(), b"\0"))
 
         # Page type.
         buff.write(uint8(self.page_type.value))
