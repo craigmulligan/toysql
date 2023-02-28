@@ -27,7 +27,6 @@ def test_interior_page_cell():
     This test asserts that the leaf page cells are serialized and deserialized
     according to spec.
     """
-    pass
 
 
 def test_leaf_page():
@@ -75,7 +74,12 @@ def test_interior_page():
     This test asserts that the interiot pages are serialized and deserialized
     according to spec.
     """
-    pass
+    page_size = 1024
+    page_start = page_size
+    page_end = page_size * 2
+    expected = get_file_data("1table-largebtree.cdb", page_start, page_end)
+    leaf_page = Page(PageType.interior, 1, page_size=page_size)
+    assert leaf_page.to_bytes() == expected
 
 
 @pytest.mark.skip("TODO")
@@ -84,7 +88,12 @@ def test_schema_page():
     This test asserts that the root (schema) page is serialized and deserialized
     according to spec.
     """
-    pass
+    page_size = 1024
+    page_start = 0
+    page_end = page_size
+    expected = get_file_data("1table-1page.cdb", page_start, page_end)
+    leaf_page = Page(PageType.interior, 0, page_size=page_size)
+    assert leaf_page.to_bytes() == expected
 
 
 # class TestPage(TestCase):
