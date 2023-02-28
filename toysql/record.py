@@ -156,17 +156,20 @@ class Integer:
 
 
 class Record:
-    def __init__(self, payload):
+    def __init__(self, payload, row_id=None):
         self.values = payload
 
         if len(payload) == 0:
             raise Exception("Empty record")
 
         # row_id is always the first value in row.
-        if not isinstance(payload[0][1], int):
-            raise Exception("Key is not an integer")
+        if row_id is None:
+            if not isinstance(payload[0][1], int):
+                raise Exception("Key is not an integer")
 
-        self.row_id = payload[0][1]
+            self.row_id = payload[0][1]
+        else:
+            self.row_id = row_id
 
     def __eq__(self, o: "Record") -> bool:
         return o.row_id == self.row_id
@@ -181,10 +184,14 @@ class Record:
                 serial_type = Integer(value).serial_type()
                 if i == 0:
                     # primary key
-                    header_data += varint_8(0)
+                    # header_data += varint_8(0)
+                    serial_type = Null().serial_type()
+                    header_data += varint_8(serial_type)
+                    body_data += Null().to_bytes()
                 else:
                     header_data += varint_8(serial_type)
                     body_data += int32(value)
+                    print("int", value, int32(value))
 
             if type == DataType.byte:
                 serial_type = Byte(value).serial_type()
@@ -194,6 +201,7 @@ class Record:
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
                 header_data += varint_32(serial_type)
+                print("txt", value, varint_32(serial_type))
                 body_data += Text(value).to_bytes()
 
             if type == DataType.null:

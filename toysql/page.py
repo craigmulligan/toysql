@@ -2,7 +2,6 @@ from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer, Text
 from toysql.datatypes import uint8, uint16, uint32, varint_32
-import bisect
 import io
 
 
@@ -70,6 +69,8 @@ class LeafPageCell(Cell):
         record_bytes = self.record.to_bytes()
         record_size = varint_32(len(record_bytes))
         row_id = varint_32(self.record.row_id)
+        # print("row_id", self.record.row_id, row_id)
+        # print("size", record_size, len(record_bytes))
 
         buff.write(record_size)
         buff.write(row_id)
@@ -244,7 +245,12 @@ class Page:
 
     def header_size(self):
         if self.page_type == PageType.leaf:
+            if self.page_number == 0:
+                return 108
             return 8
+
+        if self.page_number == 0:
+            return 112
 
         return 12
 
@@ -310,7 +316,9 @@ class Page:
 
         # Page type.
         buff.write(uint8(self.page_type.value))
+        print("page_type", free_area_index, uint8(self.page_type.value))
         # Free area start
+        print("free_area", free_area_index, uint16(free_area_index))
         buff.write(uint16(free_area_index))
         # Number of cells.
         buff.write(uint16(len(self.cells)))

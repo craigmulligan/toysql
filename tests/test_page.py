@@ -39,16 +39,34 @@ def test_schema_page():
     page_start = 0
     page_end = page_size
     expected = get_file_data("1table-1page.cdb", page_start, page_end)
-    leaf_page = Page(PageType.interior, 0, page_size=page_size)
-    header_size = 100
 
-    print(fixed_decode(expected[header_size - 4 : header_size]))
-    print("----")
-    print(leaf_page.to_bytes()[:header_size])
-    print("----")
-    print(expected[:header_size])
-    print("----")
-    assert leaf_page.to_bytes()[:header_size] == expected[:header_size]
+    schema_sql = "CREATE TABLE courses(code INTEGER PRIMARY KEY, name TEXT, prof BYTE, dept INTEGER)"
+
+    record = Record(
+        [
+            [DataType.text, "table"],  # type (index or table)
+            [DataType.text, "courses"],  # item name
+            [DataType.text, "courses"],  # associated table name
+            [DataType.integer, 2],  # root_page number
+            [DataType.text, schema_sql],
+        ],
+        row_id=1,
+    )
+
+    root_page = Page(PageType.leaf, 0, page_size=page_size)
+    # root_page = Page(PageType.leaf, 0, page_size=page_size)
+    root_page.add_cell(LeafPageCell(record))
+
+    assert expected == root_page.to_bytes()
+    # assert root_page.to_bytes() == expected
+    # header_size = 108
+    # start = header_size
+    # stop = header_size + 2
+
+    # for i in range(start, stop, 2):
+    #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
+    #     x = FixedInteger.from_bytes(expected[i : i + 2])
+    #     print(i, i + 2, v, x)
 
 
 def test_leaf_page():
@@ -56,7 +74,6 @@ def test_leaf_page():
     This test asserts that the leaf pages are serialized and deserialized
     according to spec.
     """
-
     page_size = 1024
     page_start = page_size
     page_end = page_size * 2
@@ -83,14 +100,31 @@ def test_leaf_page():
         ],
     ]
 
-    leaf_page = Page(PageType.leaf, 1, page_size=page_size)
+    leaf_page = Page(PageType.leaf, 2, page_size=page_size)
     for p in payload:
-        leaf_page.add_cell(LeafPageCell(Record(p)))
+        leaf_page.add_cell(
+            LeafPageCell(Record(p, row_id=p[0][1])),
+        )
 
-    assert leaf_page.to_bytes() == expected
+    assert expected == leaf_page.to_bytes()
+
+    # header_size = 8
+    # start = header_size
+    # stop = header_size + (2 * 3)
+
+    # for i in range(start, stop, 2):
+    #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
+    #     x = FixedInteger.from_bytes(expected[i : i + 2])
+    #     print(i, i + 2, v, x)
+
+    # print("----")
+    # print(b"    " + raw_bytes[996:])
+    # print("----")
+    # print(expected[995:])
+
+    # # breakpoint()
 
     # result = leaf_page.from_bytes(expected)
-    # assert result == leaf_page
 
 
 @pytest.mark.skip("TODO")
@@ -104,6 +138,7 @@ def test_interior_page():
     page_end = page_size * 2
     expected = get_file_data("1table-largebtree.cdb", page_start, page_end)
     leaf_page = Page(PageType.interior, 1, page_size=page_size)
+
     assert leaf_page.to_bytes() == expected
 
 
