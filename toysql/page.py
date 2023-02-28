@@ -1,6 +1,6 @@
 from typing import Optional, List
 from enum import Enum
-from toysql.record import Record, Integer
+from toysql.record import Record, Integer, Text
 from toysql.datatypes import uint8, uint16, uint32, varint_32
 import bisect
 import io
@@ -283,6 +283,21 @@ class Page:
 
         # now right the header.
         buff.seek(0)
+        if self.page_number == 0:
+            # schema_page.
+            buff.write(Text("SQLite format 3\0").to_bytes())
+            buff.write(uint16(self.page_size))
+            buff.write(uint8(1))
+            buff.write(uint8(1))
+            buff.write(uint8(0))
+            buff.write(uint8(64))
+            buff.write(uint8(32))
+            buff.write(uint8(32))
+            buff.write(uint32(0))  # page_counter
+            buff.write(uint32(0))  # unused
+            buff.write(uint32(0))  # unused
+            buff.write(uint32(0))  # schema_version
+
         # Page type.
         buff.write(uint8(self.page_type.value))
         # Free area start
