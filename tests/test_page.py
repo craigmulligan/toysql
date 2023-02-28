@@ -67,6 +67,9 @@ def test_leaf_page():
 
     assert leaf_page.to_bytes() == expected
 
+    result = leaf_page.from_bytes(expected)
+    assert result == leaf_page
+
 
 @pytest.mark.skip("TODO")
 def test_interior_page():
