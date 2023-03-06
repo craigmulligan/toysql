@@ -70,8 +70,6 @@ class LeafPageCell(Cell):
         record_bytes = self.record.to_bytes()
         record_size = varint_32(len(record_bytes))
         row_id = varint_32(self.record.row_id)
-        # print("row_id", self.record.row_id, row_id)
-        # print("size", record_size, len(record_bytes))
 
         buff.write(record_size)
         buff.write(row_id)
@@ -86,7 +84,6 @@ class LeafPageCell(Cell):
         First read two varints record_size + row_id
         Then read the record payload
         """
-        print(data)
         buff = io.BytesIO(data)
         record_size = decoder(buff.read(4))
         # buff.seek(record_size.content_length())
@@ -131,7 +128,7 @@ class InteriorPageCell(Cell):
         buff = io.BytesIO(data)
 
         left_child_page_number = FixedInteger.from_bytes(buff.read(4))
-        row_id = Integer.from_bytes(buff.read()).value
+        row_id = decoder(buff.read(4))
 
         return InteriorPageCell(row_id, left_child_page_number)
 
@@ -230,8 +227,9 @@ class Page:
         if exists:
             self.remove_cell(exists)
 
-        # bisect.insort(self.cells, cell)
-        self.cells.append(cell)
+        # The cell is always writing
+        # into freespace.
+        self.cells.insert(0, cell)
 
         return cell
 
@@ -318,20 +316,17 @@ class Page:
 
         # Page type.
         buff.write(uint8(self.page_type.value))
-        print("page_type", free_area_index, uint8(self.page_type.value))
         # Free area start
-        print("free_area", free_area_index, uint16(free_area_index))
         buff.write(uint16(free_area_index))
         # Number of cells.
         buff.write(uint16(len(self.cells)))
         # Cell Content Offset
         buff.write(uint16(cell_content_offset))
+        # unused byte
+        buff.write(uint8(0))
 
         if self.page_type == PageType.interior and self.right_child_page_number:
             buff.write(uint32(self.right_child_page_number))
-        else:
-            # but 7 must be Something sqlite needs but we don't
-            buff.write(uint8(0))
 
         # Right after the header we add the cell_offsets
         for _, offset in sorted(cell_offsets, key=lambda x: x[0]):
@@ -352,7 +347,7 @@ class Page:
         raise Exception(f"Unknown page type {page_type}")
 
     @staticmethod
-    def from_bytes(data) -> "Page":
+    def from_bytes(data, page_number) -> "Page":
         page_size = len(data)
         buffer = io.BytesIO(data)
         # page_number = FixedInteger.from_bytes(buffer.read(1))
@@ -361,6 +356,7 @@ class Page:
         free_area_index = FixedInteger.from_bytes(buffer.read(2))
         number_of_cells = FixedInteger.from_bytes(buffer.read(2))
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
+        FixedInteger.from_bytes(buffer.read(1))
 
         right_child_page_number = None
 
@@ -372,12 +368,8 @@ class Page:
 
         cells = []
 
-        if page_type == PageType.leaf:
-            _ = FixedInteger.from_bytes(buffer.read(1))
-
         # Cell pointers
         cell_offsets = []
-        print(number_of_cells)
 
         for _ in range(number_of_cells):
             cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
@@ -389,11 +381,13 @@ class Page:
             cell_content = buffer.read(next)
             cell = Page.cell_from_bytes(page_type, cell_content)
             # Make sure we add them in the order they offsets are stored.
+            #    cells.append(cell)
+
             cells.insert(cell_offsets.index(current), cell)
 
         return Page(
             page_type,
-            0,  # page_number
+            page_number,
             cells=cells,
             right_child_page_number=right_child_page_number,
             page_size=page_size,
