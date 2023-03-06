@@ -5,12 +5,35 @@ from toysql.datatypes import fixed_decode
 from os import path
 
 
-def get_file_data(filename, start, end):
+def read_file(filename, start, end):
     p = path.join("tests", "files", "databases", filename)
 
     with open(p, "rb") as f:
         f.seek(start)
         return f.read(end - start)
+
+
+def get_page_size(filename):
+    return FixedInteger.from_bytes(read_file(filename, 16, 18))
+
+
+@pytest.mark.skip("TODO")
+def test_interior_page_cell():
+    """
+    This test asserts that the interiot pages are serialized and deserialized
+    according to spec.
+    """
+    filename = "1table-largebtree.cdb"
+    page_size = get_page_size(filename)
+    page_start = page_size
+    page_end = page_size * 2
+    expected = read_file(filename, page_start, page_end)
+
+    page = Page(PageType.interior, 1, page_size=page_size)
+
+    assert page.cells == []
+
+    assert page.to_bytes() == expected
 
 
 @pytest.mark.skip("TODO")
@@ -22,48 +45,16 @@ def test_leaf_page_cell():
     pass
 
 
-def test_interior_page():
-    """
-    This test asserts that the leaf page cells are serialized and deserialized
-    according to spec.
-    """
-    page_size = 1024
-    page_start = page_size
-    page_end = page_size * 2
-    right_child_page_number = 102
-    expected = get_file_data("1table-largebtree.cdb", page_start, page_end)
-
-    # print("----")
-    # print(expected)
-    # page = Page.from_bytes(expected, None)
-
-    payload = [[3128, 103], [6424, 157]]
-    page = Page(
-        PageType.interior,
-        None,
-        right_child_page_number=right_child_page_number,
-        page_size=page_size,
-    )
-    for p in sorted(payload, key=lambda x: x[0]):
-        page.add_cell(
-            InteriorPageCell(*p),
-        )
-
-    assert page.right_child_page_number == right_child_page_number
-    print([[p.row_id, p.left_child_page_number] for p in page.cells])
-
-    assert page.to_bytes() == expected
-
-
 def test_schema_page():
     """
     This test asserts that the root (schema) page is serialized and deserialized
     according to spec.
     """
-    page_size = 1024
+    filename = "1table-1page.cdb"
+    page_size = get_page_size(filename)
     page_start = 0
     page_end = page_size
-    expected = get_file_data("1table-1page.cdb", page_start, page_end)
+    expected = read_file(filename, page_start, page_end)
 
     schema_sql = "CREATE TABLE courses(code INTEGER PRIMARY KEY, name TEXT, prof BYTE, dept INTEGER)"
 
@@ -79,26 +70,18 @@ def test_schema_page():
     )
 
     root_page = Page(PageType.leaf, 0, page_size=page_size)
-    # root_page = Page(PageType.leaf, 0, page_size=page_size)
     root_page.add_cell(LeafPageCell(record))
 
     assert expected == root_page.to_bytes()
-    # assert root_page.to_bytes() == expected
-    # header_size = 108
-    # start = header_size
-    # stop = header_size + 2
-
-    # for i in range(start, stop, 2):
-    #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
-    #     x = FixedInteger.from_bytes(expected[i : i + 2])
-    #     print(i, i + 2, v, x)
 
 
 def test_leaf_page_from_bytes():
-    page_size = 1024
+    filename = "1table-1page.cdb"
+    page_size = get_page_size(filename)
     page_start = page_size
     page_end = page_size * 2
-    expected = get_file_data("1table-1page.cdb", page_start, page_end)
+
+    expected = read_file(filename, page_start, page_end)
 
     p = Page.from_bytes(expected, 2)
 
@@ -131,15 +114,36 @@ def test_leaf_page_from_bytes():
     assert p.cells == expected_cells
 
 
+def test_interior_page_from_bytes():
+    """
+    This test asserts that the leaf page cells are serialized and deserialized
+    according to spec.
+    """
+    filename = "1table-largebtree.cdb"
+    page_size = get_page_size(filename)
+    page_start = page_size
+    page_end = page_size * 2
+    right_child_page_number = 102
+    expected = read_file(filename, page_start, page_end)
+
+    payload = [[3128, 103], [6424, 157]]
+    page = Page.from_bytes(expected, 2)
+
+    assert page.right_child_page_number == right_child_page_number
+    assert page.cells == [InteriorPageCell(*p) for p in payload]
+    assert page.page_number == 2
+
+
 def test_leaf_page():
     """
     This test asserts that the leaf pages are serialized and deserialized
     according to spec.
     """
-    page_size = 1024
+    filename = "1table-1page.cdb"
+    page_size = get_page_size(filename)
     page_start = page_size
     page_end = page_size * 2
-    expected = get_file_data("1table-1page.cdb", page_start, page_end)
+    expected = read_file(filename, page_start, page_end)
 
     payload = [
         [
@@ -169,42 +173,6 @@ def test_leaf_page():
         )
 
     assert expected == leaf_page.to_bytes()
-
-    # header_size = 8
-    # start = header_size
-    # stop = header_size + (2 * 3)
-
-    # for i in range(start, stop, 2):
-    #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
-    #     x = FixedInteger.from_bytes(expected[i : i + 2])
-    #     print(i, i + 2, v, x)
-
-    # print("----")
-    # print(b"    " + raw_bytes[996:])
-    # print("----")
-    # print(expected[995:])
-
-    # # breakpoint()
-
-    # result = leaf_page.from_bytes(expected)
-
-
-@pytest.mark.skip("TODO")
-def test_interior_page_cell():
-    """
-    This test asserts that the interiot pages are serialized and deserialized
-    according to spec.
-    """
-    page_size = 1024
-    page_start = page_size
-    page_end = page_size * 2
-    expected = get_file_data("1table-largebtree.cdb", page_start, page_end)
-
-    page = Page(PageType.interior, 1, page_size=page_size)
-
-    assert page.cells == []
-
-    assert page.to_bytes() == expected
 
 
 # class TestPage(TestCase):
