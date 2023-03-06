@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Type
+from io import BytesIO
 
 
 def varint_decode(data: str) -> str:
@@ -147,3 +148,78 @@ def int16(i: int):
 
 def int32(i: int):
     return fixed_encode(i, 32, signed=True)
+
+
+class FixedInteger:
+    length = 0
+    signed = False
+
+    @classmethod
+    def to_bytes(cls: Type["FixedInteger"], i: int) -> bytes:
+        return (i).to_bytes(cls.length // 8, byteorder="big", signed=cls.signed)
+
+    @classmethod
+    def from_bytes(cls: Type["FixedInteger"], buffer: BytesIO) -> int:
+        return int.from_bytes(buffer.read(cls.length), "big")
+
+
+class Int32(FixedInteger):
+    length = 32
+    signed = True
+
+
+class Int16(FixedInteger):
+    length = 16
+    signed = True
+
+
+class Int8(FixedInteger):
+    length = 8
+    signed = True
+
+
+class UInt32(FixedInteger):
+    length = 32
+    signed = True
+
+
+class UInt16(FixedInteger):
+    length = 16
+    signed = True
+
+
+class UInt8(FixedInteger):
+    length = 8
+    signed = True
+
+
+class VarInteger:
+    length = 0
+
+    @classmethod
+    def to_bytes(cls: Type["VarInteger"], i: int) -> bytes:
+        """
+        in: 1000, 8
+        out: b'\x87h'
+        """
+        byte_count = cls.length // 8
+        bin_str = int_to_str(i, cls.length - byte_count)
+
+        encoded = varint_encode(bin_str, cls.length)
+        return to_bytes(encoded, cls.length)
+
+    @classmethod
+    def from_bytes(cls: Type["VarInteger"], buffer: BytesIO) -> int:
+        return str_to_int(varint_decode(from_bytes(buffer.read(cls.length))))
+
+
+class VarInteger8:
+    length = 8
+
+
+class VarInteger16:
+    length = 16
+
+
+class VarInteger32:
+    length = 32
