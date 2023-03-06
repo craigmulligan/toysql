@@ -1,7 +1,8 @@
 from typing import Optional, List
 from enum import Enum
 from toysql.record import Record, Integer, Text
-from toysql.datatypes import uint8, uint16, uint32, varint_32
+from toysql.datatypes import uint8, uint16, uint32, varint_32, decoder
+from itertools import pairwise
 import io
 
 
@@ -85,12 +86,13 @@ class LeafPageCell(Cell):
         First read two varints record_size + row_id
         Then read the record payload
         """
+        print(data)
         buff = io.BytesIO(data)
-        record_size = Integer.from_bytes(buff.read())
-        buff.seek(record_size.content_length())
-        row_id = Integer.from_bytes(buff.read())
-        buff.seek(record_size.content_length() + row_id.content_length())
-        record = Record.from_bytes(buff.read(record_size.value))
+        record_size = decoder(buff.read(4))
+        # buff.seek(record_size.content_length())
+        row_id = decoder(buff.read(4))
+        # buff.seek(record_size.content_length() + 32)
+        record = Record.from_bytes(buff.read(record_size), row_id=row_id)
 
         return LeafPageCell(record)
 
@@ -327,9 +329,9 @@ class Page:
 
         if self.page_type == PageType.interior and self.right_child_page_number:
             buff.write(uint32(self.right_child_page_number))
-
-        # but 7 must be Something sqlite needs but we don't
-        buff.write(uint8(0))
+        else:
+            # but 7 must be Something sqlite needs but we don't
+            buff.write(uint8(0))
 
         # Right after the header we add the cell_offsets
         for _, offset in sorted(cell_offsets, key=lambda x: x[0]):
@@ -351,11 +353,12 @@ class Page:
 
     @staticmethod
     def from_bytes(data) -> "Page":
+        page_size = len(data)
         buffer = io.BytesIO(data)
         # page_number = FixedInteger.from_bytes(buffer.read(1))
         page_type = PageType(FixedInteger.from_bytes(buffer.read(1)))
         # Free block pointer.
-        _ = PageType(FixedInteger.from_bytes(buffer.read(2)))
+        free_area_index = FixedInteger.from_bytes(buffer.read(2))
         number_of_cells = FixedInteger.from_bytes(buffer.read(2))
         cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
 
@@ -369,23 +372,29 @@ class Page:
 
         cells = []
 
+        if page_type == PageType.leaf:
+            _ = FixedInteger.from_bytes(buffer.read(1))
+
         # Cell pointers
         cell_offsets = []
+        print(number_of_cells)
 
         for _ in range(number_of_cells):
             cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
 
         # Now read cells
-        buffer.seek(-cell_content_offset, 2)
-
-        for offset in cell_offsets:
-            cell_content = buffer.read(offset)
+        # Add the {None} so that the last offset is read until the end.
+        for current, next in pairwise(sorted(cell_offsets) + [None]):
+            buffer.seek(current)
+            cell_content = buffer.read(next)
             cell = Page.cell_from_bytes(page_type, cell_content)
-            cells.append(cell)
+            # Make sure we add them in the order they offsets are stored.
+            cells.insert(cell_offsets.index(current), cell)
 
         return Page(
             page_type,
-            page_number,
+            0,  # page_number
             cells=cells,
             right_child_page_number=right_child_page_number,
+            page_size=page_size,
         )

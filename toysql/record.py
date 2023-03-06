@@ -213,7 +213,7 @@ class Record:
         return uint8(len(header_data) + 1) + header_data + body_data
 
     @staticmethod
-    def from_bytes(data):
+    def from_bytes(data, row_id=None):
         buff = io.BytesIO(data)
         header_size = Integer.from_bytes(buff.read())
 
@@ -253,4 +253,4 @@ class Record:
                     [DataType.text, Text.from_bytes(buff.read(content_length)).value]
                 )
 
-        return Record(values)
+        return Record(values, row_id=row_id)

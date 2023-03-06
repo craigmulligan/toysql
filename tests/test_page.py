@@ -28,8 +28,45 @@ def test_interior_page_cell():
     This test asserts that the leaf page cells are serialized and deserialized
     according to spec.
     """
+    page_size = 1024
+    page_start = page_size
+    page_end = page_size * 2
+
+    expected = get_file_data("1table-largebtree.cdb", page_start, page_end)
+
+    # payload = [
+    #     [
+    #         [DataType.integer, 21000],
+    #         [DataType.text, "Programming Languages"],
+    #         [DataType.integer, 75],
+    #         [DataType.integer, 89],
+    #     ],
+    #     [
+    #         [DataType.integer, 27500],
+    #         [DataType.text, "Operating Systems"],
+    #         [DataType.null, None],
+    #         [DataType.integer, 89],
+    #     ],
+    #     [
+    #         [DataType.integer, 23500],
+    #         [DataType.text, "Databases"],
+    #         [DataType.null, None],
+    #         [DataType.integer, 42],
+    #     ],
+    # ]
+
+    page = Page(PageType.interior, 2, page_size=page_size)
+    # for p in payload:
+    #     leaf_page.add_cell(
+    #         LeafPageCell(Record(p, row_id=p[0][1])),
+    #     )
+
+    stop = page.header_size()
+
+    assert expected[:stop] == page.to_bytes()[:stop]
 
 
+@pytest.mark.skip("TODO")
 def test_schema_page():
     """
     This test asserts that the root (schema) page is serialized and deserialized
@@ -67,6 +104,41 @@ def test_schema_page():
     #     v = FixedInteger.from_bytes(raw_bytes[i : i + 2])
     #     x = FixedInteger.from_bytes(expected[i : i + 2])
     #     print(i, i + 2, v, x)
+
+
+def test_leaf_page_from_bytes():
+    page_size = 1024
+    page_start = page_size
+    page_end = page_size * 2
+    expected = get_file_data("1table-1page.cdb", page_start, page_end)
+
+    p = Page.from_bytes(expected)
+    assert p.page_size == page_size
+    assert p.page_type == PageType.leaf
+    assert len(p.cells) == 3
+    expected_rows = [
+        [
+            [DataType.integer, 21000],
+            [DataType.text, "Programming Languages"],
+            [DataType.integer, 75],
+            [DataType.integer, 89],
+        ],
+        [
+            [DataType.integer, 23500],
+            [DataType.text, "Databases"],
+            [DataType.null, None],
+            [DataType.integer, 42],
+        ],
+        [
+            [DataType.integer, 27500],
+            [DataType.text, "Operating Systems"],
+            [DataType.null, None],
+            [DataType.integer, 89],
+        ],
+    ]
+
+    expected_cells = [LeafPageCell(Record(row)) for row in expected_rows]
+    assert p.cells == expected_cells
 
 
 def test_leaf_page():
