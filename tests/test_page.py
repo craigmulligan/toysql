@@ -188,3 +188,73 @@ def test_leaf_page():
         )
 
     assert expected == leaf_page.to_bytes()
+
+
+def test_page_e2e(tmp_path):
+    """
+    This test writes a single schema page + leafpage and checks that
+    sqlite can read it back.
+    """
+    page_size = 1024
+    schema_sql = "CREATE TABLE courses(code INTEGER PRIMARY KEY, name TEXT, prof BYTE, dept INTEGER)"
+
+    record = Record(
+        [
+            [DataType.text, "table"],  # type (index or table)
+            [DataType.text, "courses"],  # item name
+            [DataType.text, "courses"],  # associated table name
+            [DataType.integer, 2],  # root_page number
+            [DataType.text, schema_sql],
+        ],
+        row_id=1,
+    )
+
+    root_page = Page(PageType.leaf, 0, page_size=page_size)
+    # Add the schema.
+    root_page.add_cell(LeafPageCell(record))
+
+    # Next add the actual table rows to the 1st page
+    rows = [
+        [
+            [DataType.integer, 23500],
+            [DataType.text, "Databases"],
+            [DataType.null, None],
+            [DataType.integer, 42],
+        ],
+        [
+            [DataType.integer, 27500],
+            [DataType.text, "Operating Systems"],
+            [DataType.null, None],
+            [DataType.integer, 89],
+        ],
+        [
+            [DataType.integer, 21000],
+            [DataType.text, "Programming Languages"],
+            [DataType.integer, 75],
+            [DataType.integer, 89],
+        ],
+    ]
+
+    leaf_page = Page(PageType.leaf, 1, page_size=page_size)
+    for r in rows:
+        leaf_page.add_cell(
+            LeafPageCell(Record(r, row_id=r[0][1])),
+        )
+
+    db_filename = path.join(tmp_path, "toysql.db")
+
+    with open(db_filename, "wb+") as db_file:
+        db_file.write(root_page.to_bytes() + leaf_page.to_bytes())
+
+    import sqlite3
+
+    con = sqlite3.connect(db_filename)
+    cursor = con.cursor()
+
+    # Transform the input into the output format.
+    # (id, language, prof, dept)
+    expected_rows = sorted(
+        [(r[0][1], r[1][1], r[2][1], r[3][1]) for r in rows], key=lambda r: r[0]
+    )
+
+    assert expected_rows == cursor.execute("SELECT * FROM courses").fetchall()
