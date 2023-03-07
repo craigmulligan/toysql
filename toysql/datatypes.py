@@ -37,7 +37,8 @@ def varint_encode(data: str, size: int) -> str:
     """
 
     chunk_size = 7
-    last_chunk_index = (size / 8) - 1
+    last_chunk_index = (size // 8) - 1
+    print("last_chunk_index", last_chunk_index)
     res = ""
     chunks = split_into_chunks(data, chunk_size)
 
@@ -77,7 +78,7 @@ def to_bytes(binary: str, size: int):
 
 
 def from_bytes(h: bytes):
-    return format(int.from_bytes(h, byteorder="big"), "b")
+    return format(int.from_bytes(h, byteorder="big"), "08b")
 
 
 def split_into_chunks(v: str, chunk_size: int) -> List[str]:
@@ -150,54 +151,58 @@ def int32(i: int):
     return fixed_encode(i, 32, signed=True)
 
 
-class FixedInteger:
+class FixedInt:
     length = 0
     signed = False
 
     @classmethod
-    def to_bytes(cls: Type["FixedInteger"], i: int) -> bytes:
+    def to_bytes(cls: Type["FixedInt"], i: int) -> bytes:
         return (i).to_bytes(cls.length // 8, byteorder="big", signed=cls.signed)
 
     @classmethod
-    def from_bytes(cls: Type["FixedInteger"], buffer: BytesIO) -> int:
+    def from_bytes(cls: Type["FixedInt"], buffer: BytesIO) -> int:
         return int.from_bytes(buffer.read(cls.length), "big")
 
 
-class Int32(FixedInteger):
+class Int32(FixedInt):
     length = 32
     signed = True
 
 
-class Int16(FixedInteger):
+class Int16(FixedInt):
     length = 16
     signed = True
 
 
-class Int8(FixedInteger):
+class Int8(FixedInt):
     length = 8
     signed = True
 
 
-class UInt32(FixedInteger):
+class UInt32(FixedInt):
     length = 32
     signed = True
 
 
-class UInt16(FixedInteger):
+class UInt16(FixedInt):
     length = 16
     signed = True
 
 
-class UInt8(FixedInteger):
+class UInt8(FixedInt):
     length = 8
     signed = True
 
 
-class VarInteger:
+class VarInt:
     length = 0
 
     @classmethod
-    def to_bytes(cls: Type["VarInteger"], i: int) -> bytes:
+    def bytes_to_str(cls: Type["VarInt"], h: bytes) -> str:
+        return format(int.from_bytes(h, byteorder="big"), f"0{cls.length}b")
+
+    @classmethod
+    def to_bytes(cls: Type["VarInt"], i: int) -> bytes:
         """
         in: 1000, 8
         out: b'\x87h'
@@ -206,20 +211,26 @@ class VarInteger:
         bin_str = int_to_str(i, cls.length - byte_count)
 
         encoded = varint_encode(bin_str, cls.length)
+        print("encoded", encoded)
         return to_bytes(encoded, cls.length)
 
     @classmethod
-    def from_bytes(cls: Type["VarInteger"], buffer: BytesIO) -> int:
-        return str_to_int(varint_decode(from_bytes(buffer.read(cls.length))))
+    def from_bytes(cls: Type["VarInt"], buffer: BytesIO) -> int:
+        y = cls.bytes_to_str(buffer.read(cls.length))
+        print("encoded", y)
+        z = varint_decode(y)
+        print("decoded", z)
+        x = str_to_int(z)
+        return x
 
 
-class VarInteger8:
+class VarInt8(VarInt):
     length = 8
 
 
-class VarInteger16:
+class VarInt16(VarInt):
     length = 16
 
 
-class VarInteger32:
+class VarInt32(VarInt):
     length = 32

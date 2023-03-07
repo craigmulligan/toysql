@@ -1,26 +1,24 @@
 import pytest
-from toysql.datatypes import (
-    varint_32,
-    decoder,
-    int_to_str,
-    varint_encode,
-    varint_16,
-    uint16,
-    fixed_decode,
-)
+from toysql.datatypes import VarInt16, VarInt32, VarInt8
+from io import BytesIO
 
 
 def test_varint_16():
-    x = varint_16(1000)
-    assert x == b"\x87h"
-    assert 1000 == decoder(x)
+    i = VarInt16.to_bytes(1000)
+    assert i == b"\x87h"
+    assert 1000 == VarInt16.from_bytes(BytesIO(i))
 
 
 def test_varint_32():
-    x = varint_32(200)
-    assert x == b"\x80\x80\x81H"
-    assert len(x) == 4
-    assert 200 == decoder(x)
+    i = VarInt32.to_bytes(200)
+    assert i == b"\x80\x80\x81H"
+    assert 200 == VarInt16.from_bytes(BytesIO(i))
+
+
+def test_varint_8():
+    i = VarInt8.to_bytes(14)
+    assert i == b"\x0e"
+    assert 14 == VarInt8.from_bytes(BytesIO(i))
 
 
 # @pytest.mark.parametrize(
