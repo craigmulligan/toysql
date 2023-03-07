@@ -1,6 +1,6 @@
 from typing import cast, Literal
 from toysql.lexer import DataType
-from toysql.datatypes import UInt32, UInt8, Int8, VarInt32, VarInt8
+from toysql.datatypes import UInt8, Int8, VarInt32, VarInt8, Int32
 import io
 
 
@@ -189,7 +189,7 @@ class Record:
                     body_data += Null().to_bytes()
                 else:
                     header_data += VarInt8.to_bytes(serial_type)
-                    body_data += VarInt32.to_bytes(value)
+                    body_data += Int32.to_bytes(value)
 
             if type == DataType.byte:
                 serial_type = Byte(value).serial_type()
@@ -198,7 +198,7 @@ class Record:
 
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
-                header_data += VarInt8.to_bytes(serial_type)
+                header_data += VarInt32.to_bytes(serial_type)
                 body_data += Text(value).to_bytes()
 
             if type == DataType.null:
