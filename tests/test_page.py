@@ -194,6 +194,8 @@ def test_page_e2e(tmp_path):
     """
     This test writes a single schema page + leafpage and checks that
     sqlite can read it back.
+
+    # TODO add check for page_size + schema.
     """
     page_size = 1024
     schema_sql = "CREATE TABLE courses(code INTEGER PRIMARY KEY, name TEXT, prof BYTE, dept INTEGER)"

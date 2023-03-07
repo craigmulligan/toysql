@@ -17,7 +17,7 @@ def test_varint_16():
 def test_varint_32():
     i = VarInt32.to_bytes(200)
     assert i == b"\x80\x80\x81H"
-    assert 200 == VarInt16.from_bytes(BytesIO(i))
+    assert 200 == VarInt32.from_bytes(BytesIO(i))
 
 
 def test_int_8():
@@ -35,4 +35,4 @@ def test_int_16():
 def test_int_32():
     i = Int32.to_bytes(200)
     assert i == b"\x00\x00\x00\xc8"
-    assert 200 == Int16.from_bytes(BytesIO(i))
+    assert 200 == Int32.from_bytes(BytesIO(i))
