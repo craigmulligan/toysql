@@ -5,7 +5,9 @@ description = "A toy database"
 authors = [
     {name = "Craig Mulligan", email = "git@craigmulligan.com"},
 ]
-dependencies = []
+dependencies = [
+    "sphinx>=6.1.3",
+]
 requires-python = ">=3.8,<4.0"
 license = {text = "MIT"}
 [tool.pdm]
@@ -15,6 +17,9 @@ dev = [
     "pyright<2.0.0,>=1.1.247",
     "snapshottest<1.0.0,>=0.6.0",
     "black>=23.1.0",
+    "myst-parser>=0.19.1",
+    "sphinx-autobuild>=2021.3.14",
+    "shibuya>=2023.3.7",
 ]
 
 [tool.pdm.build]

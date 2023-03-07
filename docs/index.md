@@ -5,7 +5,7 @@
 1.1 [Datatype](/datatypes)
   1.1.2 [Integers](/integers)
   1.1.3 [Text](/text)
-1.2 [Cell](/cell)
+1.2 [record](/record)
 1.3 [Cell](/cell)
 1.4 [Page](/page)
 
