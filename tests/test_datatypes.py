@@ -1,6 +1,11 @@
-import pytest
-from toysql.datatypes import VarInt16, VarInt32, VarInt8
+from toysql.datatypes import VarInt8, VarInt16, VarInt32, Int8, Int16, Int32
 from io import BytesIO
+
+
+def test_varint_8():
+    i = VarInt8.to_bytes(14)
+    assert i == b"\x0e"
+    assert 14 == VarInt8.from_bytes(BytesIO(i))
 
 
 def test_varint_16():
@@ -15,35 +20,19 @@ def test_varint_32():
     assert 200 == VarInt16.from_bytes(BytesIO(i))
 
 
-def test_varint_8():
-    i = VarInt8.to_bytes(14)
+def test_int_8():
+    i = Int8.to_bytes(14)
     assert i == b"\x0e"
-    assert 14 == VarInt8.from_bytes(BytesIO(i))
+    assert 14 == Int8.from_bytes(BytesIO(i))
 
 
-# @pytest.mark.parametrize(
-#     "test_input,expected",
-#     [
-#         (0, b"\x00\x03"),
-#         (3, b"\x91\x03"),
-#         (145, b"\xe3\x03"),
-#     ],
-# )
-# def test_uint16(test_input, expected):
-#     print(len(expected), int.from_bytes(expected, "little", signed=False))
-#     assert test_input == fixed_decode(expected)
-#     assert False
+def test_int_16():
+    i = Int16.to_bytes(1000)
+    assert i == b"\x03\xe8"
+    assert 1000 == Int16.from_bytes(BytesIO(i))
 
 
-# @pytest.mark.parametrize(
-#     "test_input,size,expected",
-#     [
-#         (1000, 16, "1000011101101000"),
-#         (1000, 32, "10000000100000001000000101111010100"),
-#         (42, 4, "1101010"),
-#         (42, 16, "1000000000101010"),
-#     ],
-# )
-# def test_varint(test_input, size, expected):
-#     bin_str = int_to_str(test_input, size - 2)
-#     assert varint_encode(bin_str, size) == expected
+def test_int_32():
+    i = Int32.to_bytes(200)
+    assert i == b"\x00\x00\x00\xc8"
+    assert 200 == Int16.from_bytes(BytesIO(i))
