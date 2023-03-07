@@ -1,7 +1,6 @@
 from typing import cast, Literal
 from toysql.lexer import DataType
-from toysql.datatypes import int32, varint_8, varint_32, uint8, int8, fixed_decode
-import string
+from toysql.datatypes import UInt32, UInt8, Int8, VarInt32, VarInt8
 import io
 
 
@@ -92,7 +91,7 @@ class Byte:
         """
         Pack `value` into varint bytes
         """
-        return int8(self.value)
+        return Int8.to_bytes(self.value)
 
     @staticmethod
     def from_bytes(value):
@@ -186,31 +185,29 @@ class Record:
                     # primary key
                     # header_data += varint_8(0)
                     serial_type = Null().serial_type()
-                    header_data += varint_8(serial_type)
+                    header_data += VarInt8.to_bytes(serial_type)
                     body_data += Null().to_bytes()
                 else:
-                    header_data += varint_8(serial_type)
-                    body_data += int32(value)
-                    print("int", value, int32(value))
+                    header_data += VarInt8.to_bytes(serial_type)
+                    body_data += VarInt32.to_bytes(value)
 
             if type == DataType.byte:
                 serial_type = Byte(value).serial_type()
-                header_data += varint_8(serial_type)
+                header_data += VarInt8.to_bytes(serial_type)
                 body_data += Byte(value).to_bytes()
 
             if type == DataType.text:
                 serial_type = Text(value).serial_type()
-                header_data += varint_32(serial_type)
-                print("txt", value, varint_32(serial_type))
+                header_data += VarInt8.to_bytes(serial_type)
                 body_data += Text(value).to_bytes()
 
             if type == DataType.null:
                 serial_type = Null().serial_type()
-                header_data += varint_8(serial_type)
+                header_data += VarInt8.to_bytes(serial_type)
                 body_data += Null().to_bytes()
 
         # we need to +1 here to account for the extra uint8 at the start.
-        return uint8(len(header_data) + 1) + header_data + body_data
+        return UInt8.to_bytes(len(header_data) + 1) + header_data + body_data
 
     @staticmethod
     def from_bytes(data, row_id=None):
