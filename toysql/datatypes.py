@@ -63,10 +63,6 @@ def str_to_int(data: str) -> int:
     return int(data, 2)
 
 
-def int_to_str(i: int, length: int) -> str:
-    return format(i, "b").zfill(length)
-
-
 def to_bytes(binary: str, size: int):
     """
     converts a binary string into hex bytes
@@ -83,71 +79,56 @@ def from_bytes(h: bytes):
 
 def split_into_chunks(v: str, chunk_size: int) -> List[str]:
     """
-    splits a string into chunk_size length chunks
+    splits a string into chunk_size width chunks
     """
     return [v[i : i + chunk_size] for i in range(0, len(v), chunk_size)]
 
 
-def encoder(i: int, size: int):
-    """
-    i: is integer to encode
-    size: is number of bits
-
-    in: 1000, 8
-    out: b'\x87h'
-    """
-    byte_count = size // 8
-    bin_str = int_to_str(i, size - byte_count)
-
-    encoded = varint_encode(bin_str, size)
-    return to_bytes(encoded, size)
-
-
 class FixedInt:
-    length = 0
+    width = 0
     signed = False
 
     @classmethod
     def to_bytes(cls: Type["FixedInt"], i: int) -> bytes:
-        return (i).to_bytes(cls.length // 8, byteorder="big", signed=cls.signed)
+        return (i).to_bytes(cls.width // 8, byteorder="big", signed=cls.signed)
 
     @classmethod
     def from_bytes(cls: Type["FixedInt"], buffer: BytesIO) -> int:
-        return int.from_bytes(buffer.read(cls.length // 8), "big")
+        return int.from_bytes(buffer.read(cls.width // 8), "big")
 
 
 class Int32(FixedInt):
-    length = 32
+    width = 32
     signed = True
 
 
 class Int16(FixedInt):
-    length = 16
+    width = 16
     signed = True
 
 
 class Int8(FixedInt):
-    length = 8
+    width = 8
     signed = True
 
 
 class UInt32(FixedInt):
-    length = 32
+    width = 32
     signed = True
 
 
 class UInt16(FixedInt):
-    length = 16
+    width = 16
     signed = True
 
 
 class UInt8(FixedInt):
-    length = 8
+    width = 8
     signed = True
 
 
 class VarInt:
-    length = 0
+    width = 0
 
     @staticmethod
     def str_to_int(data: str) -> int:
@@ -159,19 +140,19 @@ class VarInt:
         """
         return int(data, 2)
 
-    @classmethod
-    def int_to_str(cls: Type["VarInt"], i: int) -> str:
+    @staticmethod
+    def int_to_str(i: int, width: int) -> str:
         """
         Converts an int a string
         """
-        return format(i, "b").zfill(cls.length)
+        return format(i, f"0{width}b")
 
     @classmethod
     def bytes_to_str(cls: Type["VarInt"], h: bytes) -> str:
         """
         converts bytes object to binary string
         """
-        return format(int.from_bytes(h, byteorder="big"), f"0{cls.length}b")
+        return format(int.from_bytes(h, byteorder="big"), f"0{cls.width}b")
 
     @classmethod
     def to_bytes(cls: Type["VarInt"], i: int) -> bytes:
@@ -179,27 +160,27 @@ class VarInt:
         in: 1000, 8
         out: b'\x87h'
         """
-        byte_count = cls.length // 8
-        bin_str = int_to_str(i, cls.length - byte_count)
+        byte_count = cls.width // 8
+        bin_str = cls.int_to_str(i, cls.width - byte_count)
 
-        encoded = varint_encode(bin_str, cls.length)
-        return to_bytes(encoded, cls.length)
+        encoded = varint_encode(bin_str, cls.width)
+        return to_bytes(encoded, cls.width)
 
     @classmethod
     def from_bytes(cls: Type["VarInt"], buffer: BytesIO) -> int:
-        y = cls.bytes_to_str(buffer.read(cls.length // 8))
+        y = cls.bytes_to_str(buffer.read(cls.width // 8))
         z = varint_decode(y)
         x = str_to_int(z)
         return x
 
 
 class VarInt8(VarInt):
-    length = 8
+    width = 8
 
 
 class VarInt16(VarInt):
-    length = 16
+    width = 16
 
 
 class VarInt32(VarInt):
-    length = 32
+    width = 32

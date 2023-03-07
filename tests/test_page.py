@@ -1,7 +1,7 @@
-import pytest
 from toysql.record import Record, DataType
 from toysql.page import LeafPageCell, InteriorPageCell, Page, PageType, FixedInteger
 from os import path
+import sqlite3
 
 
 def read_file(filename, start, end):
@@ -247,8 +247,6 @@ def test_page_e2e(tmp_path):
 
     with open(db_filename, "wb+") as db_file:
         db_file.write(root_page.to_bytes() + leaf_page.to_bytes())
-
-    import sqlite3
 
     con = sqlite3.connect(db_filename)
     cursor = con.cursor()

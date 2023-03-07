@@ -26,6 +26,12 @@ def test_int_8():
     assert 14 == Int8.from_bytes(BytesIO(i))
 
 
+def test_int_8_x():
+    i = Int8.to_bytes(5)
+    assert i == b"\x05"
+    assert 5 == Int8.from_bytes(BytesIO(i))
+
+
 def test_int_16():
     i = Int16.to_bytes(1000)
     assert i == b"\x03\xe8"
