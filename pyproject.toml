@@ -28,7 +28,7 @@ black_check = "black . --check"
 black = "black ."
 ci = {composite = ["pyright", "black_check", "test"]}
 docs = "sphinx-autobuild docs/source docs/build/html"
-
+docs_build = "sphinx-build -b html docs/source/ docs/build/html"
 
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]

@@ -78,11 +78,13 @@ If you have used SQLite before you may have noticed that you never have to defin
 For instance creating a table you may write. 
 
 .. code-block:: sql 
+
   CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)
    
 Instead of explicitly defining the integer size for price.
 
 .. code-block:: sql
+
   CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER(8))
 
 .. note::
