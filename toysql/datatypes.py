@@ -114,17 +114,17 @@ class Int8(FixedInt):
 
 class UInt32(FixedInt):
     width = 32
-    signed = True
+    signed = False
 
 
 class UInt16(FixedInt):
     width = 16
-    signed = True
+    signed = False
 
 
 class UInt8(FixedInt):
     width = 8
-    signed = True
+    signed = False
 
 
 class VarInt:
