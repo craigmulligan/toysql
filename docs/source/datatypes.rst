@@ -19,7 +19,7 @@ Let's start with a test to illustrate the functionality we are after:
 
 .. literalinclude:: ../../tests/test_datatypes.py
    :language: python
-   :pyobject: FixedIntTestGroup
+   :pyobject: TestGroupFixedInt
    :lines: 1-7
 
 .. note::
@@ -47,7 +47,7 @@ Your tests should now be passing. Let's go ahead and add tests for the rest of t
 
 .. literalinclude:: ../../tests/test_datatypes.py
    :language: python
-   :pyobject: FixedIntTestGroup
+   :pyobject: TestGroupFixedInt
 
 
 Now let's modify our `Int8` class so that we can reuse it for the remainder of the classes. 
@@ -74,15 +74,15 @@ Go ahead and add the remaining classes :code:`Int8`, :code:`Int16`, :code:`Int32
 Variable Width Integers
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you have used SQLite before you may have noticed that you never have to define an integers width when declaring schema. 
-For instance creating a table you may write. 
+If you have used SQLite before you may have noticed that you never have to define an integers width when declaring schema.
+For instance when creating a table you may write. 
 
 .. code-block:: sql 
 
   CREATE TABLE products(code INTEGER PRIMARY KEY,
     name TEXT, price INTEGER)
    
-Instead of explicitly defining the integer size for price.
+Instead of explicitly defining the integer size for :code:`price`.
 
 .. code-block:: sql
 
@@ -90,10 +90,37 @@ Instead of explicitly defining the integer size for price.
     name TEXT, price INTEGER(8))
 
 .. note::
-  To conform with other sql engines sqlite will happily accept :code:`price INTEGER(8)` but it will ignore the 8 and store it the same as any other integer.
+  To conform with other SQL databases sqlite will happily accept :code:`price INTEGER(8)` but it will ignore the 8 and store it the same as any other integer.
 
-This is because sqlite used variable width integer encoding for all user stored integers. This means that it will always pick the correct width for the integer that needs to be stored.   
+This is because sqlite used variable width integer encoding for all it's integers. This means that the database can pick the appropriate integer width which saves disk space as you don't need to use a 32 bit integer when a 8 bit one will do. Variable width Integers or VarInts are conceptually fairly simple, you split the binary representation into 7 bit chunks and use the last (or high) bit as a flag to indicate if there are more bytes to be read.
 
+So if we wanted to represent :code:`1,000`, we start with its binary representation split into 7 bit chunks:
+
+.. TODO::  
+   Give an example of different sizes and their maximum integer sizes.
+
+.. code-block:: 
+
+  0000111 1101000
+
+
+Then we add a "1" flag bit to the beginning of the first chunk to indicate we have more chunks, and a "0" flag bit to the beginning of the second chunk to indicate we don't have any more chunks:
+
+.. code-block::
+
+  10000111 01101000
+
+.. note::
+  This example is pulled directly from a great write up by Fly.io on varints. [#]_
+
+To simplify our implementation, we are only going to implement the varint encoding but not dynamically choosing the correct bit length. This means we'll use more disk space that strictly necesscary but our disk format will still be compatible with sqlite. 
+
+As always let's start off with a test using our example above.
+
+.. literalinclude:: ../../tests/test_datatypes.py
+   :dedent: 4
+   :language: python
+   :pyobject: TestGroupVarInt.test_varint_encode
 
 Text
 ----
@@ -102,3 +129,4 @@ Some text stuff
 
 .. [#] Byte order determines if the leading or the trailing bits are more significant. For instance an 8 bit integer with a value of 5 with :code:`big` endian byte ordering will be :code:`00000101`, but in :code:`little` endian ordering it will be reversed as :code:`10100000` 
 .. [#] A signed integer will use one of the bits to store the sign.
+.. [#] https://fly.io/blog/sqlite-internals-btree/ 

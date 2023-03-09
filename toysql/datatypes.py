@@ -38,7 +38,6 @@ def varint_encode(data: str, size: int) -> str:
 
     chunk_size = 7
     last_chunk_index = (size // 8) - 1
-    print("last_chunk_index", last_chunk_index)
     res = ""
     chunks = split_into_chunks(data, chunk_size)
 
@@ -131,6 +130,47 @@ class VarInt:
     width = 0
 
     @staticmethod
+    def chunk(v: str) -> List[str]:
+        """
+        splits a string into chunk_size width chunks
+        """
+        chunk_size = 7
+        return [v[i : i + chunk_size] for i in range(0, len(v), chunk_size)]
+
+    @staticmethod
+    def binary_to_hex(binary: str, size: int):
+        """
+        converts a binary string into hex bytes
+
+        in: 1000011101101000
+        out: b'\x87h'
+        """
+        return int(binary, 2).to_bytes(size // 8, byteorder="big")
+
+    @staticmethod
+    def encode(chunks: List[str], width: int):
+        """
+        converts a binary str into a varint encoded str
+
+        size is the number of bits
+
+        in:   0000111  1101000
+        out: 10000111 01101000
+        """
+        last_chunk_index = (width // 8) - 1
+        res = ""
+
+        for i, chunk in enumerate(chunks):
+            first_bit = "1"
+
+            if i == last_chunk_index:
+                first_bit = "0"
+
+            res += first_bit + chunk
+
+        return res
+
+    @staticmethod
     def str_to_int(data: str) -> int:
         """
         converts a binary string to an int
@@ -164,7 +204,7 @@ class VarInt:
         bin_str = cls.int_to_str(i, cls.width - byte_count)
 
         encoded = varint_encode(bin_str, cls.width)
-        return to_bytes(encoded, cls.width)
+        return cls.binary_to_hex(encoded, cls.width)
 
     @classmethod
     def from_bytes(cls: Type["VarInt"], buffer: BytesIO) -> int:
