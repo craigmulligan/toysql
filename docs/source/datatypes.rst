@@ -79,13 +79,15 @@ For instance creating a table you may write.
 
 .. code-block:: sql 
 
-  CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER)
+  CREATE TABLE products(code INTEGER PRIMARY KEY,
+    name TEXT, price INTEGER)
    
 Instead of explicitly defining the integer size for price.
 
 .. code-block:: sql
 
-  CREATE TABLE products(code INTEGER PRIMARY KEY, name TEXT, price INTEGER(8))
+  CREATE TABLE products(code INTEGER PRIMARY KEY, 
+    name TEXT, price INTEGER(8))
 
 .. note::
   To conform with other sql engines sqlite will happily accept :code:`price INTEGER(8)` but it will ignore the 8 and store it the same as any other integer.
