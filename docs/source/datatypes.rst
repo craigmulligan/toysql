@@ -4,6 +4,16 @@ datatypes
 
 The smallest component of the on-disk format is datatypes. These are things like :code:`Integer`, :code:`Text`, :code:`Null`. They are used both to store user generated data as well as internal metadata. We are going to implement each type needed to implement records, cells and pages. 
 
+.. TODO::
+
+   I think we need to give a brief introduction to the logical layout here and how btrees work so that the summaries make sense. See chidb for inspo.
+
+* Datatype - smallest unit of storage responsible for individual values like text, integer etc.   
+* Record - Stores each table record equivalent to a database row.
+* Cell - There are two types of cells. A LeafPageCell which stores a record. And a InteriorPageCell which stores pointers to other pages. The difference will be covered in depth in (LINK to section in Btree chapter).
+* Page - A Page is made up cells. Again there are two types of pages ones that store records LeafPages and ones that store InteriorPages.
+* A file - A File is made up of consecutive pages.
+
 Integers
 --------
 
@@ -25,7 +35,7 @@ Let's start with a test to illustrate the functionality we are after:
 .. note::
   Take special note of this Int8 interface. Every Datatype, Record Cell, Page will implement the :code:`.from_bytes`, and :code:`.to_bytes` methods. 
 
-Luck for us python's standard library gives us all the tools we need to implement these methods. The following code  
+Lucky for us python's standard library gives us all the tools we need to implement these methods. The following code  
 will serialize an integer to and from hexadecimal bytes. We have specified that we want the bit order to be big endian [#]_ and unsigned [#]_
 
 .. code-block:: python
