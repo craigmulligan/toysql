@@ -1,3 +1,5 @@
+.. _btrees_chapter:
+
 Btrees
 ======
 
