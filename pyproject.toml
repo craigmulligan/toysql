@@ -14,7 +14,9 @@ dev = [
     "pytest<8.0.0,>=7.1.1",
     "pyright<2.0.0,>=1.1.247",
     "snapshottest<1.0.0,>=0.6.0",
+    "sphinx>=6.1.3",
     "black>=23.1.0",
+    "sphinx-autobuild>=2021.3.14",
 ]
 
 [tool.pdm.build]
@@ -25,6 +27,8 @@ pyright = "pyright"
 black_check = "black . --check"
 black = "black ."
 ci = {composite = ["pyright", "black_check", "test"]}
+docs = "sphinx-autobuild docs/source docs/build/html"
+docs_build = "sphinx-build -b html docs/source/ docs/build/html"
 
 [build-system]
 requires = ["pdm-pep517>=1.0.0"]

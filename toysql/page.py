@@ -1,13 +1,14 @@
-from typing import Optional, List
+from typing import Optional
 from enum import Enum
-from toysql.record import Record, Integer
-import bisect
+from toysql.record import Record, Text
+from toysql.datatypes import UInt8, UInt16, UInt32, VarInt32
+from itertools import pairwise
 import io
 
 
 class PageType(Enum):
-    leaf = 0
-    interior = 1
+    leaf = 13
+    interior = 5
 
 
 class FixedInteger:
@@ -63,12 +64,12 @@ class LeafPageCell(Cell):
 
     def to_bytes(self):
         """
-        pass
+        Cell contains a record
         """
         buff = io.BytesIO()
         record_bytes = self.record.to_bytes()
-        record_size = Integer(len(record_bytes)).to_bytes()
-        row_id = Integer(self.record.row_id).to_bytes()
+        record_size = VarInt32.to_bytes(len(record_bytes))
+        row_id = VarInt32.to_bytes(self.record.row_id)
 
         buff.write(record_size)
         buff.write(row_id)
@@ -84,11 +85,11 @@ class LeafPageCell(Cell):
         Then read the record payload
         """
         buff = io.BytesIO(data)
-        record_size = Integer.from_bytes(buff.read())
-        buff.seek(record_size.content_length())
-        row_id = Integer.from_bytes(buff.read())
-        buff.seek(record_size.content_length() + row_id.content_length())
-        record = Record.from_bytes(buff.read(record_size.value))
+        record_size = VarInt32.from_bytes(buff)
+        # buff.seek(record_size.content_length())
+        row_id = VarInt32.from_bytes(buff)
+        # buff.seek(record_size.content_length() + 32)
+        record = Record.from_bytes(buff.read(record_size), row_id=row_id)
 
         return LeafPageCell(record)
 
@@ -110,8 +111,8 @@ class InteriorPageCell(Cell):
 
     def to_bytes(self):
         buff = io.BytesIO()
-        page_number = FixedInteger.to_bytes(4, self.left_child_page_number)
-        row_id = Integer(self.row_id).to_bytes()
+        page_number = UInt32.to_bytes(self.left_child_page_number)
+        row_id = VarInt32.to_bytes(self.row_id)
 
         buff.write(page_number)
         buff.write(row_id)
@@ -126,8 +127,8 @@ class InteriorPageCell(Cell):
         """
         buff = io.BytesIO(data)
 
-        left_child_page_number = FixedInteger.from_bytes(buff.read(4))
-        row_id = Integer.from_bytes(buff.read()).value
+        left_child_page_number = UInt32.from_bytes(buff)
+        row_id = VarInt32.from_bytes(buff)
 
         return InteriorPageCell(row_id, left_child_page_number)
 
@@ -226,7 +227,10 @@ class Page:
         if exists:
             self.remove_cell(exists)
 
-        bisect.insort(self.cells, cell)
+        # The cell is always writing
+        # into freespace.
+        self.cells.insert(0, cell)
+
         return cell
 
     def remove_cell(self, cell):
@@ -241,64 +245,92 @@ class Page:
 
     def header_size(self):
         if self.page_type == PageType.leaf:
+            if self.page_number == 0:
+                return 108
             return 8
+
+        if self.page_number == 0:
+            return 112
 
         return 12
 
     def __len__(self):
-        header_size = self.header_size()
-
-        [cell_offsets, cell_data] = self.cells_to_bytes()
-        return header_size + len(cell_offsets) + len(cell_data)
-
-    def cells_to_bytes(self) -> List[bytes]:
-        """
-        Returns the body as bytes
-        """
-        cell_offsets = b""
-        cell_data = b""
-
-        for cell in self.cells:
-            cell_bytes = cell.to_bytes()
-            # Add offset for each cell from the cell Content area.
-            # TODO this isn't a true offset. But it makes it easy to read
-            # All of them.
-            offset = FixedInteger.to_bytes(2, len(cell_bytes))
-            cell_offsets += offset
-            cell_data += cell_bytes
-
-        return [cell_offsets, cell_data]
+        # TODO can't use to_bytes because it always returns page size.
+        return len(self.to_bytes())
 
     def to_bytes(self) -> bytes:
         """
         Page header: https://www.sqlite.org/fileformat.html#:~:text=B%2Dtree%20Page%20Header%20Format
         """
+        # create a buffer of page_size
         buff = io.BytesIO(b"".ljust(self.page_size, b"\0"))
-        [cell_offsets, cell_data] = self.cells_to_bytes()
 
-        cell_content_offset = len(cell_data)
+        # get_header size dependent on page_type
+        header_size = self.header_size()
+
+        cell_data = []
+        for cell in self.cells:
+            cell_data.append(cell.to_bytes())
+
+        cell_data_len = len(b"".join(cell_data))
+        free_area_index = header_size + (len(self.cells) * 2)
+
+        # get_header size dependent on page_type
+        cell_content_offset = self.page_size - cell_data_len
 
         # Seek negative offset of cell_content area.
-        buff.seek(-cell_content_offset, 2)
-        buff.write(cell_data)
+        buff.seek(cell_content_offset)
 
+        cell_offsets = []
+
+        for cell in self.cells:
+            cell_offsets.append((cell.row_id, buff.tell()))
+            buff.write(cell.to_bytes())
+
+        # now right the header.
         buff.seek(0)
-        # Header
-        buff.write(FixedInteger.to_bytes(1, self.page_number))
-        # Header type.
-        buff.write(FixedInteger.to_bytes(1, self.page_type.value))
-        # Free block pointer. (Not implemented)
-        buff.write(FixedInteger.to_bytes(2, 0))
-        # Number of cells.
-        buff.write(FixedInteger.to_bytes(2, len(self.cells)))
-        # Cell Content Offset
-        buff.write(FixedInteger.to_bytes(2, cell_content_offset))
+        if self.page_number == 0:
+            # schema_page.
+            # not used == chidb doesnt care about it
+            # unsued == not in sqlite spec
+            buff.write(Text("SQLite format 3\0").to_bytes())
+            buff.write(UInt16.to_bytes(self.page_size))
+            buff.write(UInt8.to_bytes(1))
+            buff.write(UInt8.to_bytes(1))
+            buff.write(UInt8.to_bytes(0))
+            buff.write(UInt8.to_bytes(64))
+            buff.write(UInt8.to_bytes(32))
+            buff.write(UInt8.to_bytes(32))
+            buff.write(UInt32.to_bytes(0))  # page_counter
+            buff.write(UInt32.to_bytes(0))  # unused
+            buff.write(UInt32.to_bytes(0))  # not used
+            buff.write(UInt32.to_bytes(0))  # not used
+            buff.write(UInt32.to_bytes(0))  # schema_version
+            buff.write(UInt32.to_bytes(1))  # not used
+            buff.write(UInt32.to_bytes(20000))  # page_size_cache
+            buff.write(UInt32.to_bytes(0))  # not used
+            buff.write(UInt32.to_bytes(1))  # user cookie
+            # The rest of the header is just empty
+            # bytes
+            buff.write(b"".ljust(100 - buff.tell(), b"\0"))
 
-        if self.page_type == PageType.interior:
-            buff.write(FixedInteger.to_bytes(4, self.right_child_page_number))
+        # Page type.
+        buff.write(UInt8.to_bytes(self.page_type.value))
+        # Free area start
+        buff.write(UInt16.to_bytes(free_area_index))
+        # Number of cells.
+        buff.write(UInt16.to_bytes(len(self.cells)))
+        # Cell Content Offset
+        buff.write(UInt16.to_bytes(cell_content_offset))
+        # unused byte
+        buff.write(UInt8.to_bytes(0))
+
+        if self.page_type == PageType.interior and self.right_child_page_number:
+            buff.write(UInt32.to_bytes(self.right_child_page_number))
 
         # Right after the header we add the cell_offsets
-        buff.write(cell_offsets)
+        for _, offset in sorted(cell_offsets, key=lambda x: x[0]):
+            buff.write(UInt16.to_bytes(offset))
 
         # Go to the beginning so we can read everything.
         buff.seek(0)
@@ -315,14 +347,15 @@ class Page:
         raise Exception(f"Unknown page type {page_type}")
 
     @staticmethod
-    def from_bytes(data) -> "Page":
+    def from_bytes(data, page_number) -> "Page":
+        page_size = len(data)
         buffer = io.BytesIO(data)
-        page_number = FixedInteger.from_bytes(buffer.read(1))
-        page_type = PageType(FixedInteger.from_bytes(buffer.read(1)))
+        page_type = PageType(UInt8.from_bytes(buffer))
         # Free block pointer.
-        _ = PageType(FixedInteger.from_bytes(buffer.read(2)))
-        number_of_cells = FixedInteger.from_bytes(buffer.read(2))
-        cell_content_offset = FixedInteger.from_bytes(buffer.read(2))
+        _free_area_index = UInt16.from_bytes(buffer)
+        number_of_cells = UInt16.from_bytes(buffer)
+        _cell_content_offset = UInt16.from_bytes(buffer)
+        _unused = UInt8.from_bytes(buffer)
 
         right_child_page_number = None
 
@@ -330,7 +363,7 @@ class Page:
         # are in an InteriorPageCell[key, pointer] but the right most
         # one is stored seperately.
         if page_type == PageType.interior:
-            right_child_page_number = FixedInteger.from_bytes(buffer.read(4))
+            right_child_page_number = UInt32.from_bytes(buffer)
 
         cells = []
 
@@ -338,19 +371,23 @@ class Page:
         cell_offsets = []
 
         for _ in range(number_of_cells):
-            cell_offsets.append(FixedInteger.from_bytes(buffer.read(2)))
+            cell_offsets.append(UInt16.from_bytes(buffer))
 
         # Now read cells
-        buffer.seek(-cell_content_offset, 2)
-
-        for offset in cell_offsets:
-            cell_content = buffer.read(offset)
+        # Add the {None} so that the last offset is read until the end.
+        for current, next in pairwise(sorted(cell_offsets) + [None]):
+            buffer.seek(current)
+            cell_content = buffer.read(next)
             cell = Page.cell_from_bytes(page_type, cell_content)
-            cells.append(cell)
+            # Make sure we add them in the order they offsets are stored.
+            #    cells.append(cell)
+
+            cells.insert(cell_offsets.index(current), cell)
 
         return Page(
             page_type,
             page_number,
             cells=cells,
             right_child_page_number=right_child_page_number,
+            page_size=page_size,
         )
